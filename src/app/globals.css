@@ -1,0 +1,161 @@
+@tailwind base;
+@tailwind components;
+@tailwind utilities;
+
+@layer base {
+  :root {
+    /* Fouza brand: logo teal #59C9D5 + wordmark grey #606062 */
+    --background: 186 40% 99%;
+    --foreground: 240 1% 38%;
+
+    --card: 0 0% 100%;
+    --card-foreground: 240 1% 38%;
+
+    --popover: 0 0% 100%;
+    --popover-foreground: 240 1% 38%;
+
+    --primary: 186 60% 59%;
+    --primary-foreground: 240 2% 18%;
+
+    --secondary: 186 25% 96%;
+    --secondary-foreground: 240 1% 32%;
+
+    --muted: 186 18% 95%;
+    --muted-foreground: 240 1% 42%;
+
+    --accent: 186 55% 42%;
+    --accent-foreground: 0 0% 100%;
+
+    --accent-soft: 186 53% 94%;
+    --accent-soft-foreground: 186 45% 28%;
+
+    --destructive: 0 72% 51%;
+    --destructive-foreground: 0 0% 100%;
+
+    --success: 152 55% 36%;
+    --success-foreground: 0 0% 100%;
+
+    --warning: 38 92% 48%;
+    --warning-foreground: 240 1% 38%;
+
+    --info: 186 55% 50%;
+    --info-foreground: 0 0% 100%;
+
+    --border: 186 16% 88%;
+    --input: 186 16% 88%;
+    --ring: 186 60% 59%;
+
+    --radius: 0.75rem;
+
+    /* Legacy clinic aliases */
+    --clinic-teal: 186 60% 59%;
+    --clinic-sage: 186 30% 42%;
+    --clinic-slate: 240 1% 38%;
+    --clinic-mist: 186 40% 99%;
+
+    --shadow-soft: 0 4px 24px -4px hsl(186 30% 20% / 0.08),
+      0 2px 8px -2px hsl(186 30% 20% / 0.04);
+    --shadow-soft-lg: 0 12px 40px -8px hsl(186 30% 20% / 0.12),
+      0 4px 16px -4px hsl(186 30% 20% / 0.06);
+  }
+
+  .dark {
+    --background: 186 18% 8%;
+    --foreground: 186 20% 96%;
+
+    --card: 186 16% 11%;
+    --card-foreground: 186 20% 96%;
+
+    --popover: 186 16% 11%;
+    --popover-foreground: 186 20% 96%;
+
+    --primary: 186 55% 58%;
+    --primary-foreground: 186 18% 8%;
+
+    --secondary: 186 14% 16%;
+    --secondary-foreground: 186 20% 96%;
+
+    --muted: 186 14% 16%;
+    --muted-foreground: 186 10% 65%;
+
+    --accent: 186 50% 48%;
+    --accent-foreground: 186 18% 8%;
+
+    --accent-soft: 186 28% 16%;
+    --accent-soft-foreground: 186 40% 72%;
+
+    --destructive: 0 62% 48%;
+    --destructive-foreground: 0 0% 100%;
+
+    --success: 152 50% 42%;
+    --success-foreground: 0 0% 100%;
+
+    --warning: 38 92% 50%;
+    --warning-foreground: 186 18% 8%;
+
+    --info: 186 55% 55%;
+    --info-foreground: 186 18% 8%;
+
+    --border: 186 12% 20%;
+    --input: 186 12% 20%;
+    --ring: 186 55% 58%;
+
+    --clinic-teal: 186 55% 58%;
+    --clinic-sage: 186 30% 50%;
+    --clinic-slate: 186 20% 96%;
+    --clinic-mist: 186 18% 8%;
+
+    --shadow-soft: 0 4px 24px -4px hsl(0 0% 0% / 0.35),
+      0 2px 8px -2px hsl(0 0% 0% / 0.25);
+    --shadow-soft-lg: 0 12px 40px -8px hsl(0 0% 0% / 0.45),
+      0 4px 16px -4px hsl(0 0% 0% / 0.3);
+  }
+}
+
+@layer base {
+  * {
+    @apply border-border;
+  }
+
+  html {
+    scroll-behavior: smooth;
+  }
+
+  @media (prefers-reduced-motion: reduce) {
+    html {
+      scroll-behavior: auto;
+    }
+
+    *,
+    *::before,
+    *::after {
+      animation-duration: 0.01ms !important;
+      animation-iteration-count: 1 !important;
+      transition-duration: 0.01ms !important;
+    }
+  }
+
+  body {
+    @apply bg-background text-foreground antialiased;
+    font-feature-settings: "ss01" on, "cv01" on;
+  }
+
+  :focus-visible {
+    @apply outline-none ring-2 ring-ring ring-offset-2 ring-offset-background;
+  }
+}
+
+@layer utilities {
+  .touch-target {
+    min-height: 2.75rem;
+    min-width: 2.75rem;
+  }
+
+  .text-balance {
+    text-wrap: balance;
+  }
+
+  .glass {
+    @apply border border-white/20 bg-white/70 shadow-soft backdrop-blur-xl dark:border-white/10 dark:bg-card/70;
+  }
+}

@@ -1,0 +1,11 @@
+.tools
+node_modules
+node_modules.bak
+node_modules.partial
+node_modules.broken*
+.env*
+!.env.example
+debug.log
+*.tsbuildinfo
+.supabase
+.vercel

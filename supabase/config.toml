@@ -1,0 +1,59 @@
+# A string used to distinguish different Supabase projects on the same host.
+project_id = "fouza-physiotherapy"
+
+[api]
+enabled = true
+port = 54321
+schemas = ["public", "graphql_public"]
+extra_search_path = ["public", "extensions"]
+max_rows = 1000
+
+[db]
+port = 54322
+shadow_port = 54320
+major_version = 15
+
+[db.seed]
+enabled = true
+sql_paths = ['./seed/*.sql']
+
+[db.pooler]
+enabled = false
+port = 54329
+pool_mode = "transaction"
+default_pool_size = 20
+max_client_conn = 100
+
+[studio]
+enabled = true
+port = 54323
+api_url = "http://127.0.0.1"
+
+[inbucket]
+enabled = true
+port = 54324
+
+[storage]
+enabled = true
+file_size_limit = "50MiB"
+
+[auth]
+enabled = true
+# Preview host (Vercel). Keep localhost redirects for local Next.js against this project.
+site_url = "https://fouza-physiotherapy-yaseens-projects-1765104f.vercel.app"
+additional_redirect_urls = [
+  "http://localhost:3000/auth/callback",
+  "http://localhost:3000/reset-password",
+  "https://fouza-physiotherapy-yaseens-projects-1765104f.vercel.app/auth/callback",
+  "https://fouza-physiotherapy-yaseens-projects-1765104f.vercel.app/reset-password",
+]
+jwt_expiry = 3600
+enable_signup = true
+
+[auth.email]
+enable_signup = true
+double_confirm_changes = true
+enable_confirmations = true
+
+[analytics]
+enabled = false

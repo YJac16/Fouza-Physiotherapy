@@ -50,7 +50,7 @@ export default async function BookSuccessPage({ searchParams }: BookSuccessPageP
         <Container size="md">
           <ConfirmationCard
             title="Appointment confirmed"
-            message="We've received your booking and sent a confirmation to your email. Please arrive a few minutes early for your first visit."
+            message="We've received your booking. Check your email for a secure link to complete informed consent before your visit."
             reference={id}
             details={[
               { label: "Practice", value: siteConfig.practiceName },
@@ -59,17 +59,17 @@ export default async function BookSuccessPage({ searchParams }: BookSuccessPageP
             actions={
               <div className="flex w-full flex-col gap-3">
                 <Typography variant="small" className="text-center text-muted-foreground">
-                  Save time before your visit by completing your intake forms and creating a patient
-                  portal account.
+                  A portal invite was sent to the email you booked with. Use that link (or sign
+                  in) to finish your forms before the appointment.
                 </Typography>
                 <Button asChild size="lg" className="w-full">
-                  <Link href={routes.auth.register}>Create portal account</Link>
+                  <Link href={routes.portal.forms}>Open informed consent forms</Link>
                 </Button>
                 <Button asChild variant="outline" size="lg" className="w-full">
                   <Link href={routes.auth.login}>Sign in to portal</Link>
                 </Button>
                 <Button asChild variant="secondary" size="lg" className="w-full">
-                  <Link href={routes.portal.forms}>Complete intake forms</Link>
+                  <Link href={routes.auth.register}>Create account (if email not received)</Link>
                 </Button>
                 <Button asChild variant="ghost" className="w-full">
                   <Link href={routes.marketing.home}>Back to home</Link>

@@ -1,6 +1,7 @@
 import { EmptyState } from "@/components/shared/states";
 import { Badge } from "@/components/ui/badge";
 import { Card, CardContent, CardHeader, CardTitle } from "@/components/ui/card";
+import { getPatientConsentCompletionAdmin } from "@/features/consent-forms/lib/completion";
 import { requireStaff } from "@/lib/auth/guards";
 import { createClient } from "@/lib/supabase/server";
 
@@ -12,12 +13,21 @@ export default async function AppointmentsAdminPage() {
   const { data: appointments } = await supabase
     .from("appointments")
     .select(
-      "id, starts_at, ends_at, status, notes, patients(first_name, last_name), services(name)",
+      "id, patient_id, starts_at, ends_at, status, notes, patients(first_name, last_name), services(name)",
     )
     .gte("starts_at", `${today}T00:00:00.000Z`)
     .neq("status", "cancelled")
     .order("starts_at", { ascending: true })
     .limit(50);
+
+  const withConsent = await Promise.all(
+    (appointments ?? []).map(async (appt) => {
+      const completion = appt.patient_id
+        ? await getPatientConsentCompletionAdmin(appt.patient_id)
+        : null;
+      return { ...appt, completion };
+    }),
+  );
 
   return (
     <div className="space-y-8">
@@ -28,14 +38,14 @@ export default async function AppointmentsAdminPage() {
         </p>
       </div>
 
-      {!appointments?.length ? (
+      {!withConsent.length ? (
         <EmptyState
           title="No upcoming appointments"
           description="Bookings from the online scheduler and admin will appear here."
         />
       ) : (
         <div className="grid gap-4">
-          {appointments.map((appt) => {
+          {withConsent.map((appt) => {
             const patient = (Array.isArray(appt.patients)
               ? appt.patients[0]
               : appt.patients) as
@@ -59,9 +69,16 @@ export default async function AppointmentsAdminPage() {
                       {service ? ` · ${service.name}` : ""}
                     </p>
                   </div>
-                  <Badge variant="secondary" className="capitalize">
-                    {appt.status}
-                  </Badge>
+                  <div className="flex flex-col items-end gap-1">
+                    <Badge variant="secondary" className="capitalize">
+                      {appt.status}
+                    </Badge>
+                    {appt.completion ? (
+                      <Badge variant={appt.completion.complete ? "success" : "warning"}>
+                        {appt.completion.complete ? "Consent complete" : "Consent pending"}
+                      </Badge>
+                    ) : null}
+                  </div>
                 </CardHeader>
                 {appt.notes ? (
                   <CardContent className="pt-0 text-sm text-muted-foreground">

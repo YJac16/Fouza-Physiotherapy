@@ -99,11 +99,13 @@ Authentication → URL Configuration (preview project `raxwortsxirulebexxgp`):
 - [ ] `GET /api/health` returns `{ status: "ok" }`
 - [ ] Marketing home loads over HTTPS
 - [ ] Auth callback works (sign-in / register / reset)
+- [ ] Booking confirmation emails send via Resend (`booking.confirmed`, `portal.invite` magic link to `/portal/forms`)
+- [ ] Supabase Auth redirect URLs include production `/auth/callback`
 - [ ] Native `/book` wizard or Setmore fallback works
 - [ ] Patient portal + admin shells load for correct roles
 - [ ] RLS verified with patient vs staff test users
 - [ ] Resend test email delivers
-- [ ] Cron: schedule `POST /api/cron/outbox` with `Authorization: Bearer $CRON_SECRET`
+- [ ] Cron: `vercel.json` schedules `GET /api/cron/outbox` every 5 minutes (`CRON_SECRET` required in prod)
 - [ ] Preview deployments use a non-production Supabase project when possible
 
 ## 6. Environments

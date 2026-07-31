@@ -2,6 +2,7 @@ import { Resend } from "resend";
 
 import { createServiceClient } from "@/lib/supabase/admin";
 import { siteConfig } from "@/config/site";
+import { renderEmailTemplate } from "@/features/notifications/lib/email-templates";
 
 export async function drainEmailOutbox(limit = 20) {
   const apiKey = process.env.RESEND_API_KEY;
@@ -22,11 +23,13 @@ export async function drainEmailOutbox(limit = 20) {
   let processed = 0;
   for (const row of rows ?? []) {
     try {
+      const payload = (row.payload ?? {}) as Record<string, unknown>;
+      const { subject, html } = renderEmailTemplate(row.template_key, payload);
       await resend.emails.send({
         from: process.env.RESEND_FROM_EMAIL ?? "noreply@localhost",
         to: row.recipient.includes("@") ? row.recipient : siteConfig.email,
-        subject: `Fouza Physiotherapy — ${row.template_key}`,
-        html: `<p>${row.template_key}</p><pre>${JSON.stringify(row.payload, null, 2)}</pre>`,
+        subject,
+        html,
       });
       await admin
         .from("notification_outbox")

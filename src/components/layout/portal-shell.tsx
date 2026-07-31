@@ -30,7 +30,7 @@ const portalNav = [
   { label: "Appointments", href: routes.portal.appointments, icon: Calendar },
   { label: "Programmes", href: routes.portal.programmes, icon: Dumbbell },
   { label: "Invoices", href: routes.portal.invoices, icon: Receipt },
-  { label: "Forms", href: routes.portal.forms, icon: FileText },
+  { label: "Informed consent", href: routes.portal.forms, icon: FileText },
   { label: "Documents", href: routes.portal.documents, icon: FileText },
   { label: "Profile", href: routes.portal.profile, icon: User },
   { label: "Notifications", href: routes.portal.notifications, icon: Bell },
@@ -38,9 +38,10 @@ const portalNav = [
 
 export interface PortalSidebarProps {
   className?: string;
+  onNavigate?: () => void;
 }
 
-export function PortalSidebar({ className }: PortalSidebarProps) {
+export function PortalSidebar({ className, onNavigate }: PortalSidebarProps) {
   const pathname = usePathname();
 
   return (
@@ -64,6 +65,7 @@ export function PortalSidebar({ className }: PortalSidebarProps) {
             <Link
               key={item.href}
               href={item.href}
+              onClick={onNavigate}
               className={cn(
                 "flex items-center gap-3 rounded-xl px-3 py-2.5 text-sm font-medium transition-colors",
                 active
@@ -154,7 +156,12 @@ export interface PortalShellProps {
 }
 
 export function PortalShell({ children, title, userName }: PortalShellProps) {
+  const pathname = usePathname();
   const [mobileOpen, setMobileOpen] = React.useState(false);
+
+  React.useEffect(() => {
+    setMobileOpen(false);
+  }, [pathname]);
 
   return (
     <div className="flex min-h-screen bg-background">
@@ -182,7 +189,7 @@ export function PortalShell({ children, title, userName }: PortalShellProps) {
                 <X />
               </Button>
             </div>
-            <PortalSidebar />
+            <PortalSidebar onNavigate={() => setMobileOpen(false)} />
           </div>
         </div>
       ) : null}

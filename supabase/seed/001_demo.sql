@@ -8,10 +8,18 @@ values
 on conflict (slug) do nothing;
 
 insert into public.consent_forms (title, slug, body_md, version, is_active)
-values (
-  'General Treatment Consent',
-  'general-treatment-consent',
-  E'# Consent to Physiotherapy Treatment\n\nI consent to assessment and treatment by Fouza Physiotherapy...',
+values
+(
+  'Consent to Physiotherapy Treatment',
+  'treatment-consent',
+  E'# Consent to Physiotherapy Treatment\n\nSee migration 20260105000000 for full body.',
+  1,
+  true
+),
+(
+  'Consent to Responsibility of Physiotherapy Account',
+  'account-responsibility',
+  E'# Consent to Responsibility of Physiotherapy Account\n\nSee migration 20260105000000 for full body.',
   1,
   true
 )
@@ -19,9 +27,9 @@ on conflict (slug) do nothing;
 
 insert into public.intake_forms (title, slug, schema_json, is_active)
 values (
-  'New Patient Intake',
-  'new-patient-intake',
-  '{"fields":["medical_history","medications","goals","allergies"]}'::jsonb,
+  'Fouza Physiotherapy Consent Form',
+  'fouza-consent-intake',
+  '{"version":1,"sections":["patient_details","account_responsible","medical_aid","release_information","referral_source","undertaking","please_note"]}'::jsonb,
   true
 )
 on conflict (slug) do nothing;
@@ -30,5 +38,7 @@ insert into public.practice_settings (key, value)
 values
   ('booking.timezone', '"Africa/Johannesburg"'::jsonb),
   ('booking.hold_minutes', '10'::jsonb),
-  ('billing.currency', '"ZAR"'::jsonb)
+  ('billing.currency', '"ZAR"'::jsonb),
+  ('practice.number', '"0932469"'::jsonb),
+  ('practice.pt_number', '"0137855"'::jsonb)
 on conflict (key) do nothing;

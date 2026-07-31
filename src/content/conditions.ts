@@ -44,7 +44,7 @@ export const conditions: ConditionContent[] = [
           "Usually not. Gentle, guided movement is generally better than extended bed rest.",
       },
     ],
-    image: siteConfig.images.hero,
+    image: siteConfig.images.backRehab,
   },
   {
     slug: "neck-pain",
@@ -75,7 +75,7 @@ export const conditions: ConditionContent[] = [
           "Yes, when the neck is a contributing factor. We assess this carefully and treat accordingly.",
       },
     ],
-    image: siteConfig.images.hero,
+    image: siteConfig.images.posture,
   },
   {
     slug: "sciatica",
@@ -107,7 +107,7 @@ export const conditions: ConditionContent[] = [
           "Not always. Several structures can contribute. Assessment helps clarify the likely drivers.",
       },
     ],
-    image: siteConfig.images.treatment,
+    image: siteConfig.images.manualTherapy,
   },
   {
     slug: "shoulder-pain",
@@ -139,7 +139,7 @@ export const conditions: ConditionContent[] = [
           "Most people improve with physiotherapy first. Surgery is considered for specific cases after appropriate assessment.",
       },
     ],
-    image: siteConfig.images.treatment,
+    image: siteConfig.images.shoulderRehab,
   },
   {
     slug: "knee-pain",
@@ -171,7 +171,7 @@ export const conditions: ConditionContent[] = [
           "Often yes, with guidance on distance, surface, and supportive loading. We help you find the right dose.",
       },
     ],
-    image: siteConfig.images.clinic,
+    image: siteConfig.images.kneeAnkle,
   },
   {
     slug: "sports-injuries",
@@ -203,7 +203,7 @@ export const conditions: ConditionContent[] = [
           "When strength, control, and confidence meet agreed criteria — not only when pain settles.",
       },
     ],
-    image: siteConfig.images.treatment,
+    image: siteConfig.images.sports,
   },
   {
     slug: "arthritis",
@@ -267,7 +267,7 @@ export const conditions: ConditionContent[] = [
           "Yes, with appropriate modifications. We prioritise comfort and safety at every stage.",
       },
     ],
-    image: siteConfig.images.clinic,
+    image: siteConfig.images.posture,
   },
   {
     slug: "headaches",
@@ -299,7 +299,7 @@ export const conditions: ConditionContent[] = [
           "Seek urgent care for sudden severe headache, neurological symptoms, or headache after trauma.",
       },
     ],
-    image: siteConfig.images.hero,
+    image: siteConfig.images.posture,
   },
   {
     slug: "frozen-shoulder",
@@ -331,7 +331,7 @@ export const conditions: ConditionContent[] = [
           "Most people regain useful movement over time. Consistent, guided rehab supports that process.",
       },
     ],
-    image: siteConfig.images.treatment,
+    image: siteConfig.images.shoulderRehab,
   },
   {
     slug: "post-operative-rehabilitation",
@@ -363,7 +363,7 @@ export const conditions: ConditionContent[] = [
           "Often yes, within protocol limits. Bring your operation notes if available.",
       },
     ],
-    image: siteConfig.images.clinic,
+    image: siteConfig.images.postOp,
   },
 ];
 

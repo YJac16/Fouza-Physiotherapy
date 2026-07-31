@@ -4,6 +4,7 @@ import { EmptyState } from "@/components/shared/states";
 import { AppointmentHistoryCard } from "@/components/patient/cards";
 import { Button } from "@/components/ui/button";
 import { getMyPatientRecord, listMyAppointments } from "@/features/patients/api/patients";
+import { getPatientConsentCompletion } from "@/features/consent-forms/lib/completion";
 import { requireUser } from "@/lib/auth/guards";
 import { routes } from "@/config/routes";
 
@@ -13,6 +14,9 @@ export default async function PortalHomePage() {
   const { data: appointments } = await listMyAppointments(true);
 
   const greeting = profile.full_name?.split(" ")[0] ?? "there";
+  const completion = patient
+    ? await getPatientConsentCompletion(patient.id)
+    : null;
 
   return (
     <div className="space-y-8">
@@ -22,6 +26,23 @@ export default async function PortalHomePage() {
           Your Fouza Physiotherapy patient portal.
         </p>
       </div>
+
+      {patient && completion && !completion.complete ? (
+        <div className="rounded-2xl border border-warning/40 bg-warning/10 p-5">
+          <p className="font-display text-lg font-semibold text-foreground">
+            Complete your forms before your visit
+          </p>
+          <p className="mt-1 text-sm text-muted-foreground">
+            Informed consent is still outstanding
+            {completion.missing.length
+              ? `: ${completion.missing.join(", ")}`
+              : "."}
+          </p>
+          <Button asChild className="mt-4">
+            <Link href={routes.portal.forms}>Open informed consent</Link>
+          </Button>
+        </div>
+      ) : null}
 
       <section className="space-y-4">
         <div className="flex items-center justify-between">

@@ -73,9 +73,15 @@ export async function createProgrammeAction(
 
   const exerciseName = formData.get("firstExercise")?.toString();
   if (exerciseName && data) {
+    const sets = Number(formData.get("sets") ?? 0) || null;
+    const reps = Number(formData.get("reps") ?? 0) || null;
+    const holdSeconds = Number(formData.get("holdSeconds") ?? 0) || null;
     await supabase.from("programme_exercises").insert({
       programme_id: data.id,
       name: exerciseName,
+      sets,
+      reps,
+      hold_seconds: holdSeconds,
       sort_order: 0,
     });
   }

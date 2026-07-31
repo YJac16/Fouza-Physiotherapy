@@ -1,5 +1,7 @@
 import { createServiceClient } from "@/lib/supabase/admin";
 import type { ConfirmBookingInput, HoldInput } from "@/features/booking/schemas/booking";
+import { ensurePatientPortalInvite } from "@/features/auth/lib/portal-invite";
+import { drainEmailOutbox } from "@/features/notifications/lib/outbox";
 
 const HOLD_MINUTES = 10;
 
@@ -8,7 +10,6 @@ export async function createHold(input: HoldInput) {
   const token = crypto.randomUUID();
   const expiresAt = new Date(Date.now() + HOLD_MINUTES * 60_000).toISOString();
 
-  // Conflict check
   const { data: conflicts } = await admin
     .from("appointments")
     .select("id")
@@ -48,7 +49,6 @@ export async function confirmBooking(input: ConfirmBookingInput) {
 
   if (!hold) return { error: "Hold expired or not found", appointmentId: null };
 
-  // Upsert patient by email
   let patientId: string | null = null;
   const { data: existing } = await admin
     .from("patients")
@@ -101,14 +101,43 @@ export async function confirmBooking(input: ConfirmBookingInput) {
     return { error: error?.message ?? "Booking failed", appointmentId: null };
   }
 
+  if (!patientId) {
+    return { error: "Patient missing after booking", appointmentId: null };
+  }
+
   await admin.from("appointment_holds").delete().eq("id", hold.id);
 
-  await admin.from("notification_outbox").insert({
-    channel: "email",
-    template_key: "booking.confirmed",
-    recipient: input.email,
-    payload: { appointmentId: appointment.id, patientId },
+  const invite = await ensurePatientPortalInvite({
+    email: input.email,
+    fullName: `${input.firstName} ${input.lastName}`.trim(),
+    patientId,
   });
+
+  const emailPayload = {
+    appointmentId: appointment.id,
+    patientId,
+    firstName: input.firstName,
+    startsAt: hold.starts_at,
+    magicLink: invite.magicLink,
+  };
+
+  await admin.from("notification_outbox").insert([
+    {
+      channel: "email",
+      template_key: "booking.confirmed",
+      recipient: input.email.toLowerCase(),
+      payload: emailPayload,
+    },
+    {
+      channel: "email",
+      template_key: "portal.invite",
+      recipient: input.email.toLowerCase(),
+      payload: emailPayload,
+    },
+  ]);
+
+  // Opportunistic send when Resend is configured; cron remains the reliable drain.
+  await drainEmailOutbox(10);
 
   await admin.from("patient_timeline_events").insert({
     patient_id: patientId,
@@ -118,7 +147,7 @@ export async function confirmBooking(input: ConfirmBookingInput) {
     entity_id: appointment.id,
   });
 
-  return { error: null, appointmentId: appointment.id };
+  return { error: null, appointmentId: appointment.id, magicLink: invite.magicLink };
 }
 
 export async function cancelBooking(appointmentId: string, actorId?: string) {

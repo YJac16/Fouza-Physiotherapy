@@ -37,7 +37,7 @@ const adminNav = [
   { label: "Programmes", href: routes.admin.programmes, icon: Dumbbell },
   { label: "Billing", href: routes.admin.billing, icon: FileText },
   { label: "Documents", href: routes.admin.documents, icon: FileText },
-  { label: "Consent forms", href: routes.admin.consentForms, icon: ClipboardList },
+  { label: "Informed consent", href: routes.admin.consentForms, icon: ClipboardList },
   { label: "Availability", href: routes.admin.availability, icon: CalendarClock },
   { label: "Users", href: routes.admin.users, icon: Users },
   { label: "Reviews", href: routes.admin.reviews, icon: Star },
@@ -48,9 +48,10 @@ const adminNav = [
 
 export interface AdminSidebarProps {
   className?: string;
+  onNavigate?: () => void;
 }
 
-export function AdminSidebar({ className }: AdminSidebarProps) {
+export function AdminSidebar({ className, onNavigate }: AdminSidebarProps) {
   const pathname = usePathname();
 
   return (
@@ -74,6 +75,7 @@ export function AdminSidebar({ className }: AdminSidebarProps) {
             <Link
               key={item.href}
               href={item.href}
+              onClick={onNavigate}
               className={cn(
                 "flex items-center gap-3 rounded-xl px-3 py-2.5 text-sm font-medium transition-colors",
                 active
@@ -164,7 +166,12 @@ export interface AdminShellProps {
 }
 
 export function AdminShell({ children, title, userName }: AdminShellProps) {
+  const pathname = usePathname();
   const [mobileOpen, setMobileOpen] = React.useState(false);
+
+  React.useEffect(() => {
+    setMobileOpen(false);
+  }, [pathname]);
 
   return (
     <div className="flex min-h-screen bg-background">
@@ -192,7 +199,7 @@ export function AdminShell({ children, title, userName }: AdminShellProps) {
                 <X />
               </Button>
             </div>
-            <AdminSidebar />
+            <AdminSidebar onNavigate={() => setMobileOpen(false)} />
           </div>
         </div>
       ) : null}

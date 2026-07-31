@@ -1,23 +1,51 @@
 import { EmptyState } from "@/components/shared/states";
 import { listConsentForms } from "@/features/consent-forms/actions/consent";
+import {
+  getPatientConsentCompletion,
+  INTAKE_SLUG,
+} from "@/features/consent-forms/lib/completion";
 import { getMyPatientRecord } from "@/features/patients/api/patients";
 import { createClient } from "@/lib/supabase/server";
+import { requireUser } from "@/lib/auth/guards";
 import { PortalFormsClient } from "./portal-forms-client";
 
 export default async function PortalFormsPage() {
+  const profile = await requireUser();
   const { data: patient } = await getMyPatientRecord();
   const { data: consentForms } = await listConsentForms();
 
   const supabase = await createClient();
   const { data: intakeForms } = await supabase
     .from("intake_forms")
-    .select("id, title")
+    .select("id, title, slug")
     .eq("is_active", true);
+
+  const intakeForm =
+    intakeForms?.find((f) => f.slug === INTAKE_SLUG) ?? intakeForms?.[0] ?? null;
+  const treatmentConsent = consentForms?.find((f) => f.slug === "treatment-consent");
+  const accountConsent = consentForms?.find((f) => f.slug === "account-responsibility");
+
+  let alreadyComplete = false;
+  let appointmentId: string | null = null;
+  if (patient) {
+    const completion = await getPatientConsentCompletion(patient.id);
+    alreadyComplete = completion.complete;
+    const { data: nextAppt } = await supabase
+      .from("appointments")
+      .select("id")
+      .eq("patient_id", patient.id)
+      .in("status", ["pending", "confirmed"])
+      .gte("starts_at", new Date().toISOString())
+      .order("starts_at", { ascending: true })
+      .limit(1)
+      .maybeSingle();
+    appointmentId = nextAppt?.id ?? null;
+  }
 
   return (
     <div className="space-y-8">
       <div>
-        <h1 className="font-display text-2xl font-semibold">Forms</h1>
+        <h1 className="font-display text-2xl font-semibold">Informed consent</h1>
         <p className="text-sm text-muted-foreground">
           Complete intake and consent forms before your visit.
         </p>
@@ -28,16 +56,24 @@ export default async function PortalFormsPage() {
           title="No patient record linked"
           description="Contact the practice to link your account before completing forms."
         />
-      ) : !consentForms?.length && !intakeForms?.length ? (
+      ) : !intakeForm || !treatmentConsent || !accountConsent ? (
         <EmptyState
-          title="No forms available"
-          description="There are no active intake or consent forms at this time."
+          title="Consent package unavailable"
+          description="The practice has not published the informed consent package yet."
         />
       ) : (
         <PortalFormsClient
           patientId={patient.id}
-          consentForms={consentForms ?? []}
-          intakeForms={intakeForms ?? []}
+          appointmentId={appointmentId}
+          alreadyComplete={alreadyComplete}
+          intakeForm={intakeForm}
+          treatmentConsent={treatmentConsent}
+          accountConsent={accountConsent}
+          defaults={{
+            fullName: profile.full_name ?? undefined,
+            email: profile.email,
+            phone: patient.phone ?? undefined,
+          }}
         />
       )}
     </div>

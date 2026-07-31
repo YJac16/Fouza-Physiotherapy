@@ -12,7 +12,7 @@ jobs:
       - uses: actions/checkout@v4
       - uses: actions/setup-node@v4
         with:
-          node-version: "20"
+          node-version: "22"
           cache: npm
       - run: npm ci
       - run: npm run typecheck
@@ -26,7 +26,7 @@ jobs:
       - uses: actions/checkout@v4
       - uses: actions/setup-node@v4
         with:
-          node-version: "20"
+          node-version: "22"
           cache: npm
       - run: npm ci
       - run: npx playwright install --with-deps chromium
@@ -38,3 +38,5 @@ jobs:
       - run: npx playwright test
         env:
           NEXT_PUBLIC_APP_URL: http://localhost:3000
+          PLAYWRIGHT_BASE_URL: http://localhost:3000
+          CI: "true"

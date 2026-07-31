@@ -59,11 +59,23 @@ export const siteConfig = {
     logoWordmark: "/fouza-physiotherapy-logo-wordmark.jpg",
     favicon: "/favicon-32x32.jpg",
     hpcsa: "/hpcsa-logo.png",
-    hero: "/facilities-02.jpg",
+    /** Clinic waiting area — primary marketing hero */
+    hero: "/facilities-08.jpg",
     portrait: "/fouza-portrait-1.jpg",
-    clinic: "/facilities-06.jpg",
-    treatment: "/rehab-01.jpg",
-    og: "/facilities-02.jpg",
+    /** Rehab gym corner with equipment */
+    clinic: "/facilities-04.jpg",
+    /** Hands-on table assessment / manual therapy */
+    treatment: "/rehab-02.jpg",
+    sports: "/rehab-03.jpg",
+    manualTherapy: "/rehab-02.jpg",
+    softTissue: "/rehab-08.jpg",
+    backRehab: "/rehab-05.jpg",
+    posture: "/rehab-06.jpg",
+    shoulderRehab: "/rehab-05.jpg",
+    kneeAnkle: "/rehab-04.jpg",
+    postOp: "/rehab-10.jpg",
+    assessment: "/rehab-09.jpg",
+    og: "/facilities-08.jpg",
   },
 } as const;
 

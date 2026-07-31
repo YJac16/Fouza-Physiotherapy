@@ -64,6 +64,9 @@ export type Database = {
           date_of_birth: string | null;
           medical_aid_name: string | null;
           medical_aid_number: string | null;
+          medical_aid_dependant_code: string | null;
+          id_number: string | null;
+          postal_address: string | null;
           notes: string | null;
           created_at: string;
           updated_at: string;
@@ -78,6 +81,9 @@ export type Database = {
           date_of_birth?: string | null;
           medical_aid_name?: string | null;
           medical_aid_number?: string | null;
+          medical_aid_dependant_code?: string | null;
+          id_number?: string | null;
+          postal_address?: string | null;
           notes?: string | null;
           created_at?: string;
           updated_at?: string;
@@ -92,6 +98,9 @@ export type Database = {
           date_of_birth?: string | null;
           medical_aid_name?: string | null;
           medical_aid_number?: string | null;
+          medical_aid_dependant_code?: string | null;
+          id_number?: string | null;
+          postal_address?: string | null;
           notes?: string | null;
           created_at?: string;
           updated_at?: string;

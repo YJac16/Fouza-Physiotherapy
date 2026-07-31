@@ -67,7 +67,7 @@ export const services: ServiceContent[] = [
       },
     ],
     icon: Dumbbell,
-    image: siteConfig.images.treatment,
+    image: siteConfig.images.sports,
   },
   {
     slug: "womens-health",
@@ -101,7 +101,7 @@ export const services: ServiceContent[] = [
       },
     ],
     icon: Baby,
-    image: siteConfig.images.clinic,
+    image: siteConfig.images.posture,
   },
   {
     slug: "dry-needling",
@@ -140,7 +140,7 @@ export const services: ServiceContent[] = [
       },
     ],
     icon: Syringe,
-    image: siteConfig.images.treatment,
+    image: siteConfig.images.softTissue,
   },
   {
     slug: "manual-therapy",
@@ -174,7 +174,7 @@ export const services: ServiceContent[] = [
       },
     ],
     icon: Hand,
-    image: siteConfig.images.treatment,
+    image: siteConfig.images.manualTherapy,
   },
   {
     slug: "post-surgery-rehabilitation",
@@ -208,7 +208,7 @@ export const services: ServiceContent[] = [
       },
     ],
     icon: Bone,
-    image: siteConfig.images.clinic,
+    image: siteConfig.images.postOp,
   },
   {
     slug: "back-pain",
@@ -242,7 +242,7 @@ export const services: ServiceContent[] = [
       },
     ],
     icon: Activity,
-    image: siteConfig.images.hero,
+    image: siteConfig.images.backRehab,
   },
   {
     slug: "neck-pain",
@@ -276,7 +276,7 @@ export const services: ServiceContent[] = [
       },
     ],
     icon: PersonStanding,
-    image: siteConfig.images.hero,
+    image: siteConfig.images.posture,
   },
   {
     slug: "shoulder-rehabilitation",
@@ -310,7 +310,7 @@ export const services: ServiceContent[] = [
       },
     ],
     icon: Armchair,
-    image: siteConfig.images.treatment,
+    image: siteConfig.images.shoulderRehab,
   },
   {
     slug: "home-visits",
@@ -344,7 +344,7 @@ export const services: ServiceContent[] = [
       },
     ],
     icon: Home,
-    image: siteConfig.images.clinic,
+    image: siteConfig.images.assessment,
   },
 ];
 

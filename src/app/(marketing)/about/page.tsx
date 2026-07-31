@@ -242,9 +242,9 @@ export default function AboutPage() {
           />
           <div className="grid gap-4 sm:grid-cols-2 lg:grid-cols-3">
             {[
-              { src: siteConfig.images.clinic, alt: "Fouza Physiotherapy clinic interior" },
-              { src: siteConfig.images.treatment, alt: "Treatment room at Fouza Physiotherapy" },
-              { src: siteConfig.images.hero, alt: "Physiotherapy treatment session" },
+              { src: siteConfig.images.clinic, alt: "Rehab gym space at Fouza Physiotherapy" },
+              { src: siteConfig.images.treatment, alt: "Hands-on physiotherapy assessment on the treatment table" },
+              { src: siteConfig.images.sports, alt: "Guided exercise rehabilitation session" },
             ].map((image) => (
               <div
                 key={image.src}

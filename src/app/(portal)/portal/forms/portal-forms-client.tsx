@@ -1,131 +1,564 @@
 "use client";
 
-import { useActionState, useState } from "react";
+import { useActionState, useMemo, useState } from "react";
 
 import { SignaturePad } from "@/components/forms/signature-pad";
 import {
-  signConsentAction,
-  submitIntakeAction,
+  submitFouzaConsentPackageAction,
   type ConsentActionState,
 } from "@/features/consent-forms/actions/consent";
+import { pricingPlans } from "@/content/pricing";
+import { siteConfig } from "@/config/site";
 import { Button } from "@/components/ui/button";
 import { FormMessage } from "@/components/ui/form-message";
 import { Input } from "@/components/ui/input";
 import { Label } from "@/components/ui/label";
 import { Textarea } from "@/components/ui/textarea";
 import { Card, CardContent, CardHeader, CardTitle } from "@/components/ui/card";
+import { cn } from "@/lib/utils";
 
 const initial: ConsentActionState = {};
 
+const RELEASE_OPTIONS = ["Medical Team", "Guardian", "Partner", "Other"] as const;
+const SOURCE_OPTIONS = ["Instagram", "Facebook", "Google", "Other"] as const;
+
 export interface PortalFormsClientProps {
   patientId: string;
-  consentForms: { id: string; title: string; body_md: string }[];
-  intakeForms: { id: string; title: string }[];
+  appointmentId?: string | null;
+  alreadyComplete?: boolean;
+  intakeForm: { id: string; title: string };
+  treatmentConsent: { id: string; title: string; body_md: string };
+  accountConsent: { id: string; title: string; body_md: string };
+  defaults?: {
+    fullName?: string;
+    email?: string;
+    phone?: string;
+  };
+}
+
+function Section({
+  title,
+  children,
+  description,
+}: {
+  title: string;
+  description?: string;
+  children: React.ReactNode;
+}) {
+  return (
+    <Card>
+      <CardHeader>
+        <CardTitle className="text-h5">{title}</CardTitle>
+        {description ? (
+          <p className="text-sm text-muted-foreground">{description}</p>
+        ) : null}
+      </CardHeader>
+      <CardContent className="space-y-4">{children}</CardContent>
+    </Card>
+  );
+}
+
+function markdownToParagraphs(md: string) {
+  return md
+    .replace(/^# .+\n+/, "")
+    .split(/\n+/)
+    .map((line) => line.trim())
+    .filter(Boolean);
 }
 
 export function PortalFormsClient({
   patientId,
-  consentForms,
-  intakeForms,
+  appointmentId,
+  alreadyComplete,
+  intakeForm,
+  treatmentConsent,
+  accountConsent,
+  defaults,
 }: PortalFormsClientProps) {
-  const [consentState, consentAction, consentPending] = useActionState(
-    signConsentAction,
-    initial,
-  );
-  const [intakeState, intakeAction, intakePending] = useActionState(
-    submitIntakeAction,
+  const [state, action, pending] = useActionState(
+    submitFouzaConsentPackageAction,
     initial,
   );
 
-  const [chiefComplaint, setChiefComplaint] = useState("");
-  const [medications, setMedications] = useState("");
-  const [allergies, setAllergies] = useState("");
+  const [sameAsPatient, setSameAsPatient] = useState(false);
+  const [fullName, setFullName] = useState(defaults?.fullName ?? "");
+  const [idNumber, setIdNumber] = useState("");
+  const [contactNumber, setContactNumber] = useState(defaults?.phone ?? "");
+  const [email, setEmail] = useState(defaults?.email ?? "");
+  const [street, setStreet] = useState("");
+  const [suburb, setSuburb] = useState("");
+  const [areaCode, setAreaCode] = useState("");
 
-  const primaryConsent = consentForms[0];
-  const primaryIntake = intakeForms[0];
+  const [respName, setRespName] = useState("");
+  const [respId, setRespId] = useState("");
+  const [respContact, setRespContact] = useState("");
+  const [respEmail, setRespEmail] = useState("");
+  const [respPostal, setRespPostal] = useState("");
+
+  const [medicalAid, setMedicalAid] = useState("");
+  const [medicalAidNumber, setMedicalAidNumber] = useState("");
+  const [dependantCode, setDependantCode] = useState("");
+
+  const [release, setRelease] = useState<string[]>([]);
+  const [releaseOther, setReleaseOther] = useState("");
+  const [sources, setSources] = useState<string[]>([]);
+  const [sourceOther, setSourceOther] = useState("");
+
+  const [undertaking, setUndertaking] = useState<"yes" | "no" | "">("");
+  const [pleaseNote, setPleaseNote] = useState<"agree" | "disagree" | "">("");
+  const [typedFullName, setTypedFullName] = useState("");
+  const [treatmentSignature, setTreatmentSignature] = useState("");
+  const [accountSignature, setAccountSignature] = useState("");
+
+  const answersJson = useMemo(
+    () =>
+      JSON.stringify({
+        fullName,
+        idNumber,
+        contactNumber,
+        email,
+        street,
+        suburb,
+        areaCode,
+        accountResponsible: sameAsPatient
+          ? {
+              sameAsPatient: true,
+              name: fullName,
+              idNumber,
+              contactNumber,
+              email,
+              postalAddress: [street, suburb, areaCode].filter(Boolean).join(", "),
+            }
+          : {
+              sameAsPatient: false,
+              name: respName,
+              idNumber: respId,
+              contactNumber: respContact,
+              email: respEmail,
+              postalAddress: respPostal,
+            },
+        medicalAid,
+        medicalAidNumber,
+        dependantCode,
+        releaseInformation: release,
+        releaseOther,
+        referralSources: sources,
+        sourceOther,
+        undertaking,
+        pleaseNote,
+        typedFullName,
+      }),
+    [
+      fullName,
+      idNumber,
+      contactNumber,
+      email,
+      street,
+      suburb,
+      areaCode,
+      sameAsPatient,
+      respName,
+      respId,
+      respContact,
+      respEmail,
+      respPostal,
+      medicalAid,
+      medicalAidNumber,
+      dependantCode,
+      release,
+      releaseOther,
+      sources,
+      sourceOther,
+      undertaking,
+      pleaseNote,
+      typedFullName,
+    ],
+  );
+
+  function toggle(list: string[], value: string, setter: (v: string[]) => void) {
+    setter(list.includes(value) ? list.filter((v) => v !== value) : [...list, value]);
+  }
+
+  if (alreadyComplete) {
+    return (
+      <Card>
+        <CardHeader>
+          <CardTitle className="text-h5">Forms complete</CardTitle>
+        </CardHeader>
+        <CardContent className="text-sm text-muted-foreground">
+          Your informed consent and intake forms are on file. Thank you — the practice can
+          prepare for your visit.
+        </CardContent>
+      </Card>
+    );
+  }
+
+  const treatmentLines = markdownToParagraphs(treatmentConsent.body_md);
+  const accountLines = markdownToParagraphs(accountConsent.body_md);
 
   return (
-    <div className="grid gap-8 lg:grid-cols-2">
-      {primaryIntake ? (
-        <Card>
-          <CardHeader>
-            <CardTitle className="text-h5">{primaryIntake.title}</CardTitle>
-          </CardHeader>
-          <CardContent>
-            <form action={intakeAction} className="space-y-4">
-              <input type="hidden" name="formId" value={primaryIntake.id} />
-              <input type="hidden" name="patientId" value={patientId} />
-              <input
-                type="hidden"
-                name="answersJson"
-                value={JSON.stringify({ chiefComplaint, medications, allergies })}
-              />
-              <div className="space-y-2">
-                <Label htmlFor="chiefComplaint">Chief complaint</Label>
-                <Textarea
-                  id="chiefComplaint"
-                  rows={3}
-                  placeholder="Describe your main concern"
-                  value={chiefComplaint}
-                  onChange={(e) => setChiefComplaint(e.target.value)}
-                />
-              </div>
-              <div className="space-y-2">
-                <Label htmlFor="medications">Current medications</Label>
-                <Input
-                  id="medications"
-                  value={medications}
-                  onChange={(e) => setMedications(e.target.value)}
-                />
-              </div>
-              <div className="space-y-2">
-                <Label htmlFor="allergies">Allergies</Label>
-                <Input
-                  id="allergies"
-                  value={allergies}
-                  onChange={(e) => setAllergies(e.target.value)}
-                />
-              </div>
-              {intakeState.error ? (
-                <FormMessage tone="error">{intakeState.error}</FormMessage>
-              ) : null}
-              {intakeState.success ? (
-                <FormMessage tone="success">{intakeState.success}</FormMessage>
-              ) : null}
-              <Button type="submit" loading={intakePending}>
-                Submit intake
-              </Button>
-            </form>
-          </CardContent>
-        </Card>
+    <form action={action} className="space-y-6">
+      <input type="hidden" name="intakeFormId" value={intakeForm.id} />
+      <input type="hidden" name="patientId" value={patientId} />
+      {appointmentId ? (
+        <input type="hidden" name="appointmentId" value={appointmentId} />
       ) : null}
+      <input type="hidden" name="treatmentFormId" value={treatmentConsent.id} />
+      <input type="hidden" name="accountFormId" value={accountConsent.id} />
+      <input type="hidden" name="answersJson" value={answersJson} />
+      <input type="hidden" name="treatmentSignature" value={treatmentSignature} />
+      <input type="hidden" name="accountSignature" value={accountSignature} />
 
-      {primaryConsent ? (
-        <Card>
-          <CardHeader>
-            <CardTitle className="text-h5">{primaryConsent.title}</CardTitle>
-          </CardHeader>
-          <CardContent className="space-y-4">
-            <p className="text-sm leading-relaxed text-muted-foreground">
-              {primaryConsent.body_md.slice(0, 500)}
+      <Card className="border-primary/20 bg-accent-soft/40">
+        <CardHeader>
+          <CardTitle className="text-h5">{intakeForm.title}</CardTitle>
+        </CardHeader>
+        <CardContent className="space-y-2 text-sm text-muted-foreground">
+          <p>{siteConfig.address}</p>
+          <p>Pr. No: 0932469 · PT 0137855</p>
+          <p>
+            Contact: {siteConfig.phoneDisplay} · WhatsApp: {siteConfig.phoneDisplay}
+          </p>
+          <p>Email: {siteConfig.email}</p>
+          <p className="font-medium text-foreground">
+            PLEASE NOTE: ALL INFORMATION PROVIDED IS FOR INVOICING/MEDICAL NOTES PURPOSES,
+            AND PERSONAL INFORMATION IS KEPT CONFIDENTIAL.
+          </p>
+        </CardContent>
+      </Card>
+
+      <Section title="Patient details">
+        <div className="grid gap-4 sm:grid-cols-2">
+          <div className="space-y-2 sm:col-span-2">
+            <Label htmlFor="fullName">Name and Surname *</Label>
+            <Input
+              id="fullName"
+              required
+              value={fullName}
+              onChange={(e) => setFullName(e.target.value)}
+            />
+          </div>
+          <div className="space-y-2">
+            <Label htmlFor="idNumber">ID number *</Label>
+            <Input
+              id="idNumber"
+              required
+              value={idNumber}
+              onChange={(e) => setIdNumber(e.target.value)}
+            />
+          </div>
+          <div className="space-y-2">
+            <Label htmlFor="contactNumber">Contact Number *</Label>
+            <Input
+              id="contactNumber"
+              required
+              value={contactNumber}
+              onChange={(e) => setContactNumber(e.target.value)}
+            />
+          </div>
+          <div className="space-y-2 sm:col-span-2">
+            <Label htmlFor="email">Email address *</Label>
+            <Input
+              id="email"
+              type="email"
+              required
+              value={email}
+              onChange={(e) => setEmail(e.target.value)}
+            />
+          </div>
+          <div className="space-y-2 sm:col-span-2">
+            <Label>Postal Address *</Label>
+            <div className="grid gap-3 sm:grid-cols-3">
+              <Input
+                placeholder="Street name and number"
+                required
+                value={street}
+                onChange={(e) => setStreet(e.target.value)}
+              />
+              <Input
+                placeholder="Suburb"
+                required
+                value={suburb}
+                onChange={(e) => setSuburb(e.target.value)}
+              />
+              <Input
+                placeholder="Area code"
+                required
+                value={areaCode}
+                onChange={(e) => setAreaCode(e.target.value)}
+              />
+            </div>
+          </div>
+        </div>
+      </Section>
+
+      <Section
+        title="Person Responsible for Account / Main Member of Medical Aid"
+        description='If the patient is responsible for the account, tick “Same as above”.'
+      >
+        <label className="flex items-center gap-2 text-sm">
+          <input
+            type="checkbox"
+            checked={sameAsPatient}
+            onChange={(e) => setSameAsPatient(e.target.checked)}
+          />
+          Same as above
+        </label>
+        {!sameAsPatient ? (
+          <div className="grid gap-4 sm:grid-cols-2">
+            <div className="space-y-2 sm:col-span-2">
+              <Label>Name and Surname *</Label>
+              <Input required value={respName} onChange={(e) => setRespName(e.target.value)} />
+            </div>
+            <div className="space-y-2">
+              <Label>ID number *</Label>
+              <Input required value={respId} onChange={(e) => setRespId(e.target.value)} />
+            </div>
+            <div className="space-y-2">
+              <Label>Contact Number *</Label>
+              <Input
+                required
+                value={respContact}
+                onChange={(e) => setRespContact(e.target.value)}
+              />
+            </div>
+            <div className="space-y-2 sm:col-span-2">
+              <Label>Email address *</Label>
+              <Input
+                type="email"
+                required
+                value={respEmail}
+                onChange={(e) => setRespEmail(e.target.value)}
+              />
+            </div>
+            <div className="space-y-2 sm:col-span-2">
+              <Label>Postal Address *</Label>
+              <Textarea
+                required
+                rows={3}
+                value={respPostal}
+                onChange={(e) => setRespPostal(e.target.value)}
+              />
+            </div>
+          </div>
+        ) : null}
+      </Section>
+
+      <Section
+        title="Medical Aid Details"
+        description="If no Medical Aid, fill N/A."
+      >
+        <div className="grid gap-4 sm:grid-cols-3">
+          <div className="space-y-2">
+            <Label>Medical Aid *</Label>
+            <Input
+              required
+              value={medicalAid}
+              onChange={(e) => setMedicalAid(e.target.value)}
+              placeholder="N/A"
+            />
+          </div>
+          <div className="space-y-2">
+            <Label>Medical Aid Number *</Label>
+            <Input
+              required
+              value={medicalAidNumber}
+              onChange={(e) => setMedicalAidNumber(e.target.value)}
+              placeholder="N/A"
+            />
+          </div>
+          <div className="space-y-2">
+            <Label>Dependant Code for Patient *</Label>
+            <Input
+              required
+              value={dependantCode}
+              onChange={(e) => setDependantCode(e.target.value)}
+              placeholder="N/A"
+            />
+          </div>
+        </div>
+      </Section>
+
+      <Section title="Consent to release information *">
+        <div className="grid gap-2 sm:grid-cols-2">
+          {RELEASE_OPTIONS.map((opt) => (
+            <label key={opt} className="flex items-center gap-2 text-sm">
+              <input
+                type="checkbox"
+                checked={release.includes(opt)}
+                onChange={() => toggle(release, opt, setRelease)}
+              />
+              {opt}
+            </label>
+          ))}
+        </div>
+        {release.includes("Other") ? (
+          <Input
+            placeholder="Please specify"
+            value={releaseOther}
+            onChange={(e) => setReleaseOther(e.target.value)}
+          />
+        ) : null}
+      </Section>
+
+      <Section title="How did you find out about this practice? *">
+        <div className="grid gap-2 sm:grid-cols-2">
+          {SOURCE_OPTIONS.map((opt) => (
+            <label key={opt} className="flex items-center gap-2 text-sm">
+              <input
+                type="checkbox"
+                checked={sources.includes(opt)}
+                onChange={() => toggle(sources, opt, setSources)}
+              />
+              {opt}
+            </label>
+          ))}
+        </div>
+        {sources.includes("Other") ? (
+          <Input
+            placeholder="Please specify"
+            value={sourceOther}
+            onChange={(e) => setSourceOther(e.target.value)}
+          />
+        ) : null}
+      </Section>
+
+      <Section title={treatmentConsent.title}>
+        <ol className="list-decimal space-y-2 pl-5 text-sm leading-relaxed text-muted-foreground">
+          {treatmentLines
+            .filter((l) => /^\d+\./.test(l) || !l.startsWith("I hereby"))
+            .map((line) => (
+              <li key={line} className="marker:font-semibold">
+                {line.replace(/^\d+\.\s*/, "")}
+              </li>
+            ))}
+        </ol>
+        <p className="text-sm font-medium text-foreground">
+          I hereby willingly consent to the treatment offered and recommended to me by my
+          physiotherapist(s). I therefore intend to verbally consent to future physiotherapy
+          sessions.
+        </p>
+        <SignaturePad
+          name="treatmentSignaturePad"
+          label="Sign treatment consent"
+          onChange={setTreatmentSignature}
+        />
+      </Section>
+
+      <Section title={accountConsent.title}>
+        <div className="space-y-3 text-sm leading-relaxed text-muted-foreground">
+          {accountLines.map((line) => (
+            <p
+              key={line}
+              className={cn(line.startsWith("**") && "font-semibold text-foreground")}
+            >
+              {line.replaceAll("**", "")}
             </p>
-            <form action={consentAction} className="space-y-4">
-              <input type="hidden" name="formId" value={primaryConsent.id} />
-              <input type="hidden" name="patientId" value={patientId} />
-              <SignaturePad />
-              {consentState.error ? (
-                <FormMessage tone="error">{consentState.error}</FormMessage>
-              ) : null}
-              {consentState.success ? (
-                <FormMessage tone="success">{consentState.success}</FormMessage>
-              ) : null}
-              <Button type="submit" loading={consentPending}>
-                Sign consent
-              </Button>
-            </form>
-          </CardContent>
-        </Card>
-      ) : null}
-    </div>
+          ))}
+        </div>
+        <SignaturePad
+          name="accountSignaturePad"
+          label="Sign account responsibility"
+          onChange={setAccountSignature}
+        />
+      </Section>
+
+      <Section title="Undertaking *">
+        <p className="text-sm text-muted-foreground">I Accept the following…</p>
+        <ol className="list-decimal space-y-2 pl-5 text-sm leading-relaxed">
+          <li>Responsibility for payment of this physiotherapy account in full.</li>
+          <li>That fees charged will not necessarily be covered by the patient&apos;s Medical Aid.</li>
+          <li>
+            Responsibility for outstanding amounts, including all legal expenses arising from
+            non-payment.
+          </li>
+          <li className="font-semibold underline">
+            That appointments not kept will be charged 50% of consultation fee if not cancelled
+            at least 6 hours beforehand.
+          </li>
+        </ol>
+        <p className="text-sm">I confirm that all the above information is true and correct.</p>
+        <div className="flex gap-6">
+          <label className="flex items-center gap-2 text-sm">
+            <input
+              type="radio"
+              name="undertaking"
+              checked={undertaking === "yes"}
+              onChange={() => setUndertaking("yes")}
+              required
+            />
+            Yes
+          </label>
+          <label className="flex items-center gap-2 text-sm">
+            <input
+              type="radio"
+              name="undertaking"
+              checked={undertaking === "no"}
+              onChange={() => setUndertaking("no")}
+            />
+            No
+          </label>
+        </div>
+      </Section>
+
+      <Section title="Please Note *">
+        <p className="text-sm leading-relaxed text-muted-foreground">
+          The practice is contracted out of medical aid. You will be provided with a statement
+          for your <span className="font-semibold underline text-foreground">Own Submission</span>.
+        </p>
+        <ul className="space-y-1 text-sm">
+          {pricingPlans
+            .filter((p) => !["online"].includes(p.id))
+            .map((plan) => (
+              <li key={plan.id}>
+                <strong>{plan.title}:</strong> {plan.price} ({plan.period})
+              </li>
+            ))}
+        </ul>
+        <div className="flex flex-col gap-2 sm:flex-row sm:gap-6">
+          <label className="flex items-center gap-2 text-sm">
+            <input
+              type="radio"
+              name="pleaseNote"
+              checked={pleaseNote === "agree"}
+              onChange={() => setPleaseNote("agree")}
+              required
+            />
+            Agree and consent given
+          </label>
+          <label className="flex items-center gap-2 text-sm">
+            <input
+              type="radio"
+              name="pleaseNote"
+              checked={pleaseNote === "disagree"}
+              onChange={() => setPleaseNote("disagree")}
+            />
+            Disagree
+          </label>
+        </div>
+      </Section>
+
+      <Section title="Full name (respond with full name) *">
+        <Input
+          required
+          value={typedFullName}
+          onChange={(e) => setTypedFullName(e.target.value)}
+          placeholder="Your full legal name"
+        />
+      </Section>
+
+      {state.error ? <FormMessage tone="error">{state.error}</FormMessage> : null}
+      {state.success ? <FormMessage tone="success">{state.success}</FormMessage> : null}
+
+      <Button
+        type="submit"
+        size="lg"
+        className="w-full sm:w-auto"
+        loading={pending}
+        disabled={!treatmentSignature || !accountSignature}
+      >
+        Submit informed consent
+      </Button>
+    </form>
   );
 }

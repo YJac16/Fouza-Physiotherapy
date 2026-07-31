@@ -53,7 +53,7 @@ export const routes = {
     programmes: "/admin/programmes",
     consentForms: "/admin/consent-forms",
     billing: "/admin/billing",
-    invoices: "/admin/billing/invoices",
+    invoices: "/admin/billing",
     statements: "/admin/billing/statements",
     reviews: "/admin/reviews",
     blog: "/admin/blog",

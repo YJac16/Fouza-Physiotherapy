@@ -81,12 +81,29 @@ export async function createInvoiceAction(
     entity_id: data.id,
   });
 
-  await supabase.from("notification_outbox").insert({
-    channel: "email",
-    template_key: "invoice.sent",
-    recipient: "patient",
-    payload: { invoiceId: data.id, patientId: parsed.data.patientId },
-  });
+  const { data: patientRow } = await admin
+    .from("patients")
+    .select("email, first_name, last_name")
+    .eq("id", parsed.data.patientId)
+    .maybeSingle();
+
+  const recipientEmail = patientRow?.email?.trim().toLowerCase();
+  if (recipientEmail) {
+    await admin.from("notification_outbox").insert({
+      channel: "email",
+      template_key: "invoice.sent",
+      recipient: recipientEmail,
+      payload: {
+        invoiceId: data.id,
+        patientId: parsed.data.patientId,
+        invoiceNumber: numberData as string,
+        firstName: patientRow?.first_name ?? "there",
+        description: parsed.data.description,
+        totalCents: total,
+        currency: "ZAR",
+      },
+    });
+  }
 
   revalidatePath("/admin/billing");
   return { success: "Invoice created", id: data.id };

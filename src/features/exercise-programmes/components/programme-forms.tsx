@@ -107,6 +107,20 @@ export function AssignProgrammeForm({
         <Label htmlFor="firstExercise">First exercise name</Label>
         <Input id="firstExercise" name="firstExercise" placeholder="Optional starter exercise" />
       </div>
+      <div className="grid gap-3 md:grid-cols-3">
+        <div className="space-y-1">
+          <Label htmlFor="sets">Sets</Label>
+          <Input id="sets" name="sets" type="number" min={0} placeholder="3" />
+        </div>
+        <div className="space-y-1">
+          <Label htmlFor="reps">Reps</Label>
+          <Input id="reps" name="reps" type="number" min={0} placeholder="10" />
+        </div>
+        <div className="space-y-1">
+          <Label htmlFor="holdSeconds">Hold (sec)</Label>
+          <Input id="holdSeconds" name="holdSeconds" type="number" min={0} placeholder="0" />
+        </div>
+      </div>
       {state.error ? <p className="text-sm text-destructive">{state.error}</p> : null}
       {state.success ? <p className="text-sm text-emerald-700">{state.success}</p> : null}
       <Button type="submit" disabled={pending}>

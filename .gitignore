@@ -50,3 +50,7 @@ supabase/.temp
 node_modules.*
 debug.log
 
+# Large local exercise videos (upload to Supabase exercise-media; do not commit)
+public/Lower limb videos/
+public/exercises/
+

@@ -124,10 +124,10 @@ export default function AboutPage() {
                 </Typography>
                 <Typography variant="body-lg">
                   Today, Fouza Physiotherapy serves the Walmer Estate
-                  community and beyond — treating everything from sports
-                  injuries and back pain to post-surgical rehabilitation and
-                  pregnancy-related discomfort, with the same evidence-based,
-                  patient-centred approach every time.
+                  community and beyond — with a special interest in the
+                  assessment and management of persistent pain, helping people
+                  make sense of their pain, restore confidence in movement, and
+                  return to the activities that matter most.
                 </Typography>
               </div>
             </div>
@@ -163,9 +163,9 @@ export default function AboutPage() {
               </Typography>
               <Typography variant="body-lg" className="mt-4">
                 We provide personalised, evidence-based physiotherapy that
-                restores function, reduces pain, and builds lasting
-                confidence in movement — delivered with warmth, clarity, and
-                clinical rigour.
+                helps people make sense of persistent pain, restore function,
+                and build lasting confidence in movement — delivered with
+                warmth, clarity, and clinical rigour.
               </Typography>
             </div>
             <div className="rounded-2xl border border-border/80 bg-card p-8 shadow-sm">

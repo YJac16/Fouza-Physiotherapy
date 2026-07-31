@@ -3,7 +3,7 @@ export const siteConfig = {
   practiceName: process.env.NEXT_PUBLIC_PRACTICE_NAME ?? "Fouza Physiotherapy",
   tagline: "Strength · Rehab · Function",
   description:
-    "Evidence-based physiotherapy in Walmer Estate, Cape Town — personalised treatment to help you move better, feel better, and live better.",
+    "Evidence-based physiotherapy in Walmer Estate, Cape Town — with a special interest in persistent pain, helping you move better, feel better, and live better.",
   url: process.env.NEXT_PUBLIC_APP_URL ?? "http://localhost:3000",
   email:
     process.env.NEXT_PUBLIC_PRACTICE_EMAIL ?? "fouza.physiotherapy@gmail.com",

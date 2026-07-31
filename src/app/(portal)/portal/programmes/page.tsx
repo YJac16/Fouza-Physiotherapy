@@ -2,6 +2,7 @@ import { EmptyState } from "@/components/shared/states";
 import { ExerciseCard } from "@/components/patient/cards";
 import { Card, CardContent, CardHeader, CardTitle } from "@/components/ui/card";
 import { listPatientProgrammes } from "@/features/exercise-programmes/actions/programmes";
+import { resolveExerciseMediaUrl } from "@/lib/supabase/storage";
 
 export default async function PortalProgrammesPage() {
   const { data: programmes } = await listPatientProgrammes();
@@ -22,37 +23,57 @@ export default async function PortalProgrammesPage() {
         />
       ) : (
         <div className="grid gap-6">
-          {programmes.map((programme) => {
-            const exercises =
-              (programme.programme_exercises as
-                | { id: string; name: string; sets: number | null; reps: number | null }[]
-                | null) ?? [];
+          {await Promise.all(
+            programmes.map(async (programme) => {
+              const exercises =
+                (programme.programme_exercises as
+                  | {
+                      id: string;
+                      name: string;
+                      sets: number | null;
+                      reps: number | null;
+                      media_url: string | null;
+                      sort_order: number;
+                    }[]
+                  | null) ?? [];
 
-            return (
-              <Card key={programme.id}>
-                <CardHeader>
-                  <CardTitle className="text-h5">{programme.title}</CardTitle>
-                  {programme.description ? (
-                    <p className="text-sm text-muted-foreground">{programme.description}</p>
-                  ) : null}
-                </CardHeader>
-                <CardContent className="grid gap-3 md:grid-cols-2">
-                  {exercises.length ? (
-                    exercises.map((exercise) => (
-                      <ExerciseCard
-                        key={exercise.id}
-                        name={exercise.name}
-                        sets={exercise.sets?.toString()}
-                        reps={exercise.reps?.toString()}
-                      />
-                    ))
-                  ) : (
-                    <p className="text-sm text-muted-foreground">No exercises in this programme.</p>
-                  )}
-                </CardContent>
-              </Card>
-            );
-          })}
+              const sorted = [...exercises].sort((a, b) => a.sort_order - b.sort_order);
+              const withMedia = await Promise.all(
+                sorted.map(async (exercise) => ({
+                  ...exercise,
+                  resolvedMediaUrl: await resolveExerciseMediaUrl(exercise.media_url),
+                })),
+              );
+
+              return (
+                <Card key={programme.id}>
+                  <CardHeader>
+                    <CardTitle className="text-h5">{programme.title}</CardTitle>
+                    {programme.description ? (
+                      <p className="text-sm text-muted-foreground">{programme.description}</p>
+                    ) : null}
+                  </CardHeader>
+                  <CardContent className="grid gap-3 md:grid-cols-2">
+                    {withMedia.length ? (
+                      withMedia.map((exercise) => (
+                        <ExerciseCard
+                          key={exercise.id}
+                          name={exercise.name}
+                          sets={exercise.sets?.toString()}
+                          reps={exercise.reps?.toString()}
+                          mediaUrl={exercise.resolvedMediaUrl}
+                        />
+                      ))
+                    ) : (
+                      <p className="text-sm text-muted-foreground">
+                        No exercises in this programme.
+                      </p>
+                    )}
+                  </CardContent>
+                </Card>
+              );
+            }),
+          )}
         </div>
       )}
     </div>

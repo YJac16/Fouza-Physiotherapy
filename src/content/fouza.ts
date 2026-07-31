@@ -1,10 +1,7 @@
 import {
-  Baby,
-  Dumbbell,
   GraduationCap,
   Hand,
   HeartHandshake,
-  Home,
   Syringe,
   ShieldCheck,
   Sparkles,
@@ -39,7 +36,7 @@ export const fouzaBio = {
   registration: siteConfig.founder.registration,
 
   intro:
-    "Fouza Abrahams is a HPCSA-registered physiotherapist and the founder of Fouza Physiotherapy in Walmer Estate, Cape Town. She combines thorough, evidence-based assessment with warm, unhurried care — helping patients understand their bodies and move forward with confidence.",
+    "Fouza Abrahams is a HPCSA-registered physiotherapist and the founder of Fouza Physiotherapy in Walmer Estate, Cape Town. With a special interest in the assessment and management of persistent pain, she combines thorough, evidence-based care with warmth — helping people make sense of their pain, restore confidence in movement, and return to the activities that matter most.",
 
   story: [
     "Fouza's path into physiotherapy was shaped by a genuine curiosity about how the body moves, heals, and adapts — and a deep motivation to help people return to the activities and roles that matter most to them, whether that's playing sport, picking up a child, returning to work, or simply walking without fear.",
@@ -119,19 +116,10 @@ export const fouzaBio = {
 
   specialInterests: [
     {
-      title: "Sports Physiotherapy",
-      description: "Injury rehabilitation and return-to-play programmes for active people and athletes.",
-      icon: Dumbbell,
-    },
-    {
-      title: "Women's Health",
-      description: "Pregnancy-related pain and postnatal musculoskeletal recovery.",
-      icon: Baby,
-    },
-    {
-      title: "Manual Therapy",
-      description: "Skilled hands-on treatment to restore mobility and ease pain.",
-      icon: Hand,
+      title: "Persistent Pain",
+      description:
+        "Assessment and management of persistent pain — helping people make sense of their pain, restore confidence in movement, and return to the activities that matter most.",
+      icon: HeartHandshake,
     },
     {
       title: "Dry Needling",
@@ -139,14 +127,15 @@ export const fouzaBio = {
       icon: Syringe,
     },
     {
-      title: "Post-Surgical Rehabilitation",
-      description: "Structured, protocol-aligned recovery after orthopaedic procedures.",
-      icon: Sparkles,
+      title: "Manual Therapy",
+      description: "Skilled hands-on treatment to restore mobility and ease pain.",
+      icon: Hand,
     },
     {
-      title: "Home-Based Care",
-      description: "Physiotherapy delivered at home when clinic visits aren't possible.",
-      icon: Home,
+      title: "Post-Surgical Rehabilitation",
+      description:
+        "Structured recovery after orthopaedic procedures, including support when pain continues beyond the expected healing time.",
+      icon: Sparkles,
     },
   ] satisfies FouzaSpecialInterest[],
 

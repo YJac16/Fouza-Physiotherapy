@@ -13,30 +13,40 @@ export type ConditionContent = {
   image: string;
 };
 
+/** Who persistent-pain care is especially for */
+export const persistentPainAudiences = [
+  "Persistent pain that has lasted longer than expected",
+  "Pain that hasn’t settled as expected",
+  "Persistent pain following an injury or surgery",
+  "Pain lasting longer than the normal healing time",
+];
+
 export const conditions: ConditionContent[] = [
   {
     slug: "back-pain",
-    name: "Back Pain",
+    name: "Persistent Low Back Pain",
     summary:
-      "Acute or persistent back discomfort that limits work, sleep, or everyday movement.",
+      "Low back pain that continues beyond the usual healing window — limiting work, sleep, or everyday movement.",
     symptoms: [
-      "Localised or radiating back discomfort",
+      "Ongoing or recurring low back discomfort",
       "Stiffness after sitting or waking",
       "Pain with bending, lifting, or prolonged standing",
+      "Reduced confidence in movement",
     ],
     causes: [
-      "Sudden load or awkward movement",
+      "Pain that outlasts expected tissue healing",
+      "Previous injury, flare patterns, or deconditioning",
       "Prolonged sitting and reduced activity",
-      "Previous injury or deconditioning",
+      "Load, stress, and movement-related sensitivity",
     ],
     treatment: [
-      "Thorough assessment and reassurance",
+      "Thorough assessment and clear pain education",
       "Hands-on therapy where helpful",
       "Graded exercise and load management",
       "Practical advice for work and daily life",
     ],
     recovery:
-      "Many people improve within weeks with guided activity. Persistent pain benefits from a structured rehab plan rather than prolonged rest.",
+      "Persistent low back pain responds best to a structured rehab plan that rebuilds confidence and capacity — not prolonged rest.",
     faqs: [
       {
         question: "Should I stay in bed with back pain?",
@@ -48,26 +58,29 @@ export const conditions: ConditionContent[] = [
   },
   {
     slug: "neck-pain",
-    name: "Neck Pain",
+    name: "Chronic Neck Pain",
     summary:
-      "Neck stiffness, tension, or pain — often linked to posture, stress, or sudden movements.",
+      "Neck pain or stiffness that hasn’t settled as expected — often linked to posture, stress, or previous overload.",
     symptoms: [
-      "Neck stiffness or aching",
+      "Ongoing neck stiffness or aching",
       "Pain turning the head",
       "Shoulder or upper-back tension",
+      "Symptoms that flare with desk or device use",
     ],
     causes: [
+      "Pain lasting longer than expected healing time",
       "Desk and device posture",
       "Sleep position strain",
-      "Sudden movement or overload",
+      "Previous injury or recurrent flare patterns",
     ],
     treatment: [
       "Mobility and soft tissue care",
+      "Pain education and pacing strategies",
       "Posture and ergonomic coaching",
       "Strengthening for neck and shoulder girdle",
     ],
     recovery:
-      "Most neck pain settles with early, appropriate care. Recurrence can be reduced with strength and habit changes.",
+      "Chronic neck pain often improves with graded loading, habit changes, and a clear plan you can stick to between sessions.",
     faqs: [
       {
         question: "Can physiotherapy help headaches from my neck?",
@@ -76,6 +89,210 @@ export const conditions: ConditionContent[] = [
       },
     ],
     image: siteConfig.images.posture,
+  },
+  {
+    slug: "shoulder-pain",
+    name: "Persistent Shoulder Pain",
+    summary:
+      "Shoulder pain or weakness that continues with reaching, lifting, or sleep — including pain that hasn’t settled after injury or overload.",
+    symptoms: [
+      "Pain with overhead movement",
+      "Night pain when lying on the shoulder",
+      "Reduced strength or range",
+      "Avoidance of daily or work tasks",
+    ],
+    causes: [
+      "Rotator cuff related irritation",
+      "Overuse or sudden load",
+      "Pain continuing beyond expected healing",
+      "Stiffness syndromes such as frozen shoulder",
+    ],
+    treatment: [
+      "Load management and education",
+      "Mobility restoration",
+      "Progressive strengthening",
+      "Work- or activity-specific rehab",
+    ],
+    recovery:
+      "Consistent, graded loading is usually more effective than complete rest. Timelines vary — we track progress against your goals.",
+    faqs: [
+      {
+        question: "Do I need surgery for shoulder pain?",
+        answer:
+          "Most people improve with physiotherapy first. Surgery is considered for specific cases after appropriate assessment.",
+      },
+    ],
+    image: siteConfig.images.shoulderRehab,
+  },
+  {
+    slug: "knee-pain",
+    name: "Chronic Hip and Knee Pain",
+    summary:
+      "Hip or knee pain that persists with walking, stairs, sport, or daily activity — including osteoarthritis-related and post-injury patterns.",
+    symptoms: [
+      "Pain with stairs, squatting, or walking",
+      "Hip stiffness or groin discomfort",
+      "Swelling or reduced confidence in the joint",
+      "Clicking or giving-way sensations",
+    ],
+    causes: [
+      "Overuse and training errors",
+      "Previous injury or surgery",
+      "Osteoarthritis-related change",
+      "Pain lasting longer than the normal healing time",
+    ],
+    treatment: [
+      "Strengthening of hip and knee musculature",
+      "Movement retraining and load management",
+      "Activity pacing",
+      "Return-to-activity planning when needed",
+    ],
+    recovery:
+      "Strength-focused rehab is highly effective for many hip and knee conditions. Progress is tracked against the activities that matter to you.",
+    faqs: [
+      {
+        question: "Can I walk if my hip or knee hurts?",
+        answer:
+          "Often yes, with guidance on distance, surface, and supportive loading. We help you find the right dose.",
+      },
+    ],
+    image: siteConfig.images.kneeAnkle,
+  },
+  {
+    slug: "tendon-pain",
+    name: "Persistent Tendon Pain",
+    summary:
+      "Tendon-related pain that continues with loading — such as Achilles, patellar, or gluteal tendon pain that hasn’t settled with rest alone.",
+    symptoms: [
+      "Localised tendon pain with activity",
+      "Morning stiffness or start-up pain",
+      "Pain that eases then returns with load",
+      "Reduced capacity for sport or work",
+    ],
+    causes: [
+      "Sudden spikes in training or activity load",
+      "Under-recovery between sessions",
+      "Previous injury or biomechanical contributors",
+      "Pain continuing beyond expected tissue adaptation",
+    ],
+    treatment: [
+      "Education on tendon load and recovery",
+      "Progressive strengthening programmes",
+      "Activity modification without complete rest",
+      "Graded return to sport or work demands",
+    ],
+    recovery:
+      "Tendons respond to the right dose of loading over time. A structured plan rebuilds capacity while managing symptoms.",
+    faqs: [
+      {
+        question: "Should I stop all activity with tendon pain?",
+        answer:
+          "Usually not. Complete rest often doesn’t solve tendon pain. We help you adjust load while building strength.",
+      },
+    ],
+    image: siteConfig.images.sports,
+  },
+  {
+    slug: "fibromyalgia",
+    name: "Fibromyalgia",
+    summary:
+      "Widespread persistent pain and fatigue that affects sleep, mood, and daily function — supported with paced, confidence-building physiotherapy.",
+    symptoms: [
+      "Widespread body pain or tenderness",
+      "Fatigue and non-restorative sleep",
+      "Flare patterns with activity or stress",
+      "Reduced confidence in movement",
+    ],
+    causes: [
+      "Central sensitisation and altered pain processing",
+      "Sleep disruption and stress load",
+      "Deconditioning from prolonged symptom avoidance",
+      "Multifactorial contributors unique to each person",
+    ],
+    treatment: [
+      "Pain education and flare planning",
+      "Gentle, graded activity programmes",
+      "Pacing and energy management strategies",
+      "Coordination with your broader medical care",
+    ],
+    recovery:
+      "Improvement is often gradual. The focus is helping you make sense of symptoms, move with more confidence, and return to valued activities.",
+    faqs: [
+      {
+        question: "Is exercise safe with fibromyalgia?",
+        answer:
+          "Yes — when paced appropriately. We start gently and progress in a way that respects your energy and flare patterns.",
+      },
+    ],
+    image: siteConfig.images.clinic,
+  },
+  {
+    slug: "arthritis",
+    name: "Osteoarthritis",
+    summary:
+      "Joint pain and stiffness related to osteoarthritis — supporting strength, mobility, and confidence so you stay active.",
+    symptoms: [
+      "Morning stiffness",
+      "Pain with weight-bearing",
+      "Reduced joint confidence",
+      "Activity-related flares",
+    ],
+    causes: [
+      "Age-related joint changes",
+      "Previous injury",
+      "Reduced muscle support around the joint",
+      "Load and activity patterns",
+    ],
+    treatment: [
+      "Education and flare management",
+      "Strength and mobility programmes",
+      "Activity pacing strategies",
+      "Supportive manual therapy as needed",
+    ],
+    recovery:
+      "Physiotherapy helps many people with osteoarthritis stay active and independent. Exercise is one of the most effective treatments for symptoms.",
+    faqs: [
+      {
+        question: "Is exercise safe with osteoarthritis?",
+        answer:
+          "Yes — the right exercise is one of the most effective treatments for osteoarthritis symptoms.",
+      },
+    ],
+    image: siteConfig.images.clinic,
+  },
+  {
+    slug: "post-operative-rehabilitation",
+    name: "Persistent Pain After Surgery",
+    summary:
+      "Pain that continues after surgery beyond the expected healing time — plus structured rehab to restore mobility, strength, and independence.",
+    symptoms: [
+      "Pain lasting longer than expected post-surgery",
+      "Stiffness, weakness, or reduced confidence",
+      "Swelling that limits progress",
+      "Difficulty returning to usual activities",
+    ],
+    causes: [
+      "Pain sensitisation beyond tissue healing timelines",
+      "Immobilisation and deconditioning effects",
+      "Scar, swelling, or movement fear",
+      "Incomplete graded return to load",
+    ],
+    treatment: [
+      "Assessment of healing stage and pain drivers",
+      "Protocol-aligned progression where appropriate",
+      "Strength and function rebuilding",
+      "Return-to-life planning with clear milestones",
+    ],
+    recovery:
+      "When pain continues beyond expected healing, a structured plan — education, graded loading, and coordinated care — helps restore confidence and function.",
+    faqs: [
+      {
+        question: "Can I start physio before my follow-up with the surgeon?",
+        answer:
+          "Often yes, within protocol limits. Bring your operation notes if available.",
+      },
+    ],
+    image: siteConfig.images.postOp,
   },
   {
     slug: "sciatica",
@@ -110,70 +327,6 @@ export const conditions: ConditionContent[] = [
     image: siteConfig.images.manualTherapy,
   },
   {
-    slug: "shoulder-pain",
-    name: "Shoulder Pain",
-    summary:
-      "Pain or weakness with reaching, lifting, or sleeping on the affected side.",
-    symptoms: [
-      "Pain with overhead movement",
-      "Night pain when lying on the shoulder",
-      "Reduced strength or range",
-    ],
-    causes: [
-      "Rotator cuff related irritation",
-      "Overuse or sudden load",
-      "Stiffness syndromes such as frozen shoulder",
-    ],
-    treatment: [
-      "Load management and education",
-      "Mobility restoration",
-      "Progressive strengthening",
-      "Sport or work-specific rehab",
-    ],
-    recovery:
-      "Timelines vary by diagnosis. Consistent, graded loading is usually more effective than complete rest.",
-    faqs: [
-      {
-        question: "Do I need surgery for shoulder pain?",
-        answer:
-          "Most people improve with physiotherapy first. Surgery is considered for specific cases after appropriate assessment.",
-      },
-    ],
-    image: siteConfig.images.shoulderRehab,
-  },
-  {
-    slug: "knee-pain",
-    name: "Knee Pain",
-    summary:
-      "Pain around the knee with walking, stairs, sport, or prolonged sitting.",
-    symptoms: [
-      "Pain with stairs or squatting",
-      "Swelling or stiffness",
-      "Clicking or giving-way sensations",
-    ],
-    causes: [
-      "Overuse and training errors",
-      "Ligament or meniscus related injury",
-      "Osteoarthritis related change",
-    ],
-    treatment: [
-      "Strengthening of hip and knee musculature",
-      "Movement retraining",
-      "Activity pacing",
-      "Return-to-sport planning when needed",
-    ],
-    recovery:
-      "Strength-focused rehab is highly effective for many knee conditions. Progress is tracked against your goals.",
-    faqs: [
-      {
-        question: "Can I walk if my knee hurts?",
-        answer:
-          "Often yes, with guidance on distance, surface, and supportive loading. We help you find the right dose.",
-      },
-    ],
-    image: siteConfig.images.kneeAnkle,
-  },
-  {
     slug: "sports-injuries",
     name: "Sports Injuries",
     summary:
@@ -204,38 +357,6 @@ export const conditions: ConditionContent[] = [
       },
     ],
     image: siteConfig.images.sports,
-  },
-  {
-    slug: "arthritis",
-    name: "Arthritis",
-    summary:
-      "Joint pain and stiffness related to osteoarthritis or inflammatory joint conditions.",
-    symptoms: [
-      "Morning stiffness",
-      "Pain with weight-bearing",
-      "Reduced joint confidence",
-    ],
-    causes: [
-      "Age-related joint changes",
-      "Previous injury",
-      "Inflammatory conditions (medically managed)",
-    ],
-    treatment: [
-      "Education and flare management",
-      "Strength and mobility programmes",
-      "Activity pacing strategies",
-      "Supportive manual therapy as needed",
-    ],
-    recovery:
-      "Physiotherapy helps many people stay active and independent. We coordinate with your broader medical care when needed.",
-    faqs: [
-      {
-        question: "Is exercise safe with arthritis?",
-        answer:
-          "Yes — the right exercise is one of the most effective treatments for osteoarthritis symptoms.",
-      },
-    ],
-    image: siteConfig.images.clinic,
   },
   {
     slug: "pregnancy-pain",
@@ -332,38 +453,6 @@ export const conditions: ConditionContent[] = [
       },
     ],
     image: siteConfig.images.shoulderRehab,
-  },
-  {
-    slug: "post-operative-rehabilitation",
-    name: "Post-operative Rehabilitation",
-    summary:
-      "Guided recovery after surgery to restore mobility, strength, and independence.",
-    symptoms: [
-      "Post-surgical stiffness or weakness",
-      "Swelling and reduced confidence",
-      "Difficulty returning to usual activities",
-    ],
-    causes: [
-      "Expected tissue healing after surgery",
-      "Immobilisation effects",
-      "Deconditioning",
-    ],
-    treatment: [
-      "Protocol-aligned progression",
-      "Swelling and mobility management",
-      "Strength and function rebuilding",
-      "Return-to-life planning",
-    ],
-    recovery:
-      "Timelines follow surgical and tissue healing guidelines. We coordinate with your surgeon’s advice.",
-    faqs: [
-      {
-        question: "Can I start physio before my follow-up with the surgeon?",
-        answer:
-          "Often yes, within protocol limits. Bring your operation notes if available.",
-      },
-    ],
-    image: siteConfig.images.postOp,
   },
 ];
 

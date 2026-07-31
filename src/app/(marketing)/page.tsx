@@ -111,7 +111,7 @@ export default function HomePage() {
     <>
       <Hero
         headline="Helping You Move Better, Feel Better and Live Better."
-        supportingText="Evidence-based physiotherapy in Walmer Estate — personalised treatment for back pain, sports injuries, post-surgery rehab, and everyday recovery."
+        supportingText="Evidence-based physiotherapy in Walmer Estate — with a special interest in persistent pain, helping you make sense of symptoms, restore confidence in movement, and return to what matters."
         cta={
           <>
             <Button asChild size="lg">
@@ -199,7 +199,7 @@ export default function HomePage() {
             "HPCSA Registered",
             "Private practice since 2021",
           ]}
-          bio="Passionate about holistic, evidence-based care — with experience across community service, private practice, and a wide range of neuromusculoskeletal conditions."
+          bio="Special interest in persistent pain — helping people make sense of their pain, restore confidence in movement, and return to the activities that matter most."
           cta={
             <Button asChild variant="outline">
               <Link href={routes.marketing.meetFouza}>Meet your physiotherapist</Link>

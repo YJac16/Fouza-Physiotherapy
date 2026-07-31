@@ -6,6 +6,7 @@ import {
 } from "@/features/exercise-programmes/components/programme-forms";
 import { requireStaff } from "@/lib/auth/guards";
 import { createClient } from "@/lib/supabase/server";
+import { resolveExerciseMediaUrl } from "@/lib/supabase/storage";
 
 export default async function ProgrammesAdminPage() {
   await requireStaff();
@@ -17,16 +18,25 @@ export default async function ProgrammesAdminPage() {
         .select("*")
         .order("created_at", { ascending: false })
         .limit(30),
-      supabase.from("exercises").select("*").eq("is_active", true).order("name").limit(30),
+      supabase.from("exercises").select("*").eq("is_active", true).order("name").limit(100),
       supabase.from("patients").select("id, first_name, last_name").order("last_name").limit(200),
       supabase.from("practitioners").select("id, title, profiles(full_name)").eq("is_active", true),
     ]);
+
+  const library = await Promise.all(
+    (exercises ?? []).map(async (e) => ({
+      ...e,
+      resolvedMediaUrl: await resolveExerciseMediaUrl(e.media_url),
+    })),
+  );
 
   return (
     <div className="space-y-10">
       <div>
         <h1 className="font-display text-2xl font-semibold">Exercise programmes</h1>
-        <p className="text-sm text-muted-foreground">Library and patient prescriptions.</p>
+        <p className="text-sm text-muted-foreground">
+          Build the library, then assign injury-related exercises (with videos) to patients.
+        </p>
       </div>
 
       <div className="grid gap-6 lg:grid-cols-2">
@@ -42,6 +52,12 @@ export default async function ProgrammesAdminPage() {
               (p.profiles as { full_name?: string } | null)?.full_name ??
               p.title ??
               "Practitioner",
+          }))}
+          exercises={library.map((e) => ({
+            id: e.id,
+            name: e.name,
+            category: e.category,
+            media_url: e.media_url,
           }))}
         />
       </div>
@@ -61,12 +77,17 @@ export default async function ProgrammesAdminPage() {
 
       <section className="space-y-4">
         <h2 className="font-display text-lg font-semibold">Exercise library</h2>
-        {!exercises?.length ? (
+        {!library.length ? (
           <EmptyState title="Library empty" description="Add exercises to prescribe faster." />
         ) : (
           <div className="grid gap-4 md:grid-cols-2">
-            {exercises.map((e) => (
-              <ExerciseCard key={e.id} name={e.name} duration={e.category ?? undefined} />
+            {library.map((e) => (
+              <ExerciseCard
+                key={e.id}
+                name={e.name}
+                duration={e.category ?? undefined}
+                mediaUrl={e.resolvedMediaUrl}
+              />
             ))}
           </div>
         )}

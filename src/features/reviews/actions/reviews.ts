@@ -2,38 +2,79 @@
 
 import { revalidatePath } from "next/cache";
 
+import {
+  googleBusinessProfile,
+  officialGoogleReviews,
+} from "@/content/google-reviews";
 import { requireStaff } from "@/lib/auth/guards";
 import { createClient } from "@/lib/supabase/server";
 import { createServiceClient } from "@/lib/supabase/admin";
 import { enqueueNotification } from "@/features/notifications";
 
-export async function syncGoogleReviewsAction() {
-  await requireStaff();
+type PlacesReview = {
+  author_name: string;
+  rating: number;
+  text?: string;
+  time?: number;
+  author_url?: string;
+};
+
+async function upsertOfficialCatalog(admin: ReturnType<typeof createServiceClient>) {
+  let synced = 0;
+  const now = new Date().toISOString();
+  for (const review of officialGoogleReviews) {
+    const { error } = await admin.from("google_reviews").upsert(
+      {
+        google_review_id: review.googleReviewId,
+        author_name: review.authorName,
+        rating: review.rating,
+        text: review.text,
+        reviewed_at: review.reviewedAt,
+        is_featured: Boolean(review.featured),
+        synced_at: now,
+        is_visible: true,
+      },
+      { onConflict: "google_review_id" },
+    );
+    if (!error) synced += 1;
+  }
+  return synced;
+}
+
+async function syncFromPlacesApi(admin: ReturnType<typeof createServiceClient>) {
   const apiKey = process.env.GOOGLE_PLACES_API_KEY;
-  const placeId = process.env.GOOGLE_PLACE_ID;
-  if (!apiKey || !placeId) {
-    return { error: "Google Places credentials not configured", synced: 0 };
+  const placeId =
+    process.env.GOOGLE_PLACE_ID ?? googleBusinessProfile.placeId;
+  if (!apiKey) {
+    return { placesSynced: 0, rating: null as number | null, total: null as number | null };
   }
 
-  const url = `https://maps.googleapis.com/maps/api/place/details/json?place_id=${placeId}&fields=reviews,rating,user_ratings_total&key=${apiKey}`;
+  const url = `https://maps.googleapis.com/maps/api/place/details/json?place_id=${placeId}&fields=reviews,rating,user_ratings_total,url,name&key=${apiKey}`;
   const res = await fetch(url, { next: { revalidate: 0 } });
   const json = (await res.json()) as {
+    status?: string;
+    error_message?: string;
     result?: {
-      reviews?: Array<{
-        author_name: string;
-        rating: number;
-        text?: string;
-        time?: number;
-        author_url?: string;
-      }>;
+      rating?: number;
+      user_ratings_total?: number;
+      reviews?: PlacesReview[];
     };
   };
 
+  if (json.status && json.status !== "OK") {
+    return {
+      placesSynced: 0,
+      rating: null as number | null,
+      total: null as number | null,
+      error: json.error_message ?? json.status,
+    };
+  }
+
   const reviews = json.result?.reviews ?? [];
-  const admin = createServiceClient();
-  let synced = 0;
+  let placesSynced = 0;
+  const now = new Date().toISOString();
   for (const review of reviews) {
-    const googleId = `${review.author_name}-${review.time ?? 0}`;
+    const googleId = `places-${review.author_name}-${review.time ?? 0}`;
     const { error } = await admin.from("google_reviews").upsert(
       {
         google_review_id: googleId,
@@ -43,16 +84,40 @@ export async function syncGoogleReviewsAction() {
         reviewed_at: review.time
           ? new Date(review.time * 1000).toISOString()
           : null,
-        synced_at: new Date().toISOString(),
+        synced_at: now,
         is_visible: true,
       },
       { onConflict: "google_review_id" },
     );
-    if (!error) synced += 1;
+    if (!error) placesSynced += 1;
   }
+
+  return {
+    placesSynced,
+    rating: json.result?.rating ?? null,
+    total: json.result?.user_ratings_total ?? null,
+  };
+}
+
+export async function syncGoogleReviewsAction() {
+  await requireStaff();
+  const admin = createServiceClient();
+
+  const catalogSynced = await upsertOfficialCatalog(admin);
+  const places = await syncFromPlacesApi(admin);
+
+  revalidatePath("/");
   revalidatePath("/reviews");
   revalidatePath("/admin/reviews");
-  return { synced };
+
+  return {
+    synced: catalogSynced + places.placesSynced,
+    catalogSynced,
+    placesSynced: places.placesSynced,
+    placesRating: places.rating,
+    placesTotal: places.total,
+    error: "error" in places ? places.error : undefined,
+  };
 }
 
 export async function setReviewVisibility(id: string, isVisible: boolean) {
@@ -63,6 +128,7 @@ export async function setReviewVisibility(id: string, isVisible: boolean) {
     .update({ is_visible: isVisible })
     .eq("id", id);
   if (error) return { error: error.message };
+  revalidatePath("/");
   revalidatePath("/reviews");
   return { success: true };
 }

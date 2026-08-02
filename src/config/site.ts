@@ -27,7 +27,17 @@ export const siteConfig = {
   social: {
     instagram: "",
     facebook: "",
-    google: process.env.NEXT_PUBLIC_GOOGLE_REVIEW_URL ?? "",
+    google:
+      process.env.NEXT_PUBLIC_GOOGLE_REVIEW_URL ??
+      "https://search.google.com/local/writereview?placeid=ChIJyT3OtXNdzB0RVyqbwWpw4pM",
+  },
+  googleBusiness: {
+    placeId:
+      process.env.GOOGLE_PLACE_ID ?? "ChIJyT3OtXNdzB0RVyqbwWpw4pM",
+    mapsUrl:
+      "https://www.google.com/maps/place/?q=place_id:ChIJyT3OtXNdzB0RVyqbwWpw4pM",
+    rating: 5,
+    reviewCount: 26,
   },
   hours: [
     { day: "Monday", opens: "09:00", closes: "17:00" },
@@ -89,5 +99,8 @@ export function telHref(phone = siteConfig.phone) {
 }
 
 export function mapsQueryUrl() {
-  return `https://www.google.com/maps/search/?api=1&query=${encodeURIComponent(siteConfig.address)}`;
+  return (
+    siteConfig.googleBusiness.mapsUrl ||
+    `https://www.google.com/maps/search/?api=1&query=${encodeURIComponent(siteConfig.address)}`
+  );
 }

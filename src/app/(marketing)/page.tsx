@@ -29,7 +29,7 @@ import { siteConfig, telHref } from "@/config/site";
 import { conditions } from "@/content/conditions";
 import { faqPreviewIds, faqs } from "@/content/faqs";
 import { serviceHref, services, trustItems } from "@/content/services";
-import { reviewSummary, testimonials } from "@/content/testimonials";
+import { getPublicGoogleReviews } from "@/features/reviews";
 import { buildMetadata } from "@/lib/seo/metadata";
 
 export const metadata: Metadata = buildMetadata({
@@ -104,7 +104,14 @@ const whyChoose = [
   },
 ];
 
-export default function HomePage() {
+export default async function HomePage() {
+  const {
+    reviews: homeReviews,
+    rating: homeRating,
+    countLabel: homeCountLabel,
+    headline: homeHeadline,
+  } = await getPublicGoogleReviews(3);
+
   const previewFaqs = faqs.filter((f) => faqPreviewIds.includes(f.id));
 
   return (
@@ -252,19 +259,19 @@ export default function HomePage() {
       <GoogleReviewsSection
         eyebrow="Testimonials"
         title="What patients say"
-        description="A preview of the experiences we aim to create — live Google Reviews will connect later."
+        description="Real Google reviews from patients at Fouza Physiotherapy."
         ratingSummary={
           <div className="flex flex-col items-start gap-3 sm:items-end">
             <ReviewSummary
-              rating={reviewSummary.rating}
-              headline={reviewSummary.headline}
-              countLabel={reviewSummary.countLabel}
+              rating={homeRating}
+              headline={homeHeadline}
+              countLabel={homeCountLabel}
             />
             <LeaveReviewButton />
           </div>
         }
       >
-        <FeaturedReviews reviews={testimonials} className="md:col-span-2 lg:col-span-2" />
+        <FeaturedReviews reviews={homeReviews} className="md:col-span-2 lg:col-span-2" />
       </GoogleReviewsSection>
 
       <FaqPreview

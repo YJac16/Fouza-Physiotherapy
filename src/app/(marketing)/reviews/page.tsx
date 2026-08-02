@@ -10,59 +10,20 @@ import {
 import { Button } from "@/components/ui/button";
 import { Container, Section, SectionHeader } from "@/components/layout/container";
 import { routes } from "@/config/routes";
-import { reviewSummary, testimonials } from "@/content/testimonials";
-import { createClient } from "@/lib/supabase/server";
+import { getPublicGoogleReviews } from "@/features/reviews";
 import { JsonLd, breadcrumbJsonLd } from "@/lib/seo/json-ld";
 import { buildMetadata } from "@/lib/seo/metadata";
 
 export const metadata: Metadata = buildMetadata({
   title: "Patient Reviews | Fouza Physiotherapy",
   description:
-    "Read what patients say about their experience at Fouza Physiotherapy in Walmer Estate, Cape Town.",
+    "Read official Google reviews from patients at Fouza Physiotherapy in Walmer Estate, Cape Town.",
   path: routes.marketing.reviews,
 });
 
 export default async function ReviewsPage() {
-  let liveReviews: {
-    id: string;
-    author: string;
-    quote: string;
-    rating: number;
-  }[] = [];
-
-  try {
-    const supabase = await createClient();
-    const { data } = await supabase
-      .from("google_reviews")
-      .select("id, author_name, text, rating")
-      .eq("is_visible", true)
-      .order("synced_at", { ascending: false })
-      .limit(12);
-    liveReviews = (data ?? []).map((r) => ({
-      id: r.id,
-      author: r.author_name,
-      quote: r.text,
-      rating: r.rating,
-    }));
-  } catch {
-    liveReviews = [];
-  }
-
-  const display =
-    liveReviews.length > 0
-      ? liveReviews.map((r) => ({
-          id: r.id,
-          author: r.author,
-          content: r.quote,
-          rating: r.rating,
-          source: "Google",
-        }))
-      : testimonials;
-
-  const avg =
-    liveReviews.length > 0
-      ? liveReviews.reduce((s, r) => s + r.rating, 0) / liveReviews.length
-      : reviewSummary.rating;
+  const { reviews, rating, countLabel, headline } =
+    await getPublicGoogleReviews(24, { featuredFirst: false });
 
   return (
     <>
@@ -88,27 +49,19 @@ export default async function ReviewsPage() {
             <SectionHeader
               eyebrow="Testimonials"
               title="Trusted, personal physiotherapy care"
-              description={
-                liveReviews.length
-                  ? "Live Google Reviews synced for the practice."
-                  : "A preview of patient experiences — connect Google Places to show live reviews."
-              }
+              description="Official Google Business reviews for Fouza Physiotherapy."
               className="mb-0"
             />
             <div className="flex flex-col items-start gap-3 sm:items-end">
               <ReviewSummary
-                rating={Number(avg.toFixed(1))}
-                headline={reviewSummary.headline}
-                countLabel={
-                  liveReviews.length
-                    ? `${liveReviews.length} Google reviews`
-                    : reviewSummary.countLabel
-                }
+                rating={rating}
+                headline={headline}
+                countLabel={countLabel}
               />
               <LeaveReviewButton />
             </div>
           </div>
-          <FeaturedReviews reviews={display} />
+          <FeaturedReviews reviews={reviews} />
         </Container>
       </Section>
 

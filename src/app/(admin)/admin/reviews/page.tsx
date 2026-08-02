@@ -32,7 +32,7 @@ export default async function ReviewsAdminPage() {
       {!reviews?.length ? (
         <EmptyState
           title="No reviews synced"
-          description="Configure GOOGLE_PLACES_API_KEY and GOOGLE_PLACE_ID, then sync."
+          description="Click Sync to load official Google Business reviews. Optional: set GOOGLE_PLACES_API_KEY to refresh Places Details (top 5)."
         />
       ) : (
         <ul className="space-y-3">

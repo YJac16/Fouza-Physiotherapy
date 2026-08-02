@@ -53,16 +53,16 @@ export function AppointmentCard({
 }: AppointmentCardProps) {
   return (
     <Card className={cn("shadow-sm", className)} {...props}>
-      <CardHeader className="flex-row items-start justify-between space-y-0 pb-3">
-        <div className="space-y-1">
-          <CardTitle className="text-h5">{title}</CardTitle>
+      <CardHeader className="flex-row items-start justify-between gap-3 space-y-0 pb-3">
+        <div className="min-w-0 flex-1 space-y-1">
+          <CardTitle className="text-h5 leading-snug">{title}</CardTitle>
           <CardDescription className="flex items-center gap-1.5">
-            <Calendar className="size-3.5" aria-hidden />
+            <Calendar className="size-3.5 shrink-0" aria-hidden />
             {date}
           </CardDescription>
         </div>
         {status ? (
-          <Badge variant={statusVariant[status]} className="capitalize">
+          <Badge variant={statusVariant[status]} className="shrink-0 capitalize">
             {status}
           </Badge>
         ) : null}
@@ -179,16 +179,18 @@ export function TreatmentCard({
   const content = (
     <>
       <CardHeader className="pb-2">
-        <div className="flex items-start justify-between gap-3">
-          <CardTitle className="text-h5">{name}</CardTitle>
+        <div className="flex items-start justify-between gap-2 sm:gap-3">
+          <CardTitle className="min-w-0 flex-1 text-h5 leading-snug [overflow-wrap:anywhere]">
+            {name}
+          </CardTitle>
           {price ? (
-            <Typography as="span" variant="h5" className="shrink-0 text-primary">
+            <Typography as="span" variant="h5" className="shrink-0 whitespace-nowrap text-primary">
               {price}
             </Typography>
           ) : null}
         </div>
         <CardDescription className="flex items-center gap-1.5">
-          <Clock className="size-3.5" aria-hidden />
+          <Clock className="size-3.5 shrink-0" aria-hidden />
           {duration}
         </CardDescription>
       </CardHeader>
@@ -268,13 +270,13 @@ export function PractitionerCard({
       )}
     >
       <CardHeader className="flex-row items-center gap-4 space-y-0">
-        <Avatar className="size-14">
+        <Avatar className="size-14 shrink-0">
           {imageSrc ? <AvatarImage src={imageSrc} alt={imageAlt ?? name} /> : null}
           <AvatarFallback className="bg-primary/10 text-primary">{initials}</AvatarFallback>
         </Avatar>
-        <div>
-          <CardTitle className="text-h5">{name}</CardTitle>
-          <CardDescription>{role}</CardDescription>
+        <div className="min-w-0 flex-1">
+          <CardTitle className="truncate text-h5 leading-snug">{name}</CardTitle>
+          <CardDescription className="truncate">{role}</CardDescription>
         </div>
       </CardHeader>
     </Card>
@@ -324,11 +326,12 @@ export function BookingProgressIndicator({
   ...props
 }: BookingProgressIndicatorProps) {
   const progress = steps.length > 1 ? ((currentStep - 1) / (steps.length - 1)) * 100 : 100;
+  const activeStep = steps[currentStep - 1];
 
   return (
-    <nav aria-label="Booking progress" className={cn("space-y-4", className)} {...props}>
+    <nav aria-label="Booking progress" className={cn("space-y-3", className)} {...props}>
       <Progress value={progress} aria-hidden />
-      <ol className="flex justify-between gap-2">
+      <ol className="flex items-start justify-between gap-1 sm:gap-2">
         {steps.map((step, index) => {
           const stepNumber = index + 1;
           const isActive = stepNumber === currentStep;
@@ -337,15 +340,12 @@ export function BookingProgressIndicator({
           return (
             <li
               key={step.label}
-              className={cn(
-                "flex flex-1 flex-col items-center gap-1 text-center",
-                index < steps.length - 1 && "relative",
-              )}
+              className="flex min-w-0 flex-1 flex-col items-center gap-1.5 text-center"
               aria-current={isActive ? "step" : undefined}
             >
               <span
                 className={cn(
-                  "flex size-8 items-center justify-center rounded-full text-xs font-semibold transition-colors",
+                  "flex size-8 shrink-0 items-center justify-center rounded-full text-xs font-semibold transition-colors",
                   isComplete && "bg-primary text-primary-foreground",
                   isActive && "bg-primary/10 text-primary ring-2 ring-primary",
                   !isComplete && !isActive && "bg-secondary text-muted-foreground",
@@ -356,7 +356,7 @@ export function BookingProgressIndicator({
               </span>
               <span
                 className={cn(
-                  "hidden text-xs font-medium sm:block",
+                  "hidden max-w-full truncate px-0.5 text-[11px] font-medium leading-tight md:block",
                   isActive ? "text-foreground" : "text-muted-foreground",
                 )}
               >
@@ -366,6 +366,12 @@ export function BookingProgressIndicator({
           );
         })}
       </ol>
+      {activeStep ? (
+        <p className="text-center text-sm font-medium text-foreground md:hidden">
+          Step {currentStep} of {steps.length}
+          <span className="text-muted-foreground"> · {activeStep.label}</span>
+        </p>
+      ) : null}
     </nav>
   );
 }

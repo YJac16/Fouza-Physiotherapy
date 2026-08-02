@@ -46,20 +46,20 @@ export function PatientProfileCard({
   return (
     <Card className={cn("shadow-sm", className)} {...props}>
       <CardHeader className="flex-row items-center gap-4 space-y-0">
-        <Avatar className="size-16">
+        <Avatar className="size-16 shrink-0">
           {imageSrc ? <AvatarImage src={imageSrc} alt={name} /> : null}
           <AvatarFallback className="bg-primary/10 text-primary">{initials}</AvatarFallback>
         </Avatar>
         <div className="min-w-0 flex-1">
-          <CardTitle>{name}</CardTitle>
+          <CardTitle className="truncate leading-snug">{name}</CardTitle>
           {memberSince ? (
-            <CardDescription>Member since {memberSince}</CardDescription>
+            <CardDescription className="truncate">Member since {memberSince}</CardDescription>
           ) : null}
         </div>
       </CardHeader>
       <CardContent className="space-y-2 pt-0">
         {email ? (
-          <p className="truncate text-sm text-foreground/90">{email}</p>
+          <p className="break-all text-sm text-foreground/90 sm:truncate">{email}</p>
         ) : null}
         {phone ? <p className="text-sm text-foreground/90">{phone}</p> : null}
       </CardContent>
@@ -95,20 +95,20 @@ export function MedicalAidCard({
 }: MedicalAidCardProps) {
   return (
     <Card className={cn("shadow-sm", className)} {...props}>
-      <CardHeader className="flex-row items-start justify-between space-y-0 pb-3">
-        <div className="flex items-center gap-3">
+      <CardHeader className="flex-row items-start justify-between gap-3 space-y-0 pb-3">
+        <div className="flex min-w-0 flex-1 items-center gap-3">
           <div
-            className="flex size-10 items-center justify-center rounded-xl bg-accent-soft text-accent-soft-foreground"
+            className="flex size-10 shrink-0 items-center justify-center rounded-xl bg-accent-soft text-accent-soft-foreground"
             aria-hidden
           >
             <Shield className="size-5" />
           </div>
-          <div>
-            <CardTitle className="text-h5">{provider}</CardTitle>
-            {plan ? <CardDescription>{plan}</CardDescription> : null}
+          <div className="min-w-0">
+            <CardTitle className="truncate text-h5 leading-snug">{provider}</CardTitle>
+            {plan ? <CardDescription className="truncate">{plan}</CardDescription> : null}
           </div>
         </div>
-        <Badge variant={medicalAidStatus[status]} className="capitalize">
+        <Badge variant={medicalAidStatus[status]} className="shrink-0 capitalize">
           {status}
         </Badge>
       </CardHeader>
@@ -165,11 +165,15 @@ export function ExerciseCard({
     >
       <CardHeader className="pb-2">
         <div className="flex items-start justify-between gap-3">
-          <CardTitle className="text-h5">{name}</CardTitle>
+          <CardTitle className="min-w-0 flex-1 text-h5 leading-snug">{name}</CardTitle>
           {completed ? (
-            <Badge variant="success">Done</Badge>
+            <Badge variant="success" className="shrink-0">
+              Done
+            </Badge>
           ) : progress !== undefined ? (
-            <Badge variant="info">{progress}%</Badge>
+            <Badge variant="info" className="shrink-0">
+              {progress}%
+            </Badge>
           ) : null}
         </div>
         {details ? <CardDescription>{details}</CardDescription> : null}
@@ -262,20 +266,20 @@ export function InvoiceCard({
 }: InvoiceCardProps) {
   return (
     <Card className={cn("shadow-sm", className)} {...props}>
-      <CardHeader className="flex-row items-start justify-between space-y-0 pb-3">
-        <div className="flex items-center gap-3">
+      <CardHeader className="flex-row items-start justify-between gap-3 space-y-0 pb-3">
+        <div className="flex min-w-0 flex-1 items-center gap-3">
           <div
-            className="flex size-10 items-center justify-center rounded-xl bg-primary/10 text-primary"
+            className="flex size-10 shrink-0 items-center justify-center rounded-xl bg-primary/10 text-primary"
             aria-hidden
           >
             <Receipt className="size-5" />
           </div>
-          <div>
-            <CardTitle className="text-h5">{invoiceNumber}</CardTitle>
-            <CardDescription>{date}</CardDescription>
+          <div className="min-w-0">
+            <CardTitle className="truncate text-h5 leading-snug">{invoiceNumber}</CardTitle>
+            <CardDescription className="truncate">{date}</CardDescription>
           </div>
         </div>
-        <Badge variant={invoiceStatus[status]} className="capitalize">
+        <Badge variant={invoiceStatus[status]} className="shrink-0 capitalize">
           {status}
         </Badge>
       </CardHeader>
@@ -399,24 +403,24 @@ export function ConsentStatusCard({
 }: ConsentStatusCardProps) {
   return (
     <Card className={cn("shadow-sm", className)} {...props}>
-      <CardHeader className="flex-row items-start justify-between space-y-0 pb-3">
-        <div className="flex items-center gap-3">
+      <CardHeader className="flex-row items-start justify-between gap-3 space-y-0 pb-3">
+        <div className="flex min-w-0 flex-1 items-center gap-3">
           <div
-            className="flex size-10 items-center justify-center rounded-xl bg-accent-soft text-accent-soft-foreground"
+            className="flex size-10 shrink-0 items-center justify-center rounded-xl bg-accent-soft text-accent-soft-foreground"
             aria-hidden
           >
             <Heart className="size-5" />
           </div>
-          <div>
-            <CardTitle className="text-h5">{formName}</CardTitle>
+          <div className="min-w-0">
+            <CardTitle className="truncate text-h5 leading-snug">{formName}</CardTitle>
             {signedDate ? (
-              <CardDescription>Signed {signedDate}</CardDescription>
+              <CardDescription className="truncate">Signed {signedDate}</CardDescription>
             ) : expiresDate ? (
-              <CardDescription>Expires {expiresDate}</CardDescription>
+              <CardDescription className="truncate">Expires {expiresDate}</CardDescription>
             ) : null}
           </div>
         </div>
-        <Badge variant={consentStatus[status]} className="capitalize">
+        <Badge variant={consentStatus[status]} className="shrink-0 capitalize">
           {status}
         </Badge>
       </CardHeader>

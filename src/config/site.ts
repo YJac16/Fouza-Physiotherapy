@@ -57,7 +57,10 @@ export const siteConfig = {
   images: {
     logo: "/fouza-physiotherapy-logo.png",
     logoWordmark: "/fouza-physiotherapy-logo-wordmark.png",
+    /** Light lettering for dark backgrounds — same layout as `logoWordmark`. */
+    logoWordmarkDark: "/fouza-physiotherapy-logo-wordmark-dark.png",
     favicon: "/favicon-32x32.png",
+    appleTouchIcon: "/apple-touch-icon.png",
     hpcsa: "/hpcsa-logo.png",
     /** Clinic waiting area — primary marketing hero */
     hero: "/facilities-08.jpg",

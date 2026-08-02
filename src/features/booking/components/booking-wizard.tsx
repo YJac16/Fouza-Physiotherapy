@@ -261,7 +261,7 @@ export function BookingWizard({ services, practitioners, className }: BookingWiz
           <Typography variant="small" className="mb-6 text-muted-foreground">
             Choose the treatment you&apos;d like to book.
           </Typography>
-          <div className="grid gap-4 sm:grid-cols-2">
+          <div className="grid gap-4 md:grid-cols-2">
             {services.map((service) => (
               <TreatmentCard
                 key={service.id}
@@ -285,7 +285,7 @@ export function BookingWizard({ services, practitioners, className }: BookingWiz
           <Typography variant="small" className="mb-6 text-muted-foreground">
             All appointments are with our registered physiotherapy team.
           </Typography>
-          <div className="grid gap-4 sm:grid-cols-2">
+          <div className="grid gap-4 md:grid-cols-2">
             {practitioners.map((practitioner) => (
               <PractitionerCard
                 key={practitioner.id}

@@ -103,25 +103,25 @@ export function PortalHeader({
         className,
       )}
     >
-      <div className="flex items-center gap-3">
+      <div className="flex min-w-0 items-center gap-3">
         {onMenuClick ? (
           <Button
             type="button"
             variant="outline"
             size="icon-sm"
-            className="md:hidden"
+            className="shrink-0 md:hidden"
             onClick={onMenuClick}
             aria-label="Open sidebar"
           >
             <Menu />
           </Button>
         ) : null}
-        <h1 className="font-display text-h5 tracking-tight">{title}</h1>
+        <h1 className="truncate font-display text-h5 tracking-tight">{title}</h1>
       </div>
-      <div className="flex items-center gap-2">
+      <div className="flex shrink-0 items-center gap-2">
         <ThemeToggle />
-        <div className="flex items-center gap-2 rounded-xl border border-border/70 px-2 py-1.5">
-          <Avatar className="size-8">
+        <div className="flex max-w-[40vw] items-center gap-2 rounded-xl border border-border/70 px-2 py-1.5 sm:max-w-none">
+          <Avatar className="size-8 shrink-0">
             <AvatarFallback className="bg-primary/10 text-xs text-primary">
               {userName
                 .split(" ")
@@ -131,7 +131,7 @@ export function PortalHeader({
                 .toUpperCase()}
             </AvatarFallback>
           </Avatar>
-          <span className="hidden text-sm font-medium sm:inline">{userName}</span>
+          <span className="hidden truncate text-sm font-medium sm:inline">{userName}</span>
         </div>
         <form action={signOutAction}>
           <Button

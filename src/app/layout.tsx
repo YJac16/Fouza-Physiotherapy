@@ -27,7 +27,7 @@ export const metadata: Metadata = {
   metadataBase: new URL(siteConfig.url),
   icons: {
     icon: [{ url: siteConfig.images.favicon, type: "image/png", sizes: "32x32" }],
-    apple: [{ url: siteConfig.images.favicon, sizes: "32x32" }],
+    apple: [{ url: siteConfig.images.appleTouchIcon, sizes: "180x180", type: "image/png" }],
   },
 };
 

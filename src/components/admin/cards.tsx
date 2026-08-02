@@ -171,23 +171,28 @@ export function AdminAppointmentCard({
 
   return (
     <Card className={cn("shadow-sm", className)} {...props}>
-      <CardHeader className="flex-row items-center gap-3 space-y-0 pb-3">
-        <Avatar className="size-10">
-          {avatarSrc ? <AvatarImage src={avatarSrc} alt={patientName} /> : null}
-          <AvatarFallback>{initials}</AvatarFallback>
-        </Avatar>
-        <div className="min-w-0 flex-1">
-          <CardTitle className="truncate text-base">{patientName}</CardTitle>
-          <CardDescription>{treatment}</CardDescription>
+      <CardHeader className="flex-col items-stretch gap-3 space-y-0 pb-3 sm:flex-row sm:items-center">
+        <div className="flex min-w-0 flex-1 items-center gap-3">
+          <Avatar className="size-10 shrink-0">
+            {avatarSrc ? <AvatarImage src={avatarSrc} alt={patientName} /> : null}
+            <AvatarFallback>{initials}</AvatarFallback>
+          </Avatar>
+          <div className="min-w-0 flex-1">
+            <CardTitle className="truncate text-base">{patientName}</CardTitle>
+            <CardDescription className="line-clamp-2">{treatment}</CardDescription>
+          </div>
         </div>
-        <Badge variant={adminApptStatus[status]} className="shrink-0 capitalize">
+        <Badge
+          variant={adminApptStatus[status]}
+          className="w-fit shrink-0 capitalize self-start sm:self-center"
+        >
           {status.replace("-", " ")}
         </Badge>
       </CardHeader>
-      <CardContent className="flex items-center justify-between pt-0">
-        <p className="flex items-center gap-1.5 text-sm text-muted-foreground">
-          <Clock className="size-3.5" aria-hidden />
-          {time}
+      <CardContent className="flex flex-col gap-3 pt-0 sm:flex-row sm:items-center sm:justify-between">
+        <p className="flex min-w-0 items-start gap-1.5 text-sm text-muted-foreground">
+          <Clock className="mt-0.5 size-3.5 shrink-0" aria-hidden />
+          <span className="break-words">{time}</span>
         </p>
         {actions}
       </CardContent>

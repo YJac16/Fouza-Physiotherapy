@@ -1,11 +1,22 @@
 "use server";
 
-import { confirmBookingSchema, holdSchema, slotQuerySchema } from "@/features/booking/schemas/booking";
+import { revalidatePath } from "next/cache";
+
+import {
+  confirmBookingSchema,
+  holdSchema,
+  rescheduleSchema,
+  slotQuerySchema,
+} from "@/features/booking/schemas/booking";
 import { listAvailableSlots } from "@/features/booking/api/slots";
-import { cancelBooking, confirmBooking, createHold } from "@/features/booking/api/bookings";
+import {
+  cancelBooking,
+  confirmBooking,
+  createHold,
+  rescheduleBooking,
+} from "@/features/booking/api/bookings";
 import { requireStaff } from "@/lib/auth/guards";
 import { createServiceClient } from "@/lib/supabase/admin";
-import { createClient } from "@/lib/supabase/server";
 
 export type BookingActionState = {
   error?: string;
@@ -64,7 +75,24 @@ export async function confirmBookingAction(
 
 export async function adminCancelAppointmentAction(appointmentId: string) {
   const profile = await requireStaff();
-  return cancelBooking(appointmentId, profile.id);
+  const result = await cancelBooking(appointmentId, profile.id);
+  if (!result.error) {
+    revalidatePath("/admin");
+    revalidatePath("/admin/appointments");
+  }
+  return result;
+}
+
+export async function adminRescheduleAppointmentAction(input: unknown) {
+  const profile = await requireStaff();
+  const parsed = rescheduleSchema.safeParse(input);
+  if (!parsed.success) return { error: "Invalid reschedule request" };
+  const result = await rescheduleBooking(parsed.data, profile.id);
+  if (!result.error) {
+    revalidatePath("/admin");
+    revalidatePath("/admin/appointments");
+  }
+  return result;
 }
 
 export async function listBookableCatalog() {

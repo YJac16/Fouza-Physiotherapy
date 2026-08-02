@@ -11,6 +11,7 @@ import {
 import { Button } from "@/components/ui/button";
 import { Card, CardContent, CardHeader, CardTitle } from "@/components/ui/card";
 import { EmptyState } from "@/components/shared/states";
+import { AppointmentActions } from "@/features/booking";
 import { getDashboardMetrics } from "@/features/practice";
 import { requireStaff } from "@/lib/auth/guards";
 import { createClient } from "@/lib/supabase/server";
@@ -34,7 +35,9 @@ export default async function AdminDashboardPage() {
     await Promise.all([
       supabase
         .from("appointments")
-        .select("id, starts_at, status, patients(first_name, last_name), services(name)")
+        .select(
+          "id, starts_at, status, practitioner_id, service_id, patients(first_name, last_name), services(name)",
+        )
         .gte("starts_at", `${today}T00:00:00+02:00`)
         .neq("status", "cancelled")
         .order("starts_at", { ascending: true })
@@ -77,7 +80,7 @@ export default async function AdminDashboardPage() {
         </div>
         <div className="flex gap-2">
           <Button asChild variant="outline">
-            <Link href={routes.admin.appointments}>Schedule</Link>
+            <Link href={routes.admin.appointments}>Appointments</Link>
           </Button>
           <Button asChild>
             <Link href={routes.admin.patients}>Patients</Link>
@@ -154,6 +157,15 @@ export default async function AdminDashboardPage() {
                       timeZone: "Africa/Johannesburg",
                     })}
                     status={apptStatusMap[appt.status] ?? "scheduled"}
+                    actions={
+                      appt.practitioner_id && appt.service_id ? (
+                        <AppointmentActions
+                          appointmentId={appt.id}
+                          practitionerId={appt.practitioner_id}
+                          serviceId={appt.service_id}
+                        />
+                      ) : null
+                    }
                   />
                 );
               })}

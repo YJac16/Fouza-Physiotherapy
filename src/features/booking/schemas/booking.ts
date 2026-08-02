@@ -22,6 +22,13 @@ export const confirmBookingSchema = z.object({
   phone: z.string().min(7),
 });
 
+export const rescheduleSchema = z.object({
+  appointmentId: z.string().uuid(),
+  startsAt: z.string().datetime(),
+  endsAt: z.string().datetime(),
+});
+
 export type SlotQuery = z.infer<typeof slotQuerySchema>;
 export type HoldInput = z.infer<typeof holdSchema>;
 export type ConfirmBookingInput = z.infer<typeof confirmBookingSchema>;
+export type RescheduleInput = z.infer<typeof rescheduleSchema>;

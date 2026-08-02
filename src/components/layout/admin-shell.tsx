@@ -28,6 +28,7 @@ import { Separator } from "@/components/ui/separator";
 import { routes } from "@/config/routes";
 import { signOutAction } from "@/features/auth";
 import { cn } from "@/lib/utils";
+import type { AppRole } from "@/types/auth";
 
 const adminNav = [
   { label: "Dashboard", href: routes.admin.dashboard, icon: LayoutDashboard },
@@ -39,20 +40,31 @@ const adminNav = [
   { label: "Documents", href: routes.admin.documents, icon: FileText },
   { label: "Informed consent", href: routes.admin.consentForms, icon: ClipboardList },
   { label: "Availability", href: routes.admin.availability, icon: CalendarClock },
-  { label: "Users", href: routes.admin.users, icon: Users },
+  { label: "Users", href: routes.admin.users, icon: Users, adminOnly: true },
   { label: "Reviews", href: routes.admin.reviews, icon: Star },
   { label: "Blog", href: routes.admin.blog, icon: BookOpen },
-  { label: "Analytics", href: "/admin/analytics", icon: Activity },
+  { label: "Analytics", href: routes.admin.analytics, icon: Activity },
   { label: "Settings", href: routes.admin.settings, icon: Settings },
-];
+] as const;
+
+function titleFromPath(pathname: string) {
+  const match = adminNav.find(
+    (item) =>
+      pathname === item.href ||
+      (item.href !== routes.admin.dashboard && pathname.startsWith(item.href)),
+  );
+  return match?.label ?? "Dashboard";
+}
 
 export interface AdminSidebarProps {
   className?: string;
   onNavigate?: () => void;
+  role?: AppRole;
 }
 
-export function AdminSidebar({ className, onNavigate }: AdminSidebarProps) {
+export function AdminSidebar({ className, onNavigate, role }: AdminSidebarProps) {
   const pathname = usePathname();
+  const items = adminNav.filter((item) => !("adminOnly" in item && item.adminOnly) || role === "admin");
 
   return (
     <aside
@@ -61,12 +73,12 @@ export function AdminSidebar({ className, onNavigate }: AdminSidebarProps) {
         className,
       )}
     >
-      <div className="flex h-16 items-center px-5">
+      <div className="flex h-16 shrink-0 items-center px-5">
         <Logo size="sm" href={routes.admin.root} />
       </div>
       <Separator />
-      <nav className="flex-1 space-y-1 p-3" aria-label="Admin">
-        {adminNav.map((item) => {
+      <nav className="flex-1 space-y-1 overflow-y-auto p-3" aria-label="Admin">
+        {items.map((item) => {
           const active =
             pathname === item.href ||
             (item.href !== routes.admin.dashboard && pathname.startsWith(item.href));
@@ -163,11 +175,13 @@ export interface AdminShellProps {
   children: React.ReactNode;
   title?: string;
   userName?: string;
+  role?: AppRole;
 }
 
-export function AdminShell({ children, title, userName }: AdminShellProps) {
+export function AdminShell({ children, title, userName, role }: AdminShellProps) {
   const pathname = usePathname();
   const [mobileOpen, setMobileOpen] = React.useState(false);
+  const resolvedTitle = title ?? titleFromPath(pathname);
 
   React.useEffect(() => {
     setMobileOpen(false);
@@ -176,7 +190,7 @@ export function AdminShell({ children, title, userName }: AdminShellProps) {
   return (
     <div className="flex min-h-screen bg-background">
       <div className="hidden md:block">
-        <AdminSidebar />
+        <AdminSidebar role={role} />
       </div>
 
       {mobileOpen ? (
@@ -187,8 +201,8 @@ export function AdminShell({ children, title, userName }: AdminShellProps) {
             aria-label="Close sidebar"
             onClick={() => setMobileOpen(false)}
           />
-          <div className="relative h-full w-72 bg-card shadow-soft-lg animate-slide-in-right">
-            <div className="absolute right-3 top-3">
+          <div className="relative flex h-full w-72 flex-col bg-card shadow-soft-lg animate-slide-in-right">
+            <div className="absolute right-3 top-3 z-10">
               <Button
                 type="button"
                 variant="ghost"
@@ -199,14 +213,14 @@ export function AdminShell({ children, title, userName }: AdminShellProps) {
                 <X />
               </Button>
             </div>
-            <AdminSidebar onNavigate={() => setMobileOpen(false)} />
+            <AdminSidebar role={role} onNavigate={() => setMobileOpen(false)} />
           </div>
         </div>
       ) : null}
 
       <div className="flex min-w-0 flex-1 flex-col">
         <AdminHeader
-          title={title}
+          title={resolvedTitle}
           userName={userName}
           onMenuClick={() => setMobileOpen(true)}
         />

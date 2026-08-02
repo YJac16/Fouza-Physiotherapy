@@ -167,3 +167,68 @@ export async function cancelBooking(appointmentId: string, actorId?: string) {
   }
   return { error: null };
 }
+
+export async function rescheduleBooking(
+  input: { appointmentId: string; startsAt: string; endsAt: string },
+  actorId?: string,
+) {
+  const admin = createServiceClient();
+  const { data: appointment, error: loadError } = await admin
+    .from("appointments")
+    .select("id, practitioner_id, status, patient_id")
+    .eq("id", input.appointmentId)
+    .maybeSingle();
+
+  if (loadError || !appointment) {
+    return { error: loadError?.message ?? "Appointment not found" };
+  }
+  if (appointment.status === "cancelled" || appointment.status === "completed") {
+    return { error: "This appointment can no longer be rescheduled" };
+  }
+
+  const { data: conflicts } = await admin
+    .from("appointments")
+    .select("id")
+    .eq("practitioner_id", appointment.practitioner_id)
+    .in("status", ["pending", "confirmed"])
+    .neq("id", appointment.id)
+    .lt("starts_at", input.endsAt)
+    .gt("ends_at", input.startsAt)
+    .limit(1);
+
+  if (conflicts?.length) {
+    return { error: "That slot is no longer available" };
+  }
+
+  const { error } = await admin
+    .from("appointments")
+    .update({
+      starts_at: input.startsAt,
+      ends_at: input.endsAt,
+      status: appointment.status === "pending" ? "confirmed" : appointment.status,
+    })
+    .eq("id", appointment.id);
+
+  if (error) return { error: error.message };
+
+  if (actorId) {
+    await admin.from("audit_logs").insert({
+      actor_id: actorId,
+      action: "appointment.reschedule",
+      entity_type: "appointment",
+      entity_id: appointment.id,
+    });
+  }
+
+  if (appointment.patient_id) {
+    await admin.from("patient_timeline_events").insert({
+      patient_id: appointment.patient_id,
+      event_type: "appointment.rescheduled",
+      title: "Appointment rescheduled",
+      entity_type: "appointment",
+      entity_id: appointment.id,
+    });
+  }
+
+  return { error: null };
+}

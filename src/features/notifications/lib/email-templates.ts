@@ -101,7 +101,7 @@ export function renderEmailTemplate(
     };
   }
 
-  if (templateKey === "invoice.sent") {
+  if (templateKey === "invoice.sent" || templateKey === "invoice.receipt") {
     const invoiceNumber =
       typeof payload.invoiceNumber === "string" ? payload.invoiceNumber : "your invoice";
     const description =
@@ -113,20 +113,51 @@ export function renderEmailTemplate(
             totalCents / 100,
           )
         : null;
-    const invoicesHref = `${appUrl}/portal/invoices`;
+    const invoiceId = typeof payload.invoiceId === "string" ? payload.invoiceId : null;
+    const invoicesHref = invoiceId
+      ? `${appUrl}/portal/invoices/${invoiceId}`
+      : `${appUrl}/portal/invoices`;
+    const bankName = typeof payload.bankName === "string" ? payload.bankName : null;
+    const accountName = typeof payload.accountName === "string" ? payload.accountName : null;
+    const accountNumber =
+      typeof payload.accountNumber === "string" ? payload.accountNumber : null;
+    const branchCode = typeof payload.branchCode === "string" ? payload.branchCode : null;
+    const proofEmail = typeof payload.proofEmail === "string" ? payload.proofEmail : siteConfig.email;
+    const isReceipt = templateKey === "invoice.receipt";
+
     return {
-      subject: `Invoice ${invoiceNumber} — Fouza Physiotherapy`,
+      subject: isReceipt
+        ? `Receipt ${invoiceNumber} — Fouza Physiotherapy`
+        : `Invoice ${invoiceNumber} — Fouza Physiotherapy`,
       html: wrap(`
-        <h1 style="margin:0 0 12px;font-size:22px;color:#3a3a3c;">Invoice ready</h1>
+        <h1 style="margin:0 0 12px;font-size:22px;color:#3a3a3c;">${
+          isReceipt ? "Payment receipt" : "Invoice ready"
+        }</h1>
         <p style="margin:0;font-size:15px;line-height:1.6;">
-          Hi ${escapeHtml(firstName)}, an invoice from ${escapeHtml(siteConfig.practiceName)} is ready to view.
+          Hi ${escapeHtml(firstName)}, ${
+            isReceipt
+              ? `thank you — here is your receipt from ${escapeHtml(siteConfig.practiceName)}.`
+              : `an invoice from ${escapeHtml(siteConfig.practiceName)} is ready to view.`
+          }
         </p>
         <p style="margin:16px 0 0;font-size:15px;line-height:1.6;">
-          <strong>Invoice:</strong> ${escapeHtml(invoiceNumber)}<br/>
+          <strong>${isReceipt ? "Receipt" : "Invoice"}:</strong> ${escapeHtml(invoiceNumber)}<br/>
           <strong>For:</strong> ${escapeHtml(description)}
           ${amountLabel ? `<br/><strong>Total:</strong> ${escapeHtml(amountLabel)}` : ""}
         </p>
-        ${cta(invoicesHref, "View invoices")}
+        ${
+          !isReceipt && bankName && accountNumber
+            ? `<p style="margin:16px 0 0;font-size:14px;line-height:1.6;">
+                <strong>Banking details</strong><br/>
+                Bank: ${escapeHtml(bankName)}<br/>
+                Account name: ${escapeHtml(accountName ?? "")}<br/>
+                Account number: ${escapeHtml(accountNumber)}<br/>
+                Branch code: ${escapeHtml(branchCode ?? "")}<br/>
+                Kindly send proof of payment to ${escapeHtml(proofEmail)}
+              </p>`
+            : ""
+        }
+        ${cta(invoicesHref, isReceipt ? "View receipt" : "View invoice")}
       `),
     };
   }

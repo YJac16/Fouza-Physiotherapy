@@ -4,6 +4,7 @@ import { Button } from "@/components/ui/button";
 import { requireStaff } from "@/lib/auth/guards";
 import { createClient } from "@/lib/supabase/server";
 import Link from "next/link";
+import { routes } from "@/config/routes";
 
 export default async function BillingAdminPage() {
   await requireStaff();
@@ -16,7 +17,7 @@ export default async function BillingAdminPage() {
 
   return (
     <div className="space-y-8">
-      <div className="flex items-center justify-between">
+      <div className="flex flex-wrap items-center justify-between gap-3">
         <div>
           <h1 className="font-display text-2xl font-semibold">Billing</h1>
           <p className="text-sm text-muted-foreground">
@@ -41,19 +42,20 @@ export default async function BillingAdminPage() {
       ) : (
         <div className="grid gap-4 md:grid-cols-2">
           {invoices.map((invoice) => (
-            <InvoiceCard
-              key={invoice.id}
-              invoiceNumber={invoice.invoice_number}
-              date={invoice.issue_date}
-              amount={`R ${(invoice.total_cents / 100).toFixed(2)}`}
-              status={
-                invoice.status === "paid"
-                  ? "paid"
-                  : invoice.status === "overdue"
-                    ? "overdue"
-                    : "pending"
-              }
-            />
+            <Link key={invoice.id} href={routes.admin.invoice(invoice.id)} className="block">
+              <InvoiceCard
+                invoiceNumber={invoice.invoice_number}
+                date={invoice.issue_date}
+                amount={`R ${(invoice.total_cents / 100).toFixed(2)}`}
+                status={
+                  invoice.status === "paid"
+                    ? "paid"
+                    : invoice.status === "overdue"
+                      ? "overdue"
+                      : "pending"
+                }
+              />
+            </Link>
           ))}
         </div>
       )}

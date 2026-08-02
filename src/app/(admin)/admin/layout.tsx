@@ -5,5 +5,9 @@ export default async function AdminLayout({ children }: { children: React.ReactN
   const profile = await requireStaff();
   const userName = profile.full_name ?? profile.email;
 
-  return <AdminShell userName={userName}>{children}</AdminShell>;
+  return (
+    <AdminShell userName={userName} role={profile.role}>
+      {children}
+    </AdminShell>
+  );
 }

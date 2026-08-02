@@ -1,11 +1,14 @@
 "use server";
 
 import { revalidatePath } from "next/cache";
+import { redirect } from "next/navigation";
 import { z } from "zod";
 
 import { requireStaff, requireUser } from "@/lib/auth/guards";
 import { createClient } from "@/lib/supabase/server";
 import { createServiceClient } from "@/lib/supabase/admin";
+import { drainEmailOutbox } from "@/features/notifications/lib/outbox";
+import { getInvoiceBankingSettings } from "@/features/billing/lib/invoice-data";
 
 const invoiceSchema = z.object({
   patientId: z.string().uuid(),
@@ -24,6 +27,7 @@ const paymentSchema = z.object({
 });
 
 export type BillingActionState = { error?: string; success?: string; id?: string };
+export type SendInvoiceState = { error?: string; success?: string };
 
 export async function createInvoiceAction(
   _prev: BillingActionState,
@@ -89,6 +93,7 @@ export async function createInvoiceAction(
 
   const recipientEmail = patientRow?.email?.trim().toLowerCase();
   if (recipientEmail) {
+    const banking = await getInvoiceBankingSettings();
     await admin.from("notification_outbox").insert({
       channel: "email",
       template_key: "invoice.sent",
@@ -101,12 +106,73 @@ export async function createInvoiceAction(
         description: parsed.data.description,
         totalCents: total,
         currency: "ZAR",
+        bankName: banking.bankName,
+        accountName: banking.accountName,
+        accountNumber: banking.accountNumber,
+        branchCode: banking.branchCode,
+        proofEmail: banking.proofEmail,
       },
     });
+    await drainEmailOutbox(5);
   }
 
   revalidatePath("/admin/billing");
-  return { success: "Invoice created", id: data.id };
+  revalidatePath(`/admin/billing/${data.id}`);
+  redirect(`/admin/billing/${data.id}`);
+}
+
+export async function sendInvoiceEmailAction(invoiceId: string): Promise<SendInvoiceState> {
+  await requireStaff();
+  const admin = createServiceClient();
+
+  const { data: invoice, error } = await admin
+    .from("invoices")
+    .select("id, invoice_number, status, total_cents, notes, patients(email, first_name, last_name)")
+    .eq("id", invoiceId)
+    .maybeSingle();
+
+  if (error || !invoice) return { error: error?.message ?? "Invoice not found" };
+
+  const patient = (Array.isArray(invoice.patients) ? invoice.patients[0] : invoice.patients) as
+    | { email?: string | null; first_name?: string | null; last_name?: string | null }
+    | null
+    | undefined;
+
+  const recipientEmail = patient?.email?.trim().toLowerCase();
+  if (!recipientEmail) return { error: "Patient has no email address" };
+
+  const banking = await getInvoiceBankingSettings();
+  const isReceipt = invoice.status === "paid";
+  const templateKey = isReceipt ? "invoice.receipt" : "invoice.sent";
+
+  const { error: outboxError } = await admin.from("notification_outbox").insert({
+    channel: "email",
+    template_key: templateKey,
+    recipient: recipientEmail,
+    payload: {
+      invoiceId: invoice.id,
+      invoiceNumber: invoice.invoice_number,
+      firstName: patient?.first_name ?? "there",
+      description: invoice.notes ?? "Physiotherapy services",
+      totalCents: invoice.total_cents,
+      currency: "ZAR",
+      bankName: banking.bankName,
+      accountName: banking.accountName,
+      accountNumber: banking.accountNumber,
+      branchCode: banking.branchCode,
+      proofEmail: banking.proofEmail,
+    },
+  });
+
+  if (outboxError) return { error: outboxError.message };
+
+  await drainEmailOutbox(5);
+  revalidatePath(`/admin/billing/${invoiceId}`);
+  return {
+    success: isReceipt
+      ? `Receipt emailed to ${recipientEmail}`
+      : `Invoice emailed to ${recipientEmail}`,
+  };
 }
 
 export async function recordPaymentAction(
@@ -144,6 +210,43 @@ export async function recordPaymentAction(
       .from("invoices")
       .update({ status: "paid" })
       .eq("id", parsed.data.invoiceId);
+
+    const admin = createServiceClient();
+    const { data: invoice } = await admin
+      .from("invoices")
+      .select("id, invoice_number, total_cents, notes, patients(email, first_name)")
+      .eq("id", parsed.data.invoiceId)
+      .maybeSingle();
+
+    const patient = (Array.isArray(invoice?.patients) ? invoice?.patients[0] : invoice?.patients) as
+      | { email?: string | null; first_name?: string | null }
+      | null
+      | undefined;
+    const recipientEmail = patient?.email?.trim().toLowerCase();
+    if (invoice && recipientEmail) {
+      const banking = await getInvoiceBankingSettings();
+      await admin.from("notification_outbox").insert({
+        channel: "email",
+        template_key: "invoice.receipt",
+        recipient: recipientEmail,
+        payload: {
+          invoiceId: invoice.id,
+          invoiceNumber: invoice.invoice_number,
+          firstName: patient?.first_name ?? "there",
+          description: invoice.notes ?? "Physiotherapy services",
+          totalCents: invoice.total_cents,
+          currency: "ZAR",
+          bankName: banking.bankName,
+          accountName: banking.accountName,
+          accountNumber: banking.accountNumber,
+          branchCode: banking.branchCode,
+          proofEmail: banking.proofEmail,
+        },
+      });
+      await drainEmailOutbox(5);
+    }
+
+    revalidatePath(`/admin/billing/${parsed.data.invoiceId}`);
   }
 
   revalidatePath("/admin/billing");

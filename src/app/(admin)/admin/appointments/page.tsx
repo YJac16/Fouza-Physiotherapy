@@ -1,6 +1,7 @@
 import { EmptyState } from "@/components/shared/states";
 import { Badge } from "@/components/ui/badge";
 import { Card, CardContent, CardHeader, CardTitle } from "@/components/ui/card";
+import { AppointmentActions } from "@/features/booking";
 import { getPatientConsentCompletionAdmin } from "@/features/consent-forms/lib/completion";
 import { requireStaff } from "@/lib/auth/guards";
 import { createClient } from "@/lib/supabase/server";
@@ -13,7 +14,7 @@ export default async function AppointmentsAdminPage() {
   const { data: appointments } = await supabase
     .from("appointments")
     .select(
-      "id, patient_id, starts_at, ends_at, status, notes, patients(first_name, last_name), services(name)",
+      "id, patient_id, practitioner_id, service_id, starts_at, ends_at, status, notes, patients(first_name, last_name), services(name)",
     )
     .gte("starts_at", `${today}T00:00:00.000Z`)
     .neq("status", "cancelled")
@@ -61,32 +62,39 @@ export default async function AppointmentsAdminPage() {
 
             return (
               <Card key={appt.id}>
-                <CardHeader className="flex-row items-start justify-between space-y-0 pb-2">
-                  <div>
-                    <CardTitle className="text-base">{patientName}</CardTitle>
-                    <p className="text-sm text-muted-foreground">
+                <CardHeader className="flex-col items-stretch gap-3 space-y-0 pb-2 sm:flex-row sm:items-start sm:justify-between">
+                  <div className="min-w-0 flex-1">
+                    <CardTitle className="truncate text-base">{patientName}</CardTitle>
+                    <p className="break-words text-sm text-muted-foreground">
                       {new Date(appt.starts_at).toLocaleString("en-ZA", {
                         timeZone: "Africa/Johannesburg",
                       })}
                       {service ? ` · ${service.name}` : ""}
                     </p>
                   </div>
-                  <div className="flex flex-col items-end gap-1">
+                  <div className="flex flex-wrap gap-1 sm:justify-end">
                     <Badge variant="secondary" className="capitalize">
                       {appt.status}
                     </Badge>
                     {appt.completion ? (
                       <Badge variant={appt.completion.complete ? "success" : "warning"}>
-                        {appt.completion.complete ? "Consent complete" : "Consent pending"}
+                        {appt.completion.complete ? "Consent OK" : "Consent pending"}
                       </Badge>
                     ) : null}
                   </div>
                 </CardHeader>
-                {appt.notes ? (
-                  <CardContent className="pt-0 text-sm text-muted-foreground">
-                    {appt.notes}
-                  </CardContent>
-                ) : null}
+                <CardContent className="space-y-3 pt-0">
+                  {appt.notes ? (
+                    <p className="text-sm text-muted-foreground">{appt.notes}</p>
+                  ) : null}
+                  {appt.practitioner_id && appt.service_id ? (
+                    <AppointmentActions
+                      appointmentId={appt.id}
+                      practitionerId={appt.practitioner_id}
+                      serviceId={appt.service_id}
+                    />
+                  ) : null}
+                </CardContent>
               </Card>
             );
           })}

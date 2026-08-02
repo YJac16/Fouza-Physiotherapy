@@ -1,6 +1,9 @@
+import Link from "next/link";
+
 import { EmptyState } from "@/components/shared/states";
 import { InvoiceCard } from "@/components/patient/cards";
 import { listPatientInvoices } from "@/features/billing/actions/billing";
+import { routes } from "@/config/routes";
 
 export default async function PortalInvoicesPage() {
   const { data: invoices } = await listPatientInvoices();
@@ -22,19 +25,20 @@ export default async function PortalInvoicesPage() {
       ) : (
         <div className="grid gap-4 md:grid-cols-2">
           {invoices.map((invoice) => (
-            <InvoiceCard
-              key={invoice.id}
-              invoiceNumber={invoice.invoice_number}
-              date={invoice.issue_date}
-              amount={`R ${(invoice.total_cents / 100).toFixed(2)}`}
-              status={
-                invoice.status === "paid"
-                  ? "paid"
-                  : invoice.status === "overdue"
-                    ? "overdue"
-                    : "pending"
-              }
-            />
+            <Link key={invoice.id} href={routes.portal.invoice(invoice.id)} className="block">
+              <InvoiceCard
+                invoiceNumber={invoice.invoice_number}
+                date={invoice.issue_date}
+                amount={`R ${(invoice.total_cents / 100).toFixed(2)}`}
+                status={
+                  invoice.status === "paid"
+                    ? "paid"
+                    : invoice.status === "overdue"
+                      ? "overdue"
+                      : "pending"
+                }
+              />
+            </Link>
           ))}
         </div>
       )}

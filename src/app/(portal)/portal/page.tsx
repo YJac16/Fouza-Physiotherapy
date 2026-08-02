@@ -77,7 +77,9 @@ export default async function PortalHomePage() {
                 <AppointmentHistoryCard
                   key={appt.id}
                   title={service?.name ?? "Appointment"}
-                  date={new Date(appt.starts_at).toLocaleString("en-ZA")}
+                  date={new Date(appt.starts_at).toLocaleString("en-ZA", {
+                    timeZone: "Africa/Johannesburg",
+                  })}
                   practitioner="Fouza Physiotherapy"
                   outcome={appt.status}
                 />

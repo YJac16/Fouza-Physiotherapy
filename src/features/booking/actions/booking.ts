@@ -4,6 +4,7 @@ import { confirmBookingSchema, holdSchema, slotQuerySchema } from "@/features/bo
 import { listAvailableSlots } from "@/features/booking/api/slots";
 import { cancelBooking, confirmBooking, createHold } from "@/features/booking/api/bookings";
 import { requireStaff } from "@/lib/auth/guards";
+import { createServiceClient } from "@/lib/supabase/admin";
 import { createClient } from "@/lib/supabase/server";
 
 export type BookingActionState = {
@@ -67,7 +68,9 @@ export async function adminCancelAppointmentAction(appointmentId: string) {
 }
 
 export async function listBookableCatalog() {
-  const supabase = await createClient();
+  // Service client so practitioner profile names resolve for anonymous bookers
+  // (profiles RLS only allows own-profile / staff reads).
+  const supabase = createServiceClient();
   const [{ data: services }, { data: practitioners }] = await Promise.all([
     supabase
       .from("services")

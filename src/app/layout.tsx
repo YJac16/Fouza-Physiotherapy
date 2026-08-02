@@ -26,7 +26,7 @@ export const metadata: Metadata = {
   description: siteConfig.description,
   metadataBase: new URL(siteConfig.url),
   icons: {
-    icon: [{ url: siteConfig.images.favicon, type: "image/jpeg", sizes: "32x32" }],
+    icon: [{ url: siteConfig.images.favicon, type: "image/png", sizes: "32x32" }],
     apple: [{ url: siteConfig.images.favicon, sizes: "32x32" }],
   },
 };

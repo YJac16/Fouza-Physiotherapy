@@ -20,15 +20,15 @@ export interface LogoProps {
 }
 
 const wordmarkSizeMap = {
-  sm: { width: 140, height: 40, className: "h-9 w-auto" },
-  md: { width: 180, height: 52, className: "h-11 w-auto" },
-  lg: { width: 220, height: 64, className: "h-14 w-auto" },
+  sm: { width: 160, height: 88, className: "h-9 w-auto" },
+  md: { width: 200, height: 110, className: "h-11 w-auto" },
+  lg: { width: 240, height: 132, className: "h-14 w-auto" },
 };
 
 const markSizeMap = {
-  sm: { width: 36, height: 36, className: "size-9" },
-  md: { width: 44, height: 44, className: "size-11" },
-  lg: { width: 52, height: 52, className: "size-[3.25rem]" },
+  sm: { width: 36, height: 54, className: "h-9 w-auto" },
+  md: { width: 44, height: 66, className: "h-11 w-auto" },
+  lg: { width: 52, height: 78, className: "h-[3.25rem] w-auto" },
 };
 
 /** Circular brand mark — `fouza-physiotherapy-logo.png`. */

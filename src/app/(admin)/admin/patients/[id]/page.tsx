@@ -30,7 +30,9 @@ export default async function PatientDetailPage({
       id: `appt-${appt.id}`,
       title: "Appointment",
       description: `Status: ${appt.status}`,
-      meta: new Date(appt.starts_at).toLocaleString("en-ZA"),
+      meta: new Date(appt.starts_at).toLocaleString("en-ZA", {
+        timeZone: "Africa/Johannesburg",
+      }),
       icon: <Calendar className="size-4" />,
       sortKey: appt.starts_at,
     })),
@@ -38,7 +40,9 @@ export default async function PatientDetailPage({
       id: `note-${note.id}`,
       title: "Clinical note",
       description: note.subjective || "No subjective notes",
-      meta: new Date(note.created_at).toLocaleString("en-ZA"),
+      meta: new Date(note.created_at).toLocaleString("en-ZA", {
+        timeZone: "Africa/Johannesburg",
+      }),
       icon: <FileText className="size-4" />,
       sortKey: note.created_at,
     })),

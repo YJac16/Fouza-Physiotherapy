@@ -65,7 +65,9 @@ export default async function AppointmentsAdminPage() {
                   <div>
                     <CardTitle className="text-base">{patientName}</CardTitle>
                     <p className="text-sm text-muted-foreground">
-                      {new Date(appt.starts_at).toLocaleString("en-ZA")}
+                      {new Date(appt.starts_at).toLocaleString("en-ZA", {
+                        timeZone: "Africa/Johannesburg",
+                      })}
                       {service ? ` · ${service.name}` : ""}
                     </p>
                   </div>

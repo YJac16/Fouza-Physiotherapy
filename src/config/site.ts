@@ -56,8 +56,8 @@ export const siteConfig = {
   },
   images: {
     logo: "/fouza-physiotherapy-logo.png",
-    logoWordmark: "/fouza-physiotherapy-logo-wordmark.jpg",
-    favicon: "/favicon-32x32.jpg",
+    logoWordmark: "/fouza-physiotherapy-logo-wordmark.png",
+    favicon: "/favicon-32x32.png",
     hpcsa: "/hpcsa-logo.png",
     /** Clinic waiting area — primary marketing hero */
     hero: "/facilities-08.jpg",

@@ -231,7 +231,7 @@ export function RelatedArticles({
       <Typography as="h2" id="related-articles-heading" variant="h3">
         {title}
       </Typography>
-      <div className="grid gap-6 sm:grid-cols-2 lg:grid-cols-3">{children}</div>
+      <div className="grid gap-6 tablet:grid-cols-2 lg:grid-cols-3">{children}</div>
     </section>
   );
 }

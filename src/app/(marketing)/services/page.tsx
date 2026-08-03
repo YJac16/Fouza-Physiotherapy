@@ -43,7 +43,7 @@ export default function ServicesPage() {
             title="Understanding your pain. Restoring your movement. Helping you get back to life."
             description="Every service combines thorough assessment, hands-on treatment where indicated, and a personalised exercise plan."
           />
-          <div className="grid gap-6 sm:grid-cols-2 lg:grid-cols-3">
+          <div className="grid gap-6 tablet:grid-cols-2 lg:grid-cols-3">
             {services.map((service) => {
               const Icon = service.icon;
               return (

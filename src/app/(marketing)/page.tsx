@@ -151,7 +151,7 @@ export default async function HomePage() {
 
       <Section spacing="sm" tone="muted">
         <Container>
-          <div className="grid gap-4 sm:grid-cols-2 lg:grid-cols-3">
+          <div className="grid gap-4 tablet:grid-cols-2 lg:grid-cols-3">
             {trustItems.map((item) => (
               <SlideUp key={item.title}>
                 <FeatureCard

@@ -78,7 +78,7 @@ export function ServicesGrid({
     <Section spacing="md" className={className} {...props}>
       <Container>
         <SectionHeader eyebrow={eyebrow} title={title} description={description} />
-        <div className="grid gap-6 sm:grid-cols-2 lg:grid-cols-3">{children}</div>
+        <div className="grid gap-6 tablet:grid-cols-2 lg:grid-cols-3">{children}</div>
       </Container>
     </Section>
   );
@@ -146,7 +146,7 @@ export function ConditionsGrid({
     <Section spacing="md" className={className} {...props}>
       <Container>
         <SectionHeader eyebrow={eyebrow} title={title} description={description} />
-        <div className="grid gap-4 sm:grid-cols-2 lg:grid-cols-3">{children}</div>
+        <div className="grid gap-4 tablet:grid-cols-2 lg:grid-cols-3">{children}</div>
       </Container>
     </Section>
   );
@@ -179,7 +179,7 @@ export function WhyChooseUs({
           align="center"
           className="mx-auto"
         />
-        <div className="grid gap-6 sm:grid-cols-2 lg:grid-cols-3">{children}</div>
+        <div className="grid gap-6 tablet:grid-cols-2 lg:grid-cols-3">{children}</div>
       </Container>
     </Section>
   );

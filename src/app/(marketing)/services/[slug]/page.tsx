@@ -205,7 +205,7 @@ export default async function ServiceDetailPage({ params }: ServicePageProps) {
         <Section spacing="md" tone="muted">
           <Container>
             <SectionHeader eyebrow="Related" title="Other services you might need" />
-            <div className="grid gap-6 sm:grid-cols-2 lg:grid-cols-3">
+            <div className="grid gap-6 tablet:grid-cols-2 lg:grid-cols-3">
               {related.map((item) => {
                 const RelatedIcon = item.icon;
                 return (

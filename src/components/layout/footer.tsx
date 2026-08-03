@@ -84,7 +84,7 @@ export function Footer({ className, showNewsletter = true }: FooterProps) {
             </ul>
           </div>
 
-          <div className="grid gap-8 sm:grid-cols-3 lg:col-span-4">
+          <div className="grid gap-8 tablet:grid-cols-3 lg:col-span-4">
             <div>
               <p className="mb-3 text-sm font-semibold text-foreground">Explore</p>
               <ul className="space-y-2">

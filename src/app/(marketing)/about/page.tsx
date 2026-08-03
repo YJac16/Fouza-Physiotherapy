@@ -153,29 +153,29 @@ export default function AboutPage() {
       <Section spacing="md" tone="muted">
         <Container>
           <div className="grid gap-6 tablet:grid-cols-2">
-            <div className="rounded-2xl border border-border/80 bg-card p-8 shadow-sm">
+            <div className="overflow-hidden rounded-2xl border border-border/80 bg-card p-8 shadow-sm">
               <Typography variant="caption" className="text-accent">
                 Our mission
               </Typography>
-              <Typography as="h3" variant="h3" className="mt-3 text-balance">
+              <Typography as="h3" variant="h3" className="mt-3 text-balance break-words">
                 To help every patient move better, feel better, and live
                 better
               </Typography>
-              <Typography variant="body-lg" className="mt-4">
+              <Typography variant="body-lg" className="mt-4 break-words">
                 We provide personalised, evidence-based physiotherapy that
                 helps people make sense of persistent pain, restore function,
                 and build lasting confidence in movement — delivered with
                 warmth, clarity, and clinical rigour.
               </Typography>
             </div>
-            <div className="rounded-2xl border border-border/80 bg-card p-8 shadow-sm">
+            <div className="overflow-hidden rounded-2xl border border-border/80 bg-card p-8 shadow-sm">
               <Typography variant="caption" className="text-accent">
                 Our vision
               </Typography>
-              <Typography as="h3" variant="h3" className="mt-3 text-balance">
+              <Typography as="h3" variant="h3" className="mt-3 text-balance break-words">
                 A trusted physiotherapy home for our community
               </Typography>
-              <Typography variant="body-lg" className="mt-4">
+              <Typography variant="body-lg" className="mt-4 break-words">
                 We want Fouza Physiotherapy to be the practice Walmer Estate
                 and greater Cape Town turn to — not only when injured, but as
                 a long-term partner in staying active, resilient, and well.
@@ -192,7 +192,7 @@ export default function AboutPage() {
             title="What guides every session"
             description="These principles shape how we assess, treat, and communicate with every patient who walks through our door."
           />
-          <div className="grid gap-6 sm:grid-cols-2 lg:grid-cols-3">
+          <div className="grid gap-6 tablet:grid-cols-2 lg:grid-cols-3">
             {values.map((value) => (
               <FeatureCard
                 key={value.title}
@@ -212,19 +212,19 @@ export default function AboutPage() {
             title="Evidence-based, always explained"
             description="Fouza Physiotherapy follows a consistent, transparent process so you always understand your care."
           />
-          <div className="grid gap-6 sm:grid-cols-2">
+          <div className="grid gap-6 tablet:grid-cols-2">
             {approach.map((step, index) => (
               <div
                 key={step.title}
-                className="rounded-2xl border border-border/80 bg-card p-6 shadow-sm"
+                className="overflow-hidden rounded-2xl border border-border/80 bg-card p-6 shadow-sm"
               >
                 <span className="flex size-9 items-center justify-center rounded-full bg-accent-soft text-sm font-semibold text-accent-soft-foreground">
                   {index + 1}
                 </span>
-                <Typography as="h3" variant="h5" className="mt-4">
+                <Typography as="h3" variant="h5" className="mt-4 break-words">
                   {step.title}
                 </Typography>
-                <Typography variant="small" className="mt-2 leading-relaxed">
+                <Typography variant="small" className="mt-2 leading-relaxed break-words">
                   {step.description}
                 </Typography>
               </div>
@@ -240,7 +240,7 @@ export default function AboutPage() {
             title="A calm, modern clinic in Walmer Estate"
             description="Designed to make treatment feel comfortable — never rushed or clinical."
           />
-          <div className="grid gap-4 sm:grid-cols-2 lg:grid-cols-3">
+          <div className="grid gap-4 tablet:grid-cols-2 lg:grid-cols-3">
             {[
               { src: siteConfig.images.clinic, alt: "Rehab gym space at Fouza Physiotherapy" },
               { src: siteConfig.images.treatment, alt: "Hands-on physiotherapy assessment on the treatment table" },

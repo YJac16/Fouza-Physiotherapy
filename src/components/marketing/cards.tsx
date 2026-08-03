@@ -120,10 +120,10 @@ export function ServiceCard({
           ) : null}
           {tag ? <Badge variant="accent">{tag}</Badge> : null}
         </div>
-        <CardTitle className="pt-2">{title}</CardTitle>
+        <CardTitle className="break-words pt-2">{title}</CardTitle>
       </CardHeader>
-      <CardContent className="pt-0">
-        <Typography variant="small" className="leading-relaxed">
+      <CardContent className="min-w-0 pt-0">
+        <Typography variant="small" className="leading-relaxed break-words">
           {description}
         </Typography>
       </CardContent>
@@ -184,17 +184,17 @@ export function ConditionCard({
   const inner = (
     <Card
       className={cn(
-        "h-full shadow-sm transition-all duration-220 ease-premium hover:border-accent/30 hover:shadow-soft",
+        "h-full overflow-hidden shadow-sm transition-all duration-220 ease-premium hover:border-accent/30 hover:shadow-soft",
         href && "group cursor-pointer",
         className,
       )}
       {...(href ? {} : props)}
     >
       <CardHeader className="pb-2">
-        <CardTitle className="text-h5">{name}</CardTitle>
+        <CardTitle className="text-h5 break-words">{name}</CardTitle>
       </CardHeader>
-      <CardContent className="pt-0">
-        <Typography variant="small" className="line-clamp-3 leading-relaxed">
+      <CardContent className="min-w-0 pt-0">
+        <Typography variant="small" className="line-clamp-3 leading-relaxed break-words">
           {summary}
         </Typography>
         {href ? (

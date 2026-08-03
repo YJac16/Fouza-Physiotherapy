@@ -39,7 +39,7 @@ export function PricingCard({
   return (
     <Card
       className={cn(
-        "relative flex h-full flex-col shadow-sm transition-shadow duration-220 ease-premium hover:shadow-soft",
+        "relative flex h-full flex-col overflow-hidden shadow-sm transition-shadow duration-220 ease-premium hover:shadow-soft",
         highlighted && "border-primary/30 shadow-soft ring-1 ring-primary/15",
         className,
       )}
@@ -72,7 +72,7 @@ export function PricingCard({
                 className="mt-0.5 size-4 shrink-0 text-success"
                 aria-hidden
               />
-              <span>{feature}</span>
+              <span className="min-w-0 break-words">{feature}</span>
             </li>
           ))}
         </ul>

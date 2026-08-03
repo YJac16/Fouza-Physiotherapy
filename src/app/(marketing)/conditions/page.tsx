@@ -44,7 +44,7 @@ export default function ConditionsPage() {
             title="When pain hasn’t settled as expected"
             description="You don’t need a perfect diagnosis label to get help. These are common reasons people seek care here."
           />
-          <ul className="mt-2 grid gap-3 sm:grid-cols-2">
+          <ul className="mt-2 grid gap-3 tablet:grid-cols-2">
             {persistentPainAudiences.map((item) => (
               <li
                 key={item}
@@ -64,7 +64,7 @@ export default function ConditionsPage() {
             title="Find guidance for your concern"
             description="Focus areas include persistent and chronic pain conditions. Not sure if yours is listed? Contact us — we treat a wide range of musculoskeletal concerns."
           />
-          <div className="grid gap-4 sm:grid-cols-2 lg:grid-cols-3">
+          <div className="grid gap-4 tablet:grid-cols-2 lg:grid-cols-3">
             {conditions.map((condition) => (
               <ConditionCard
                 key={condition.slug}

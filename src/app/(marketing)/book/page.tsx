@@ -74,11 +74,11 @@ function AlternativeContactSection() {
           title="Reach us directly"
           description="Have a question before booking, or need a time that isn't listed online? Contact us and we'll help you find a slot."
         />
-        <div className="grid gap-4 sm:grid-cols-2">
+        <div className="grid gap-4 tablet:grid-cols-2">
           {alternativeContact.map((item) => {
             const Icon = item.icon;
             return (
-              <Card key={item.label} className="shadow-sm">
+              <Card key={item.label} className="overflow-hidden shadow-sm">
                 <CardContent className="p-6">
                   <a
                     href={item.href}
@@ -89,11 +89,11 @@ function AlternativeContactSection() {
                     <div className="flex size-11 shrink-0 items-center justify-center rounded-xl bg-accent-soft text-accent-soft-foreground">
                       <Icon className="size-5" aria-hidden />
                     </div>
-                    <div>
-                      <Typography as="p" variant="h5" className="text-sm">
+                    <div className="min-w-0 flex-1">
+                      <Typography as="p" variant="h5" className="text-sm break-words">
                         {item.label}
                       </Typography>
-                      <Typography variant="small" className="mt-0.5">
+                      <Typography variant="small" className="mt-0.5 break-words">
                         {item.value}
                       </Typography>
                     </div>

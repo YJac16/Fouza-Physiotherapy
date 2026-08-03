@@ -116,7 +116,7 @@ export default async function ConditionDetailPage({ params }: ConditionPageProps
               Common causes
             </Typography>
           </div>
-          <div className="grid gap-4 sm:grid-cols-2 lg:grid-cols-3">
+          <div className="grid gap-4 tablet:grid-cols-2 lg:grid-cols-3">
             {condition.causes.map((cause) => (
               <div key={cause} className="rounded-2xl border border-border/80 bg-card p-5 shadow-sm">
                 <Typography variant="small" className="leading-relaxed text-foreground/90">
@@ -203,7 +203,7 @@ export default async function ConditionDetailPage({ params }: ConditionPageProps
         <Section spacing="md" tone="muted">
           <Container>
             <SectionHeader eyebrow="Related" title="Other conditions we treat" />
-            <div className="grid gap-4 sm:grid-cols-2 lg:grid-cols-3">
+            <div className="grid gap-4 tablet:grid-cols-2 lg:grid-cols-3">
               {related.map((item) => (
                 <ConditionCard
                   key={item.slug}

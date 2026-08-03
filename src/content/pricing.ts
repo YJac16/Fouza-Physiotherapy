@@ -67,8 +67,14 @@ export const pricingPlans: PricingPlan[] = [
 ];
 
 export const pricingNotices = {
-  cashPractice:
-    "This practice is a cash-based practice. Medical aid claims are submitted by patients using a professional statement, available on request after payment.",
+  paymentInformation: {
+    title: "Payment Information",
+    body: "We believe healthcare should be straightforward. Payment is made directly to the practice after your consultation. As we are not contracted to medical aid schemes, payment cannot be claimed directly from the practice.",
+  },
+  medicalAidClaims: {
+    title: "Medical Aid Claims",
+    body: "If you wish to claim from your medical aid, we are happy to provide a detailed statement on request. Please contact your medical aid directly to confirm your available benefits, level of cover, and reimbursement, as these vary between schemes and plans. Fouza Physiotherapy is not responsible for determining your medical aid benefits or the outcome of any claims.",
+  },
   assessmentOnly:
     "If during the session we find that treatment cannot commence, for any reason, a fee of R180 will be charged for the assessment/consultation that was done.",
   referralLetter:

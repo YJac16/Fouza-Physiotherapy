@@ -15,12 +15,16 @@ import { buildMetadata } from "@/lib/seo/metadata";
 export const metadata: Metadata = buildMetadata({
   title: "Pricing | Fouza Physiotherapy",
   description:
-    "Transparent physiotherapy pricing at Fouza Physiotherapy — cash-based practice with professional statements for medical aid claims available on request.",
+    "Transparent physiotherapy pricing at Fouza Physiotherapy. Payment is made directly to the practice; detailed statements for medical aid claims are available on request.",
   path: routes.marketing.pricing,
 });
 
+const titledNotices = [
+  pricingNotices.paymentInformation,
+  pricingNotices.medicalAidClaims,
+];
+
 const notices = [
-  pricingNotices.cashPractice,
   pricingNotices.assessmentOnly,
   pricingNotices.referralLetter,
   pricingNotices.cancellation,
@@ -38,7 +42,7 @@ export default function PricingPage() {
 
       <PageHero
         title="Simple, transparent pricing"
-        description="Fouza Physiotherapy is a cash-based practice. You settle your account directly with us and can receive a professional statement to submit to your medical aid on request."
+        description="We believe healthcare should be straightforward. Payment is made directly to the practice after your consultation."
         breadcrumbs={[
           { label: "Home", href: routes.marketing.home },
           { label: "Pricing" },
@@ -73,6 +77,24 @@ export default function PricingPage() {
         <Container size="md">
           <SectionHeader eyebrow="Good to know" title="Important pricing notes" />
           <div className="space-y-4">
+            {titledNotices.map((notice) => (
+              <div
+                key={notice.title}
+                className="rounded-2xl border border-border/80 bg-card p-5 shadow-sm"
+              >
+                <div className="flex items-start gap-3">
+                  <Info className="mt-0.5 size-5 shrink-0 text-primary" aria-hidden />
+                  <div className="space-y-2">
+                    <Typography as="h3" variant="h4" className="text-balance">
+                      {notice.title}
+                    </Typography>
+                    <Typography variant="small" className="leading-relaxed text-foreground/90">
+                      {notice.body}
+                    </Typography>
+                  </div>
+                </div>
+              </div>
+            ))}
             {notices.map((notice) => (
               <div
                 key={notice}

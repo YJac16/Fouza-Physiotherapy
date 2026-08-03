@@ -86,31 +86,16 @@ export default function TermsPage() {
             </TermsSection>
 
             <TermsSection title="4. Payment">
-              <p>{pricingNotices.cashPractice}</p>
+              <p>{pricingNotices.paymentInformation.body}</p>
               <p>{pricingNotices.assessmentOnly}</p>
               <p>{pricingNotices.referralLetter}</p>
               <p>
-                Payment is due at the time of service unless otherwise
-                agreed in writing with the practice. Please confirm accepted
-                payment methods when booking.
+                Please confirm accepted payment methods when booking.
               </p>
             </TermsSection>
 
             <TermsSection title="5. Medical aid disclaimer">
-              <p>
-                {siteConfig.practiceName} does not submit claims directly to
-                medical aid schemes. We provide a professional statement
-                (invoice) after payment, which you may submit to your
-                medical aid for reimbursement in accordance with your
-                specific plan and available benefits.
-              </p>
-              <p>
-                We cannot guarantee that your medical aid will reimburse any
-                amount for physiotherapy services. Cover, co-payments, and
-                benefit limits are determined solely by your medical aid
-                scheme. Please verify your benefits with your scheme before
-                your appointment if this is a concern.
-              </p>
+              <p>{pricingNotices.medicalAidClaims.body}</p>
             </TermsSection>
 
             <TermsSection title="6. Informed consent">

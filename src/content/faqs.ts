@@ -39,7 +39,7 @@ export const faqs: FaqItem[] = [
     category: "Payments",
     question: "How does payment work?",
     answer:
-      "Fouza Physiotherapy is a cash-based practice. Payment is due after your session. A professional statement can be provided on request for you to submit to your medical aid.",
+      "We believe healthcare should be straightforward. Payment is made directly to the practice after your consultation. As we are not contracted to medical aid schemes, payment cannot be claimed directly from the practice.",
   },
   {
     id: "pay-2",
@@ -53,14 +53,14 @@ export const faqs: FaqItem[] = [
     category: "Medical Aid",
     question: "Do you claim directly from medical aids?",
     answer:
-      "No. Patients settle accounts with the practice and submit the provided statement to their medical aid for reimbursement according to their plan.",
+      "No. If you wish to claim from your medical aid, we are happy to provide a detailed statement on request. Fouza Physiotherapy is not responsible for determining your medical aid benefits or the outcome of any claims.",
   },
   {
     id: "aid-2",
     category: "Medical Aid",
     question: "Will my medical aid cover physiotherapy?",
     answer:
-      "Cover depends on your plan and available benefits. Please check with your medical aid. We provide the documentation you need to claim.",
+      "Please contact your medical aid directly to confirm your available benefits, level of cover, and reimbursement, as these vary between schemes and plans.",
   },
   {
     id: "tx-1",

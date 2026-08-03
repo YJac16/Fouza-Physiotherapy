@@ -1,12 +1,10 @@
 import {
   Activity,
   Armchair,
-  Baby,
   Bone,
   Dumbbell,
   Hand,
   HeartPulse,
-  Home,
   Syringe,
   PersonStanding,
   type LucideIcon,
@@ -30,79 +28,6 @@ export type ServiceContent = {
 };
 
 export const services: ServiceContent[] = [
-  {
-    slug: "sports-physiotherapy",
-    name: "Sports Physiotherapy",
-    shortDescription:
-      "Injury assessment, rehab, and return-to-play programmes for active people and athletes.",
-    overview:
-      "Sports physiotherapy focuses on preventing, diagnosing, and rehabilitating activity-related injuries so you can return to movement with confidence. Treatment combines hands-on care, load management, and progressive exercise.",
-    whoItHelps: [
-      "Recreational and competitive athletes",
-      "People returning after sports injuries",
-      "Anyone with overuse or training-load related pain",
-    ],
-    benefits: [
-      "Faster, safer return to sport",
-      "Improved strength and movement quality",
-      "Reduced risk of re-injury",
-    ],
-    process: [
-      "Detailed injury and training history",
-      "Movement and load assessment",
-      "Hands-on treatment and education",
-      "Progressive rehab and return-to-play plan",
-    ],
-    duration: "45–60 minutes",
-    faqs: [
-      {
-        question: "Do I need a referral for sports physiotherapy?",
-        answer:
-          "No referral is required. You can book directly for an assessment.",
-      },
-      {
-        question: "Can I continue training while rehabbing?",
-        answer:
-          "Often yes — we guide modified loading so recovery and fitness can progress together safely.",
-      },
-    ],
-    icon: Dumbbell,
-    image: siteConfig.images.sports,
-  },
-  {
-    slug: "womens-health",
-    name: "Women's Health",
-    shortDescription:
-      "Supportive physiotherapy for pregnancy-related pain and women’s musculoskeletal needs.",
-    overview:
-      "Women’s health physiotherapy addresses pregnancy-related discomfort, postnatal recovery considerations, and related musculoskeletal concerns with respectful, individualised care.",
-    whoItHelps: [
-      "Expectant mothers with back, pelvic, or joint pain",
-      "Women navigating postnatal musculoskeletal recovery",
-      "Patients seeking gentle, personalised rehab",
-    ],
-    benefits: [
-      "Reduced pregnancy-related discomfort",
-      "Better movement confidence",
-      "Education for daily activities and recovery",
-    ],
-    process: [
-      "Confidential consultation",
-      "Tailored assessment",
-      "Comfort-focused treatment",
-      "Home strategies and exercise guidance",
-    ],
-    duration: "45–60 minutes",
-    faqs: [
-      {
-        question: "Is physiotherapy safe during pregnancy?",
-        answer:
-          "Yes, when tailored appropriately. We adapt techniques and positions for each trimester and comfort level.",
-      },
-    ],
-    icon: Baby,
-    image: siteConfig.images.posture,
-  },
   {
     slug: "dry-needling",
     name: "Dry Needling",
@@ -311,40 +236,6 @@ export const services: ServiceContent[] = [
     ],
     icon: Armchair,
     image: siteConfig.images.shoulderRehab,
-  },
-  {
-    slug: "home-visits",
-    name: "Home Visits",
-    shortDescription:
-      "Physiotherapy in the comfort of your home when travel to the clinic is difficult.",
-    overview:
-      "Home visits bring assessment and treatment to you — helpful after surgery, during limited mobility, or when clinic attendance is impractical.",
-    whoItHelps: [
-      "Patients with limited mobility",
-      "Post-operative recovery at home",
-      "Those preferring treatment in their own space",
-    ],
-    benefits: [
-      "Care without travel strain",
-      "Functional rehab in your environment",
-      "Family/caregiver education where helpful",
-    ],
-    process: [
-      "Confirm suitability and area coverage",
-      "Home assessment",
-      "Treatment and home exercise setup",
-      "Follow-up planning",
-    ],
-    duration: "By arrangement",
-    faqs: [
-      {
-        question: "Which areas do you cover?",
-        answer:
-          "Please contact the practice to confirm availability for your suburb and preferred times.",
-      },
-    ],
-    icon: Home,
-    image: siteConfig.images.assessment,
   },
 ];
 

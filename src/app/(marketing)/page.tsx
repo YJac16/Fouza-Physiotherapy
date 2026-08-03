@@ -25,7 +25,7 @@ import { Button } from "@/components/ui/button";
 import { FadeIn, SlideUp } from "@/components/ui/motion";
 import { Container, Section, SectionHeader } from "@/components/layout/container";
 import { routes } from "@/config/routes";
-import { siteConfig, telHref } from "@/config/site";
+import { siteConfig } from "@/config/site";
 import { conditions } from "@/content/conditions";
 import { faqPreviewIds, faqs } from "@/content/faqs";
 import { serviceHref, services, trustItems } from "@/content/services";
@@ -98,8 +98,9 @@ const whyChoose = [
     icon: trustItems[0].icon,
   },
   {
-    title: "Home visits",
-    description: "In-home physiotherapy when travel to the clinic is difficult.",
+    title: "Persistent pain focus",
+    description:
+      "Special interest in helping people make sense of persistent pain and return to what matters.",
     icon: trustItems[5].icon,
   },
 ];
@@ -125,7 +126,9 @@ export default async function HomePage() {
               <Link href={routes.booking.root}>Book appointment</Link>
             </Button>
             <Button asChild variant="outline" size="lg">
-              <a href={telHref()}>Call now</a>
+              <a href={siteConfig.whatsappUrl} target="_blank" rel="noopener noreferrer">
+                WhatsApp us
+              </a>
             </Button>
           </>
         }
@@ -164,8 +167,8 @@ export default async function HomePage() {
 
       <ServicesGrid
         eyebrow="Services"
-        title="Care designed around how you move"
-        description="From sports injuries to women’s health and post-operative rehab — every plan is tailored to you."
+        title="Understanding your pain. Restoring your movement. Helping you get back to life."
+        description="Physiotherapy for persistent pain—so you can get back to living your life."
       >
         {services.map((service) => {
           const Icon = service.icon;
@@ -310,12 +313,12 @@ export default async function HomePage() {
         description={`${siteConfig.address} · ${siteConfig.hoursSummary}`}
       >
         <Button asChild>
-          <a href={telHref()}>Call {siteConfig.phoneDisplay}</a>
-        </Button>
-        <Button asChild variant="outline">
           <a href={siteConfig.whatsappUrl} target="_blank" rel="noopener noreferrer">
             WhatsApp us
           </a>
+        </Button>
+        <Button asChild variant="outline">
+          <Link href={routes.marketing.contact}>Contact us</Link>
         </Button>
       </ContactCta>
     </>

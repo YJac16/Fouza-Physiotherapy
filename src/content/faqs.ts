@@ -4,7 +4,6 @@ export type FaqItem = {
     | "Booking"
     | "Payments"
     | "Medical Aid"
-    | "Home Visits"
     | "Treatment"
     | "Dry Needling"
     | "Cancellation"
@@ -19,7 +18,7 @@ export const faqs: FaqItem[] = [
     category: "Booking",
     question: "How do I book an appointment?",
     answer:
-      "You can request a booking online or contact the practice by phone or WhatsApp. We will confirm a suitable time for your assessment or follow-up.",
+      "You can book online or contact the practice via WhatsApp or email. We will confirm a suitable time for your assessment or follow-up.",
   },
   {
     id: "book-2",
@@ -64,20 +63,6 @@ export const faqs: FaqItem[] = [
       "Cover depends on your plan and available benefits. Please check with your medical aid. We provide the documentation you need to claim.",
   },
   {
-    id: "home-1",
-    category: "Home Visits",
-    question: "Do you offer home visits?",
-    answer:
-      "Yes, home visits can be arranged when clinically appropriate and subject to availability and location.",
-  },
-  {
-    id: "home-2",
-    category: "Home Visits",
-    question: "Are home visits priced differently?",
-    answer:
-      "Home visits may include an adjusted fee to reflect travel time. Confirm current rates when booking.",
-  },
-  {
     id: "tx-1",
     category: "Treatment",
     question: "What happens in the first consultation?",
@@ -90,6 +75,13 @@ export const faqs: FaqItem[] = [
     question: "How many sessions will I need?",
     answer:
       "It depends on your condition, goals, and response to care. After assessment we discuss an expected pathway and review progress regularly.",
+  },
+  {
+    id: "tx-3",
+    category: "Treatment",
+    question: "Do you offer home visits or sports / women’s health physiotherapy?",
+    answer:
+      "These can sometimes be arranged when clinically appropriate and subject to availability. Message us via WhatsApp or the contact form if you need to discuss suitability.",
   },
   {
     id: "dn-1",
@@ -139,7 +131,6 @@ export const faqCategories = [
   "Booking",
   "Payments",
   "Medical Aid",
-  "Home Visits",
   "Treatment",
   "Dry Needling",
   "Cancellation",

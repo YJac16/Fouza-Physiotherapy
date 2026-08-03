@@ -45,27 +45,33 @@ export default function MeetFouzaPage() {
       <Section spacing="md">
         <Container>
           <div className="grid items-start gap-10 tablet:grid-cols-[minmax(0,380px)_1fr] tablet:gap-16">
-            <FadeIn className="relative tablet:sticky tablet:top-24">
-              <div
-                className="absolute -inset-6 rounded-[2rem] bg-gradient-to-br from-primary/15 via-accent-soft/40 to-transparent blur-2xl"
-                aria-hidden
-              />
-              <div className="relative overflow-hidden rounded-[1.75rem] shadow-soft-lg">
-                <Image
-                  src={fouzaBio.images.portrait}
-                  alt={fouzaBio.name}
-                  width={800}
-                  height={1000}
-                  priority
-                  className="aspect-[4/5] w-full object-cover"
+            <div className="space-y-6">
+              <FadeIn className="relative overflow-hidden tablet:sticky tablet:top-24">
+                <div
+                  className="absolute inset-0 rounded-[2rem] bg-gradient-to-br from-primary/15 via-accent-soft/40 to-transparent blur-2xl"
+                  aria-hidden
                 />
+                <div className="relative overflow-hidden rounded-[1.75rem] shadow-soft-lg">
+                  <Image
+                    src={fouzaBio.images.portrait}
+                    alt={fouzaBio.name}
+                    width={800}
+                    height={1000}
+                    priority
+                    className="aspect-[4/5] w-full object-cover"
+                  />
+                </div>
+              </FadeIn>
+              <div className="flex flex-col gap-2">
+                <Badge className="w-fit">{fouzaBio.credentials}</Badge>
+                <Badge variant="accent" className="w-fit">
+                  {fouzaBio.registration}
+                </Badge>
+                <Badge variant="secondary" className="w-fit">
+                  Private practice since 2021
+                </Badge>
               </div>
-              <div className="mt-6 flex flex-wrap gap-2">
-                <Badge>{fouzaBio.credentials}</Badge>
-                <Badge variant="accent">{fouzaBio.registration}</Badge>
-                <Badge variant="secondary">Private practice since 2021</Badge>
-              </div>
-              <div className="mt-6 flex items-center gap-3 rounded-2xl border border-border/80 bg-card p-4 shadow-sm">
+              <div className="flex items-center gap-3 rounded-2xl border border-border/80 bg-card p-4 shadow-sm">
                 <Image
                   src={siteConfig.images.hpcsa}
                   alt="HPCSA registered"
@@ -82,7 +88,7 @@ export default function MeetFouzaPage() {
                   </Typography>
                 </div>
               </div>
-            </FadeIn>
+            </div>
 
             <div className="space-y-12">
               <div className="space-y-4">

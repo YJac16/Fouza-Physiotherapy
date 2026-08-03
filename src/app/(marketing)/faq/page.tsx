@@ -14,7 +14,7 @@ import { buildMetadata } from "@/lib/seo/metadata";
 export const metadata: Metadata = buildMetadata({
   title: "Frequently Asked Questions | Fouza Physiotherapy",
   description:
-    "Answers to common questions about booking, payments, medical aid, home visits, dry needling, and treatment at Fouza Physiotherapy.",
+    "Answers to common questions about booking, payments, medical aid, dry needling, and treatment at Fouza Physiotherapy.",
   path: routes.marketing.faq,
 });
 
@@ -49,12 +49,12 @@ export default function FaqPage() {
           <div className="rounded-2xl border border-primary/15 bg-gradient-to-br from-primary/5 via-background to-accent-soft/40 p-8 text-center shadow-soft tablet:p-12">
             <SectionHeader
               title="Still have a question?"
-              description={`Call, WhatsApp, or email us — we're happy to help before you book.`}
+              description="WhatsApp or email us — we're happy to help before you book."
               align="center"
               className="mx-auto mb-6"
             />
             <Typography variant="small" className="mb-6">
-              {siteConfig.phoneDisplay} · {siteConfig.email}
+              {siteConfig.email}
             </Typography>
             <div className="flex flex-col items-center justify-center gap-3 sm:flex-row">
               <Button asChild size="lg">

@@ -36,14 +36,14 @@ export function ContactForm() {
       });
       if (!res.ok) {
         setStatus("error");
-        setError("Unable to send right now. Please WhatsApp or call us.");
+        setError("Unable to send right now. Please WhatsApp or email us.");
         return;
       }
       setStatus("success");
       form.reset();
     } catch {
       setStatus("error");
-      setError("Unable to send right now. Please WhatsApp or call us.");
+      setError("Unable to send right now. Please WhatsApp or email us.");
     }
   }
 

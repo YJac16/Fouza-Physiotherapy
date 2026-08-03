@@ -1,6 +1,6 @@
 "use client";
 
-import { Menu, Phone, X } from "lucide-react";
+import { Menu, X } from "lucide-react";
 import Link from "next/link";
 import { usePathname } from "next/navigation";
 import * as React from "react";
@@ -9,7 +9,6 @@ import { Logo } from "@/components/shared/logo";
 import { ThemeToggle } from "@/components/shared/theme-toggle";
 import { Button } from "@/components/ui/button";
 import { routes } from "@/config/routes";
-import { siteConfig, telHref } from "@/config/site";
 import { cn } from "@/lib/utils";
 
 const navLinks = [
@@ -108,23 +107,12 @@ export function Navbar({
           >
             Sign in
           </Link>
-          <Button asChild variant="outline" size="sm">
-            <a href={telHref()}>
-              <Phone className="size-4" aria-hidden />
-              Call
-            </a>
-          </Button>
           <Button asChild size="sm">
             <Link href={ctaHref}>{ctaLabel}</Link>
           </Button>
         </div>
 
         <div className="flex items-center gap-2 lg:hidden">
-          <Button asChild variant="outline" size="icon-sm" aria-label="Call now">
-            <a href={telHref()}>
-              <Phone />
-            </a>
-          </Button>
           <ThemeToggle />
           <Button
             type="button"
@@ -158,9 +146,6 @@ export function Navbar({
             <div className="mt-3 flex flex-col gap-2 border-t border-border pt-4">
               <Button asChild className="w-full">
                 <Link href={ctaHref}>{ctaLabel}</Link>
-              </Button>
-              <Button asChild variant="outline" className="w-full">
-                <a href={telHref()}>Call {siteConfig.phoneDisplay}</a>
               </Button>
               <Button asChild variant="ghost" className="w-full">
                 <Link href={routes.auth.login}>Sign in</Link>

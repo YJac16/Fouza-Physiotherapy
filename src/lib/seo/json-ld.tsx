@@ -10,7 +10,6 @@ export function medicalBusinessJsonLd() {
     description: siteConfig.description,
     url: absoluteUrl("/"),
     image: absoluteUrl(siteConfig.images.og),
-    telephone: siteConfig.phoneDisplay,
     email: siteConfig.email,
     priceRange: "R600–R800",
     address: {

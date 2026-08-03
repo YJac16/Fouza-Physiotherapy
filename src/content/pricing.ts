@@ -65,19 +65,6 @@ export const pricingPlans: PricingPlan[] = [
     ],
   },
   {
-    id: "home-visit",
-    title: "Home Visit",
-    price: "On request",
-    period: "By arrangement",
-    description: "Physiotherapy at your home when clinic attendance is difficult.",
-    features: [
-      "In-home assessment",
-      "Treatment in your environment",
-      "Caregiver education where helpful",
-      "Travel considered in fee",
-    ],
-  },
-  {
     id: "online",
     title: "Online Consultation",
     price: "On request",

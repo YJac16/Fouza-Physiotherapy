@@ -8,7 +8,6 @@ import { Button } from "@/components/ui/button";
 import { Container, Section, SectionHeader } from "@/components/layout/container";
 import { Typography } from "@/components/ui/typography";
 import { routes } from "@/config/routes";
-import { siteConfig } from "@/config/site";
 import { pricingNotices, pricingPlans } from "@/content/pricing";
 import { JsonLd, breadcrumbJsonLd } from "@/lib/seo/json-ld";
 import { buildMetadata } from "@/lib/seo/metadata";
@@ -96,9 +95,8 @@ export default function PricingPage() {
               Questions about medical aid or fees?
             </Typography>
             <Typography variant="body-lg" className="mx-auto mt-3 max-w-lg">
-              Contact the practice on {siteConfig.phoneDisplay} or via
-              WhatsApp and we&apos;ll help clarify what to expect before your
-              visit.
+              WhatsApp us or send a message via the contact page and we&apos;ll
+              help clarify what to expect before your visit.
             </Typography>
             <div className="mt-8 flex flex-col items-center justify-center gap-3 sm:flex-row">
               <Button asChild size="lg">

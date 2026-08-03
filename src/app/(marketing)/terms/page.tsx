@@ -63,7 +63,7 @@ export default function TermsPage() {
 
             <TermsSection title="2. Bookings">
               <p>
-                Appointments may be requested online, by phone, or via
+                Appointments may be requested online or via
                 WhatsApp. A booking is only confirmed once you receive
                 confirmation from the practice. Online booking is currently
                 handled through our external scheduling partner; please
@@ -205,7 +205,7 @@ export default function TermsPage() {
             <TermsSection title="13. Contact us">
               <p>
                 For questions about these Terms and Conditions, please
-                contact us at {siteConfig.email} or {siteConfig.phoneDisplay}.
+                contact us at {siteConfig.email} or via WhatsApp.
               </p>
             </TermsSection>
           </div>

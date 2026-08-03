@@ -1,18 +1,18 @@
-import { AlertTriangle, Car, Clock, Mail, MapPin, MessageCircle, Phone } from "lucide-react";
+import { AlertTriangle, Car, Clock, Mail, MapPin, MessageCircle } from "lucide-react";
 import type { Metadata } from "next";
 
 import { ContactForm, PageHero } from "@/components/marketing";
 import { Container, Section, SectionHeader } from "@/components/layout/container";
 import { Typography } from "@/components/ui/typography";
 import { routes } from "@/config/routes";
-import { mapsQueryUrl, siteConfig, telHref } from "@/config/site";
+import { mapsQueryUrl, siteConfig } from "@/config/site";
 import { JsonLd, breadcrumbJsonLd } from "@/lib/seo/json-ld";
 import { buildMetadata } from "@/lib/seo/metadata";
 
 export const metadata: Metadata = buildMetadata({
   title: "Contact Us | Fouza Physiotherapy",
   description:
-    "Get in touch with Fouza Physiotherapy in Walmer Estate, Cape Town — call, WhatsApp, email, or send us a message.",
+    "Get in touch with Fouza Physiotherapy in Walmer Estate, Cape Town — WhatsApp, email, or send us a message.",
   path: routes.marketing.contact,
 });
 
@@ -23,12 +23,6 @@ const contactDetails = [
     value: siteConfig.address,
     href: mapsQueryUrl(),
     external: true,
-  },
-  {
-    icon: Phone,
-    label: "Phone",
-    value: siteConfig.phoneDisplay,
-    href: telHref(),
   },
   {
     icon: MessageCircle,
@@ -166,7 +160,7 @@ export default function ContactPage() {
                 <SectionHeader
                   eyebrow="Send a message"
                   title="We'll get back to you shortly"
-                  description="For urgent enquiries, please call or WhatsApp us directly."
+                  description="For urgent enquiries, please WhatsApp or email us directly."
                   className="mb-6"
                 />
                 <ContactForm />

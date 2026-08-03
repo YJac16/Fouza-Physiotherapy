@@ -1,6 +1,6 @@
 "use client";
 
-import { useActionState, useMemo, useState } from "react";
+import { useActionState, useMemo, useState, type ReactNode } from "react";
 
 import { SignaturePad } from "@/components/forms/signature-pad";
 import {
@@ -64,6 +64,64 @@ function markdownToParagraphs(md: string) {
     .split(/\n+/)
     .map((line) => line.trim())
     .filter(Boolean);
+}
+
+function ConsentBody({ markdown }: { markdown: string }) {
+  const lines = markdownToParagraphs(markdown);
+  const blocks: ReactNode[] = [];
+  let listItems: string[] = [];
+
+  function flushList() {
+    if (listItems.length === 0) return;
+    blocks.push(
+      <ol
+        key={`list-${blocks.length}`}
+        className="list-decimal space-y-2 pl-5 text-sm leading-relaxed text-muted-foreground"
+      >
+        {listItems.map((item) => (
+          <li key={item} className="marker:font-semibold">
+            {item}
+          </li>
+        ))}
+      </ol>,
+    );
+    listItems = [];
+  }
+
+  for (const line of lines) {
+    if (/^##\s+/.test(line)) {
+      flushList();
+      blocks.push(
+        <p
+          key={`h-${line}`}
+          className="pt-2 text-sm font-semibold text-foreground"
+        >
+          {line.replace(/^##\s+/, "")}
+        </p>,
+      );
+      continue;
+    }
+    if (/^\d+\.\s+/.test(line)) {
+      listItems.push(line.replace(/^\d+\.\s+/, ""));
+      continue;
+    }
+    flushList();
+    blocks.push(
+      <p
+        key={`p-${line.slice(0, 48)}-${blocks.length}`}
+        className={cn(
+          "text-sm leading-relaxed text-muted-foreground",
+          line.startsWith("**") && "font-semibold text-foreground",
+          line.startsWith("By signing below") && "font-medium text-foreground",
+          line.startsWith("I hereby willingly") && "font-medium text-foreground",
+        )}
+      >
+        {line.replaceAll("**", "")}
+      </p>,
+    );
+  }
+  flushList();
+  return <div className="space-y-3">{blocks}</div>;
 }
 
 export function PortalFormsClient({
@@ -193,7 +251,6 @@ export function PortalFormsClient({
     );
   }
 
-  const treatmentLines = markdownToParagraphs(treatmentConsent.body_md);
   const accountLines = markdownToParagraphs(accountConsent.body_md);
 
   return (
@@ -217,9 +274,8 @@ export function PortalFormsClient({
           <p>{siteConfig.address}</p>
           <p>Pr. No: 0932469 · PT 0137855</p>
           <p>
-            Contact: {siteConfig.phoneDisplay} · WhatsApp: {siteConfig.phoneDisplay}
+            WhatsApp: Message us directly · Email: {siteConfig.email}
           </p>
-          <p>Email: {siteConfig.email}</p>
           <p className="font-medium text-foreground">
             PLEASE NOTE: ALL INFORMATION PROVIDED IS FOR INVOICING/MEDICAL NOTES PURPOSES,
             AND PERSONAL INFORMATION IS KEPT CONFIDENTIAL.
@@ -424,20 +480,7 @@ export function PortalFormsClient({
       </Section>
 
       <Section title={treatmentConsent.title}>
-        <ol className="list-decimal space-y-2 pl-5 text-sm leading-relaxed text-muted-foreground">
-          {treatmentLines
-            .filter((l) => /^\d+\./.test(l) || !l.startsWith("I hereby"))
-            .map((line) => (
-              <li key={line} className="marker:font-semibold">
-                {line.replace(/^\d+\.\s*/, "")}
-              </li>
-            ))}
-        </ol>
-        <p className="text-sm font-medium text-foreground">
-          I hereby willingly consent to the treatment offered and recommended to me by my
-          physiotherapist(s). I therefore intend to verbally consent to future physiotherapy
-          sessions.
-        </p>
+        <ConsentBody markdown={treatmentConsent.body_md} />
         <SignaturePad
           name="treatmentSignaturePad"
           label="Sign treatment consent"

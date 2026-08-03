@@ -6,7 +6,6 @@ import { ServiceCard } from "@/components/marketing/cards";
 import { Button } from "@/components/ui/button";
 import { Container, Section, SectionHeader } from "@/components/layout/container";
 import { routes } from "@/config/routes";
-import { siteConfig } from "@/config/site";
 import { serviceHref, services } from "@/content/services";
 import { JsonLd, breadcrumbJsonLd } from "@/lib/seo/json-ld";
 import { buildMetadata } from "@/lib/seo/metadata";
@@ -14,7 +13,7 @@ import { buildMetadata } from "@/lib/seo/metadata";
 export const metadata: Metadata = buildMetadata({
   title: "Physiotherapy Services | Fouza Physiotherapy",
   description:
-    "Explore our full range of physiotherapy services, from sports rehabilitation to women's health, dry needling, and post-surgical recovery.",
+    "Explore physiotherapy services at Fouza Physiotherapy — dry needling, manual therapy, post-surgical rehab, and care for persistent pain.",
   path: routes.marketing.services,
 });
 
@@ -30,7 +29,7 @@ export default function ServicesPage() {
 
       <PageHero
         title="Physiotherapy services tailored to you"
-        description="From sports injuries to post-surgical rehabilitation, every service is delivered with the same evidence-based, personalised approach."
+        description="From persistent pain to post-surgical rehabilitation, every service is delivered with the same evidence-based, personalised approach."
         breadcrumbs={[
           { label: "Home", href: routes.marketing.home },
           { label: "Services" },
@@ -41,7 +40,7 @@ export default function ServicesPage() {
         <Container>
           <SectionHeader
             eyebrow="What we offer"
-            title="Care designed around how you move"
+            title="Understanding your pain. Restoring your movement. Helping you get back to life."
             description="Every service combines thorough assessment, hands-on treatment where indicated, and a personalised exercise plan."
           />
           <div className="grid gap-6 sm:grid-cols-2 lg:grid-cols-3">
@@ -67,7 +66,7 @@ export default function ServicesPage() {
           <div className="rounded-2xl border border-primary/15 bg-gradient-to-br from-primary/5 via-background to-accent-soft/40 p-8 text-center shadow-soft tablet:p-12">
             <SectionHeader
               title="Not sure which service you need?"
-              description={`Contact us or call ${siteConfig.phoneDisplay} and we'll help you find the right starting point.`}
+              description="Contact us or WhatsApp and we'll help you find the right starting point."
               align="center"
               className="mx-auto mb-6"
             />

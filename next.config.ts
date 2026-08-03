@@ -46,6 +46,25 @@ const nextConfig: NextConfig = {
     // Warnings remain in WIP admin forms; block only on TypeScript/build failures for preview.
     ignoreDuringBuilds: true,
   },
+  async redirects() {
+    return [
+      {
+        source: "/services/sports-physiotherapy",
+        destination: "/services",
+        permanent: true,
+      },
+      {
+        source: "/services/womens-health",
+        destination: "/services",
+        permanent: true,
+      },
+      {
+        source: "/services/home-visits",
+        destination: "/services",
+        permanent: true,
+      },
+    ];
+  },
   async headers() {
     return [
       {

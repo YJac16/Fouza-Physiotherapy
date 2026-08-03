@@ -1,11 +1,11 @@
-import { Clock, Mail, MapPin, MessageCircle, Phone } from "lucide-react";
+import { Clock, Mail, MapPin, MessageCircle } from "lucide-react";
 import Link from "next/link";
 
 import { Logo } from "@/components/shared/logo";
 import { Newsletter } from "@/components/shared/newsletter";
 import { Separator } from "@/components/ui/separator";
 import { routes } from "@/config/routes";
-import { mapsQueryUrl, siteConfig, telHref } from "@/config/site";
+import { mapsQueryUrl, siteConfig } from "@/config/site";
 import { cn } from "@/lib/utils";
 
 const explore = [
@@ -58,12 +58,6 @@ export function Footer({ className, showNewsletter = true }: FooterProps) {
                   className="hover:text-foreground"
                 >
                   {siteConfig.address}
-                </a>
-              </li>
-              <li className="flex items-center gap-2">
-                <Phone className="size-4 text-primary" aria-hidden />
-                <a href={telHref()} className="hover:text-foreground">
-                  {siteConfig.phoneDisplay}
                 </a>
               </li>
               <li className="flex items-center gap-2">

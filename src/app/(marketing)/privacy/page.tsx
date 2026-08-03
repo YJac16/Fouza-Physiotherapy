@@ -93,7 +93,7 @@ export default function PrivacyPage() {
                 </li>
                 <li>
                   <strong>Communications:</strong> messages sent via our
-                  contact form, email, phone, or WhatsApp.
+                  contact form, email, or WhatsApp.
                 </li>
               </ul>
             </PolicySection>
@@ -221,7 +221,7 @@ export default function PrivacyPage() {
               </p>
               <ul className="list-disc space-y-2 pl-6">
                 <li>Email: {siteConfig.email}</li>
-                <li>Phone: {siteConfig.phoneDisplay}</li>
+                <li>WhatsApp: available via the contact page</li>
                 <li>Address: {siteConfig.address}</li>
               </ul>
             </PolicySection>

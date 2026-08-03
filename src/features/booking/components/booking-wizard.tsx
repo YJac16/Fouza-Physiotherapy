@@ -3,7 +3,7 @@
 import Link from "next/link";
 import { useRouter } from "next/navigation";
 import { useActionState, useCallback, useEffect, useMemo, useState } from "react";
-import { Calendar, Phone } from "lucide-react";
+import { Calendar, MessageCircle } from "lucide-react";
 
 import {
   BookingProgressIndicator,
@@ -18,7 +18,7 @@ import { Input } from "@/components/ui/input";
 import { Label } from "@/components/ui/label";
 import { Typography } from "@/components/ui/typography";
 import { routes } from "@/config/routes";
-import { siteConfig, telHref } from "@/config/site";
+import { siteConfig } from "@/config/site";
 import {
   type BookingActionState,
   confirmBookingAction,
@@ -107,9 +107,9 @@ function SetmoreFallback({ message }: { message?: string }) {
           </a>
         </Button>
         <Button asChild size="sm" variant="ghost">
-          <a href={telHref()}>
-            <Phone className="size-4" aria-hidden />
-            {siteConfig.phoneDisplay}
+          <a href={siteConfig.whatsappUrl} target="_blank" rel="noopener noreferrer">
+            <MessageCircle className="size-4" aria-hidden />
+            WhatsApp us
           </a>
         </Button>
       </div>

@@ -1,4 +1,4 @@
-import { CalendarCheck, MessageCircle, Phone, Sparkles } from "lucide-react";
+import { CalendarCheck, Mail, MessageCircle, Sparkles } from "lucide-react";
 import Link from "next/link";
 import type { Metadata } from "next";
 
@@ -8,7 +8,7 @@ import { Card, CardContent } from "@/components/ui/card";
 import { Container, Section, SectionHeader } from "@/components/layout/container";
 import { Typography } from "@/components/ui/typography";
 import { routes } from "@/config/routes";
-import { siteConfig, telHref } from "@/config/site";
+import { siteConfig } from "@/config/site";
 import { BookingWizard, listBookableCatalog } from "@/features/booking";
 import { JsonLd, breadcrumbJsonLd } from "@/lib/seo/json-ld";
 import { buildMetadata } from "@/lib/seo/metadata";
@@ -16,22 +16,22 @@ import { buildMetadata } from "@/lib/seo/metadata";
 export const metadata: Metadata = buildMetadata({
   title: "Book an Appointment | Fouza Physiotherapy",
   description:
-    "Book your physiotherapy appointment at Fouza Physiotherapy in Walmer Estate, Cape Town online, via our scheduling partner, phone, or WhatsApp.",
+    "Book your physiotherapy appointment at Fouza Physiotherapy in Walmer Estate, Cape Town online, via our scheduling partner, or WhatsApp.",
   path: routes.booking.root,
 });
 
 const alternativeContact = [
   {
-    icon: Phone,
-    label: "Call the practice",
-    value: siteConfig.phoneDisplay,
-    href: telHref(),
-  },
-  {
     icon: MessageCircle,
     label: "WhatsApp us",
     value: "Message us directly",
     href: siteConfig.whatsappUrl,
+  },
+  {
+    icon: Mail,
+    label: "Email us",
+    value: siteConfig.email,
+    href: `mailto:${siteConfig.email}`,
   },
 ];
 

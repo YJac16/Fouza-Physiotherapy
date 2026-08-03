@@ -69,12 +69,11 @@ export function Navbar({
       )}
     >
       <div className="mx-auto flex h-16 max-w-7xl items-center justify-between gap-3 px-5 sm:px-6 lg:px-8">
-        <span className="md:hidden">
-          <Logo href={routes.marketing.home} size="sm" />
-        </span>
-        <span className="hidden md:inline-flex">
-          <Logo href={routes.marketing.home} size="md" />
-        </span>
+        <Logo
+          href={routes.marketing.home}
+          size="md"
+          className="h-9 max-w-[11rem] md:h-11 md:max-w-[14rem]"
+        />
 
         <nav className="hidden items-center gap-0.5 xl:flex" aria-label="Primary">
           {navLinks.map((link) => {

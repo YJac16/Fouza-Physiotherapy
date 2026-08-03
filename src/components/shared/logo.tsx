@@ -125,7 +125,7 @@ export function Logo({
   return (
     <Link
       href={href}
-      className="inline-flex items-center rounded-lg bg-transparent focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-ring focus-visible:ring-offset-2"
+      className="inline-flex cursor-pointer items-center rounded-lg bg-transparent focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-ring focus-visible:ring-offset-2"
       aria-label={`${siteConfig.name} home`}
     >
       {content}

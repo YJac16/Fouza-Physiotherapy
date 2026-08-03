@@ -124,20 +124,20 @@ export default function MeetFouzaPage() {
                   title="Training and registration"
                   className="mb-8"
                 />
-                <div className="grid gap-4 sm:grid-cols-2">
+                <div className="grid gap-4 tablet:grid-cols-2">
                   {fouzaBio.qualifications.map((qualification) => {
                     const Icon = qualification.icon;
                     return (
-                      <Card key={qualification.title} className="shadow-sm">
+                      <Card key={qualification.title} className="overflow-hidden shadow-sm">
                         <CardContent className="flex gap-4 p-5">
                           <div className="flex size-11 shrink-0 items-center justify-center rounded-xl bg-accent-soft text-accent-soft-foreground">
                             <Icon className="size-5" aria-hidden />
                           </div>
-                          <div>
-                            <Typography as="p" variant="h5" className="text-sm">
+                          <div className="min-w-0 flex-1">
+                            <Typography as="p" variant="h5" className="text-sm break-words">
                               {qualification.title}
                             </Typography>
-                            <Typography variant="small" className="mt-1 leading-relaxed">
+                            <Typography variant="small" className="mt-1 leading-relaxed break-words">
                               {qualification.description}
                             </Typography>
                           </div>
@@ -159,7 +159,7 @@ export default function MeetFouzaPage() {
             title="Areas Fouza is especially passionate about"
             description="While every physiotherapy concern is welcome, these are the areas Fouza has developed particular depth in."
           />
-          <div className="grid gap-6 sm:grid-cols-2 lg:grid-cols-3">
+          <div className="grid gap-6 tablet:grid-cols-2 lg:grid-cols-3">
             {fouzaBio.specialInterests.map((interest) => {
               const Icon = interest.icon;
               return (
@@ -190,7 +190,7 @@ export default function MeetFouzaPage() {
             eyebrow="In the clinic"
             title="A closer look at treatment with Fouza"
           />
-          <div className="grid gap-4 sm:grid-cols-2 lg:grid-cols-3">
+          <div className="grid gap-4 tablet:grid-cols-2 lg:grid-cols-3">
             {[
               { src: fouzaBio.images.treatment, alt: "Fouza treating a patient" },
               { src: fouzaBio.images.clinic, alt: "Fouza Physiotherapy clinic" },
@@ -218,7 +218,7 @@ export default function MeetFouzaPage() {
             align="center"
             className="mx-auto"
           />
-          <div className="grid gap-6 sm:grid-cols-2">
+          <div className="grid gap-6 tablet:grid-cols-2">
             {fouzaBio.philosophy.map((item) => (
               <div
                 key={item.title}

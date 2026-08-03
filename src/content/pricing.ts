@@ -81,7 +81,7 @@ export const pricingPlans: PricingPlan[] = [
 
 export const pricingNotices = {
   cashPractice:
-    "This practice is a cash-based practice. Medical aid claims are submitted by patients using the professional statements provided after payment.",
+    "This practice is a cash-based practice. Medical aid claims are submitted by patients using a professional statement, available upon request after payment.",
   assessmentOnly:
     "If during the session we find that treatment cannot commence, for any reason, a fee of R180 will be charged for the assessment/consultation that was done.",
   referralLetter:

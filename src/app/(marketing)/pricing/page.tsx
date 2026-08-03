@@ -15,7 +15,7 @@ import { buildMetadata } from "@/lib/seo/metadata";
 export const metadata: Metadata = buildMetadata({
   title: "Pricing | Fouza Physiotherapy",
   description:
-    "Transparent physiotherapy pricing at Fouza Physiotherapy — cash-based practice with professional statements for medical aid claims.",
+    "Transparent physiotherapy pricing at Fouza Physiotherapy — cash-based practice with professional statements for medical aid claims available upon request.",
   path: routes.marketing.pricing,
 });
 
@@ -38,7 +38,7 @@ export default function PricingPage() {
 
       <PageHero
         title="Simple, transparent pricing"
-        description="Fouza Physiotherapy is a cash-based practice. You settle your account directly with us and receive a professional statement to submit to your medical aid."
+        description="Fouza Physiotherapy is a cash-based practice. You settle your account directly with us and can receive a professional statement to submit to your medical aid upon request."
         breadcrumbs={[
           { label: "Home", href: routes.marketing.home },
           { label: "Pricing" },

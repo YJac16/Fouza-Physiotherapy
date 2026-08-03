@@ -2,7 +2,7 @@ import { Info } from "lucide-react";
 import Link from "next/link";
 import type { Metadata } from "next";
 
-import { PageHero } from "@/components/marketing";
+import { Breadcrumbs } from "@/components/ui/breadcrumbs";
 import { PricingCard } from "@/components/shared/pricing-card";
 import { Button } from "@/components/ui/button";
 import { Container, Section, SectionHeader } from "@/components/layout/container";
@@ -15,14 +15,9 @@ import { buildMetadata } from "@/lib/seo/metadata";
 export const metadata: Metadata = buildMetadata({
   title: "Pricing | Fouza Physiotherapy",
   description:
-    "Transparent physiotherapy pricing at Fouza Physiotherapy. Payment is made directly to the practice; detailed statements for medical aid claims are available on request.",
+    "Straightforward physiotherapy fees at Fouza Physiotherapy. Payment is made directly to the practice; detailed statements for medical aid claims are available on request.",
   path: routes.marketing.pricing,
 });
-
-const titledNotices = [
-  pricingNotices.paymentInformation,
-  pricingNotices.medicalAidClaims,
-];
 
 const notices = [
   pricingNotices.assessmentOnly,
@@ -40,14 +35,33 @@ export default function PricingPage() {
         ])}
       />
 
-      <PageHero
-        title="Simple, transparent pricing"
-        description="We believe healthcare should be straightforward. Payment is made directly to the practice after your consultation."
-        breadcrumbs={[
-          { label: "Home", href: routes.marketing.home },
-          { label: "Pricing" },
-        ]}
-      />
+      <Section tone="hero" spacing="sm" className="border-b border-border/60">
+        <Container>
+          <Breadcrumbs
+            items={[
+              { label: "Home", href: routes.marketing.home },
+              { label: "Pricing" },
+            ]}
+            className="mb-6"
+          />
+          <Typography as="h1" variant="h1" className="max-w-3xl text-balance">
+            We believe healthcare should be straightforward.
+          </Typography>
+          <Typography variant="body-lg" className="mt-4 max-w-2xl leading-relaxed">
+            Payment is made directly to the practice after your consultation. As
+            we are not contracted to medical aid schemes, payment cannot be
+            claimed directly from the practice.
+          </Typography>
+          <div className="mt-10 max-w-2xl space-y-3 border-t border-border/60 pt-8">
+            <Typography as="h2" variant="h4" className="text-balance">
+              {pricingNotices.medicalAidClaims.title}
+            </Typography>
+            <Typography variant="body" className="leading-relaxed text-muted-foreground">
+              {pricingNotices.medicalAidClaims.body}
+            </Typography>
+          </div>
+        </Container>
+      </Section>
 
       <Section spacing="md">
         <Container>
@@ -75,26 +89,12 @@ export default function PricingPage() {
 
       <Section spacing="md" tone="muted">
         <Container size="md">
-          <SectionHeader eyebrow="Good to know" title="Important pricing notes" />
+          <SectionHeader
+            eyebrow="Before you visit"
+            title="A few practical details"
+            description="Clear expectations around assessment fees, referrals, and cancellations."
+          />
           <div className="space-y-4">
-            {titledNotices.map((notice) => (
-              <div
-                key={notice.title}
-                className="rounded-2xl border border-border/80 bg-card p-5 shadow-sm"
-              >
-                <div className="flex items-start gap-3">
-                  <Info className="mt-0.5 size-5 shrink-0 text-primary" aria-hidden />
-                  <div className="space-y-2">
-                    <Typography as="h3" variant="h4" className="text-balance">
-                      {notice.title}
-                    </Typography>
-                    <Typography variant="small" className="leading-relaxed text-foreground/90">
-                      {notice.body}
-                    </Typography>
-                  </div>
-                </div>
-              </div>
-            ))}
             {notices.map((notice) => (
               <div
                 key={notice}
@@ -114,11 +114,11 @@ export default function PricingPage() {
         <Container size="md">
           <div className="rounded-2xl border border-border/80 bg-card p-8 text-center shadow-sm tablet:p-10">
             <Typography as="h2" variant="h3" className="text-balance">
-              Questions about medical aid or fees?
+              Happy to talk it through
             </Typography>
             <Typography variant="body-lg" className="mx-auto mt-3 max-w-lg">
-              WhatsApp us or send a message via the contact page and we&apos;ll
-              help clarify what to expect before your visit.
+              If you&apos;re unsure what to expect before your visit, WhatsApp
+              us or send a message via the contact page — we&apos;re glad to help.
             </Typography>
             <div className="mt-8 flex flex-col items-center justify-center gap-3 sm:flex-row">
               <Button asChild size="lg">

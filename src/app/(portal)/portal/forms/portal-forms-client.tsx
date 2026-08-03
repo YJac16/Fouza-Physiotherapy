@@ -550,9 +550,7 @@ export function PortalFormsClient({
           for your <span className="font-semibold underline text-foreground">Own Submission</span>.
         </p>
         <ul className="space-y-1 text-sm">
-          {pricingPlans
-            .filter((p) => !["online"].includes(p.id))
-            .map((plan) => (
+          {pricingPlans.map((plan) => (
               <li key={plan.id}>
                 <strong>{plan.title}:</strong> {plan.price} ({plan.period})
               </li>

@@ -39,7 +39,7 @@ export const faqs: FaqItem[] = [
     category: "Payments",
     question: "How does payment work?",
     answer:
-      "Fouza Physiotherapy is a cash-based practice. Payment is due after your session. A professional statement can be provided for you to submit to your medical aid.",
+      "Fouza Physiotherapy is a cash-based practice. Payment is due after your session. A professional statement can be provided on request for you to submit to your medical aid.",
   },
   {
     id: "pay-2",

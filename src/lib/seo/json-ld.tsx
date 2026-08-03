@@ -11,7 +11,7 @@ export function medicalBusinessJsonLd() {
     url: absoluteUrl("/"),
     image: absoluteUrl(siteConfig.images.og),
     email: siteConfig.email,
-    priceRange: "R600–R800",
+    priceRange: "R600–R900",
     address: {
       "@type": "PostalAddress",
       streetAddress: "47 Upper Duke Street",

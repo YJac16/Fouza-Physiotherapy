@@ -9,8 +9,11 @@ import { Badge } from "@/components/ui/badge";
 import { Button } from "@/components/ui/button";
 import { Card, CardContent, CardHeader, CardTitle } from "@/components/ui/card";
 import { getPatientConsentCompletionAdmin } from "@/features/consent-forms/lib/completion";
+import { listStaffDocuments } from "@/features/documents/actions/documents";
+import { PatientClinicalRecords } from "@/features/patients/components/patient-clinical-records";
 import { getPatient, getPatientTimeline } from "@/features/patients/api/patients";
 import { routes } from "@/config/routes";
+import { createSignedDownloadUrl } from "@/lib/supabase/storage";
 
 export default async function PatientDetailPage({
   params,
@@ -21,10 +24,30 @@ export default async function PatientDetailPage({
   const { data: patient } = await getPatient(id);
   if (!patient) notFound();
 
-  const [timeline, consent] = await Promise.all([
+  const [timeline, consent, documentsResult] = await Promise.all([
     getPatientTimeline(id),
     getPatientConsentCompletionAdmin(id),
+    listStaffDocuments(id),
   ]);
+
+  const documents = await Promise.all(
+    (documentsResult.data ?? []).map(async (doc) => {
+      let downloadUrl: string | null = null;
+      if (doc.storage_path) {
+        const path = doc.storage_path.replace(/^patient-documents\//, "");
+        const { data } = await createSignedDownloadUrl("patient-documents", path, 60 * 30);
+        downloadUrl = data?.signedUrl ?? null;
+      }
+      return {
+        id: doc.id,
+        title: doc.title,
+        doc_type: doc.doc_type,
+        created_at: doc.created_at,
+        downloadUrl,
+      };
+    }),
+  );
+
   const hasTimeline =
     timeline.appointments.length +
       timeline.notes.length +
@@ -54,6 +77,7 @@ export default async function PatientDetailPage({
       }),
       icon: <FileText className="size-4" />,
       sortKey: note.created_at,
+      href: routes.admin.clinicalNote(note.id),
     })),
     ...timeline.assessments.map((assessment) => ({
       id: `assessment-${assessment.id}`,
@@ -77,6 +101,7 @@ export default async function PatientDetailPage({
       meta: new Date(invoice.issue_date).toLocaleDateString("en-ZA"),
       icon: <Receipt className="size-4" />,
       sortKey: invoice.issue_date,
+      href: routes.admin.invoice(invoice.id),
     })),
   ];
 
@@ -101,13 +126,15 @@ export default async function PatientDetailPage({
             </Link>
           </Button>
           <Button asChild variant="outline" size="sm">
-            <Link href={routes.admin.clinicalNotes}>Clinical notes</Link>
+            <Link href={`${routes.admin.newClinicalNote}?patientId=${patient.id}`}>
+              New clinical note
+            </Link>
           </Button>
           <Button asChild variant="outline" size="sm">
-            <Link href={routes.admin.billing}>Billing</Link>
+            <Link href={routes.admin.newInvoice}>New invoice</Link>
           </Button>
           <Button asChild variant="outline" size="sm">
-            <Link href={routes.admin.documents}>Documents</Link>
+            <Link href="#documents">Documents</Link>
           </Button>
         </div>
       </div>
@@ -191,12 +218,19 @@ export default async function PatientDetailPage({
         </CardContent>
       </Card>
 
+      <PatientClinicalRecords
+        patientId={patient.id}
+        assessments={timeline.assessments}
+        notes={timeline.notes}
+        documents={documents}
+      />
+
       <section className="space-y-4">
         <h2 className="font-display text-xl font-semibold">Timeline</h2>
         {!hasTimeline ? (
           <EmptyState
             title="No activity yet"
-            description="Appointments, notes, and invoices will appear here."
+            description="Appointments, notes, assessments, and invoices will appear here."
           />
         ) : (
           <Card>

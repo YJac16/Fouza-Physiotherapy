@@ -49,14 +49,14 @@ function Section({
   children: React.ReactNode;
 }) {
   return (
-    <Card>
-      <CardHeader>
-        <CardTitle className="text-h5">{title}</CardTitle>
+    <Card className="min-w-0 overflow-hidden">
+      <CardHeader className="p-4 sm:p-6">
+        <CardTitle className="text-h5 leading-snug [overflow-wrap:anywhere]">{title}</CardTitle>
         {description ? (
-          <p className="text-sm text-muted-foreground">{description}</p>
+          <p className="text-sm leading-relaxed text-muted-foreground">{description}</p>
         ) : null}
       </CardHeader>
-      <CardContent className="space-y-4">{children}</CardContent>
+      <CardContent className="space-y-4 p-4 pt-0 sm:p-6 sm:pt-0">{children}</CardContent>
     </Card>
   );
 }
@@ -243,14 +243,14 @@ export function PortalFormsClient({
 
   if (alreadyComplete) {
     if (signedPackage) {
-      return <SignedConsentView package={signedPackage} />;
+      return <SignedConsentView package={signedPackage} showTitle={false} />;
     }
     return (
-      <Card>
-        <CardHeader>
-          <CardTitle className="text-h5">Forms complete</CardTitle>
+      <Card className="min-w-0 overflow-hidden">
+        <CardHeader className="p-4 sm:p-6">
+          <CardTitle className="text-h5 leading-snug">Forms complete</CardTitle>
         </CardHeader>
-        <CardContent className="text-sm text-muted-foreground">
+        <CardContent className="p-4 pt-0 text-sm leading-relaxed text-muted-foreground sm:p-6 sm:pt-0">
           Your informed consent and intake forms are on file. Thank you — the practice can
           prepare for your visit.
         </CardContent>

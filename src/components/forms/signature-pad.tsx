@@ -86,7 +86,7 @@ export function SignaturePad({
         ref={canvasRef}
         width={600}
         height={200}
-        className="h-36 w-full touch-none rounded-2xl border border-dashed border-border bg-secondary/40"
+        className="h-36 w-full max-w-full touch-none rounded-2xl border border-dashed border-border bg-secondary/40"
         onPointerDown={start}
         onPointerMove={move}
         onPointerUp={end}

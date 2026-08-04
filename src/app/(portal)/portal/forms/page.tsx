@@ -47,12 +47,18 @@ export default async function PortalFormsPage() {
     appointmentId = nextAppt?.id ?? null;
   }
 
+  const viewingSigned = Boolean(patient && alreadyComplete && signedPackage);
+
   return (
-    <div className="space-y-8">
-      <div>
-        <h1 className="font-display text-2xl font-semibold">Informed consent</h1>
-        <p className="text-sm text-muted-foreground">
-          Complete intake and consent forms before your visit.
+    <div className="min-w-0 space-y-6 sm:space-y-8">
+      <div className="min-w-0">
+        <h1 className="font-display text-2xl font-semibold leading-snug [overflow-wrap:anywhere]">
+          {viewingSigned ? "Signed informed consent" : "Informed consent"}
+        </h1>
+        <p className="mt-1 text-sm leading-relaxed text-muted-foreground">
+          {viewingSigned
+            ? "Your intake and consent forms are on file for the practice."
+            : "Complete intake and consent forms before your visit."}
         </p>
       </div>
 

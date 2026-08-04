@@ -8,7 +8,7 @@ import {
   type ConsentActionState,
 } from "@/features/consent-forms/actions/consent";
 import { SignedConsentView } from "@/features/consent-forms/components/signed-consent-view";
-import type { SignedConsentPackage } from "@/features/consent-forms/lib/signed-package";
+import type { SignedConsentPackage } from "@/features/consent-forms/lib/signed-package-types";
 import { pricingPlans } from "@/content/pricing";
 import { siteConfig } from "@/config/site";
 import { Button } from "@/components/ui/button";

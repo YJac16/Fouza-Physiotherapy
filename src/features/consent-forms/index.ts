@@ -15,5 +15,10 @@ export {
   getSignedConsentPackage,
   getSignedConsentPackageAdmin,
 } from "./lib/signed-package";
+export type {
+  SignedConsentPackage,
+  SignedConsentSignature,
+} from "./lib/signed-package-types";
+export { INTAKE_ANSWER_LABELS } from "./lib/signed-package-types";
 export { SignedConsentView } from "./components/signed-consent-view";
 export const CONSENT_FORMS_FEATURE = "consent-forms" as const;

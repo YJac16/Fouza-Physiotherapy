@@ -2,7 +2,7 @@ import { Card, CardContent, CardHeader, CardTitle } from "@/components/ui/card";
 import {
   INTAKE_ANSWER_LABELS,
   type SignedConsentPackage,
-} from "@/features/consent-forms/lib/signed-package";
+} from "@/features/consent-forms/lib/signed-package-types";
 
 function formatDate(iso: string) {
   return new Date(iso).toLocaleString("en-ZA", { timeZone: "Africa/Johannesburg" });

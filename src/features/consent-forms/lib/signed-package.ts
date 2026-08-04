@@ -1,27 +1,13 @@
 import { createClient } from "@/lib/supabase/server";
 import { createServiceClient } from "@/lib/supabase/admin";
 import { INTAKE_SLUG, REQUIRED_CONSENT_SLUGS } from "./completion";
+import type { SignedConsentPackage, SignedConsentSignature } from "./signed-package-types";
 
-export type SignedConsentSignature = {
-  formId: string;
-  formTitle: string;
-  formSlug: string;
-  formBody: string;
-  signedAt: string;
-  typedName: string | null;
-  padDataUrl: string | null;
-};
-
-export type SignedConsentPackage = {
-  patientId: string;
-  patientName: string;
-  intake: {
-    formTitle: string;
-    submittedAt: string;
-    answers: Record<string, unknown>;
-  } | null;
-  signatures: SignedConsentSignature[];
-};
+export type {
+  SignedConsentPackage,
+  SignedConsentSignature,
+} from "./signed-package-types";
+export { INTAKE_ANSWER_LABELS } from "./signed-package-types";
 
 function parseSignatureData(raw: string): { typedName: string | null; padDataUrl: string | null } {
   try {
@@ -131,19 +117,3 @@ export async function getSignedConsentPackageAdmin(
   const admin = createServiceClient();
   return loadSignedPackageWithClient(admin, patientId);
 }
-
-/** Friendly labels for common intake answer keys. */
-export const INTAKE_ANSWER_LABELS: Record<string, string> = {
-  fullName: "Full name",
-  email: "Email",
-  phone: "Phone",
-  dateOfBirth: "Date of birth",
-  medicalAid: "Medical aid",
-  medicalAidNumber: "Medical aid number",
-  undertaking: "Undertaking",
-  emergencyContact: "Emergency contact",
-  emergencyPhone: "Emergency phone",
-  pleaseNote: "Please note",
-  howDidYouHear: "How did you hear about us",
-  releaseTo: "Release information to",
-};

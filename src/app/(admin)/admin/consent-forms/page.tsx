@@ -1,9 +1,13 @@
+import Link from "next/link";
+
 import { EmptyState } from "@/components/shared/states";
 import { ConsentStatusCard } from "@/components/patient/cards";
 import { Badge } from "@/components/ui/badge";
+import { Button } from "@/components/ui/button";
 import { Card, CardContent, CardHeader, CardTitle } from "@/components/ui/card";
 import { listConsentForms } from "@/features/consent-forms/actions/consent";
 import { getPatientConsentCompletionAdmin } from "@/features/consent-forms/lib/completion";
+import { routes } from "@/config/routes";
 import { requireStaff } from "@/lib/auth/guards";
 import { createClient } from "@/lib/supabase/server";
 
@@ -58,7 +62,7 @@ export default async function ConsentFormsAdminPage() {
           <div className="grid gap-3">
             {patientStatus.map((p) => (
               <Card key={p.id}>
-                <CardContent className="flex flex-col gap-2 py-4 sm:flex-row sm:items-center sm:justify-between">
+                <CardContent className="flex flex-col gap-3 py-4 sm:flex-row sm:items-center sm:justify-between">
                   <div>
                     <p className="font-medium">
                       {p.first_name} {p.last_name}
@@ -70,9 +74,16 @@ export default async function ConsentFormsAdminPage() {
                       </p>
                     ) : null}
                   </div>
-                  <Badge variant={p.completion.complete ? "success" : "warning"}>
-                    {p.completion.complete ? "Complete" : "Pending"}
-                  </Badge>
+                  <div className="flex flex-wrap items-center gap-2">
+                    <Badge variant={p.completion.complete ? "success" : "warning"}>
+                      {p.completion.complete ? "Complete" : "Pending"}
+                    </Badge>
+                    {p.completion.complete ? (
+                      <Button asChild variant="outline" size="sm">
+                        <Link href={routes.admin.consentFormPatient(p.id)}>View signed</Link>
+                      </Button>
+                    ) : null}
+                  </div>
                 </CardContent>
               </Card>
             ))}
@@ -124,7 +135,7 @@ export default async function ConsentFormsAdminPage() {
                       Intake · {new Date(response.submitted_at).toLocaleString("en-ZA")}
                     </CardTitle>
                   </CardHeader>
-                  <CardContent className="space-y-1 text-sm text-muted-foreground">
+                  <CardContent className="space-y-2 text-sm text-muted-foreground">
                     <p>Patient ID: {response.patient_id}</p>
                     {typeof answers.fullName === "string" ? (
                       <p>Name: {answers.fullName}</p>
@@ -135,6 +146,11 @@ export default async function ConsentFormsAdminPage() {
                     {typeof answers.undertaking === "string" ? (
                       <p>Undertaking: {answers.undertaking}</p>
                     ) : null}
+                    <Button asChild variant="link" className="h-auto p-0 text-sm">
+                      <Link href={routes.admin.consentFormPatient(response.patient_id)}>
+                        View signed package
+                      </Link>
+                    </Button>
                   </CardContent>
                 </Card>
               );

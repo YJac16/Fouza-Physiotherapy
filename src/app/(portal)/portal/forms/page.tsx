@@ -4,6 +4,7 @@ import {
   getPatientConsentCompletion,
   INTAKE_SLUG,
 } from "@/features/consent-forms/lib/completion";
+import { getSignedConsentPackage } from "@/features/consent-forms/lib/signed-package";
 import { getMyPatientRecord } from "@/features/patients/api/patients";
 import { createClient } from "@/lib/supabase/server";
 import { requireUser } from "@/lib/auth/guards";
@@ -27,9 +28,13 @@ export default async function PortalFormsPage() {
 
   let alreadyComplete = false;
   let appointmentId: string | null = null;
+  let signedPackage = null;
   if (patient) {
     const completion = await getPatientConsentCompletion(patient.id);
     alreadyComplete = completion.complete;
+    if (alreadyComplete) {
+      signedPackage = await getSignedConsentPackage(patient.id);
+    }
     const { data: nextAppt } = await supabase
       .from("appointments")
       .select("id")
@@ -66,6 +71,7 @@ export default async function PortalFormsPage() {
           patientId={patient.id}
           appointmentId={appointmentId}
           alreadyComplete={alreadyComplete}
+          signedPackage={signedPackage}
           intakeForm={intakeForm}
           treatmentConsent={treatmentConsent}
           accountConsent={accountConsent}

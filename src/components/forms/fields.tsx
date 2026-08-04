@@ -1,6 +1,7 @@
 "use client";
 
 import * as React from "react";
+import { Eye, EyeOff } from "lucide-react";
 
 import { DatePicker } from "@/components/ui/date-picker";
 import { FormMessage } from "@/components/ui/form-message";
@@ -96,8 +97,51 @@ export function PhoneField(props: TextFieldProps) {
   return <TextField type="tel" autoComplete="tel" inputMode="tel" {...props} />;
 }
 
-export function PasswordField(props: TextFieldProps) {
-  return <TextField type="password" autoComplete="current-password" {...props} />;
+export function PasswordField({
+  id,
+  label,
+  description,
+  error,
+  success,
+  required,
+  className,
+  autoComplete = "current-password",
+  ...props
+}: TextFieldProps) {
+  const [visible, setVisible] = React.useState(false);
+
+  return (
+    <FieldShell
+      id={id}
+      label={label}
+      description={description}
+      error={error}
+      success={success}
+      required={required}
+      className={className}
+    >
+      <div className="relative">
+        <Input
+          id={id}
+          type={visible ? "text" : "password"}
+          autoComplete={autoComplete}
+          error={Boolean(error)}
+          required={required}
+          className="pr-11"
+          {...props}
+        />
+        <button
+          type="button"
+          onClick={() => setVisible((v) => !v)}
+          className="absolute inset-y-0 right-0 flex items-center px-3 text-muted-foreground transition-colors hover:text-foreground"
+          aria-label={visible ? "Hide password" : "Show password"}
+          aria-pressed={visible}
+        >
+          {visible ? <EyeOff className="h-4 w-4" /> : <Eye className="h-4 w-4" />}
+        </button>
+      </div>
+    </FieldShell>
+  );
 }
 
 export interface TextareaFieldProps extends Omit<TextareaProps, "id" | "error"> {

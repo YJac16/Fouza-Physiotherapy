@@ -6,6 +6,8 @@ import {
   type InvoiceDocumentLine,
 } from "@/features/billing/components/invoice-document";
 import { InvoiceDocumentToolbar } from "@/features/billing/components/invoice-toolbar";
+import { InvoiceLineEditor } from "@/features/billing/components/invoice-line-editor";
+import { EDITABLE_INVOICE_STATUSES } from "@/features/billing/lib/addons";
 import {
   getInvoiceBankingSettings,
   getInvoiceForStaff,
@@ -39,21 +41,21 @@ export default async function AdminInvoiceDetailPage({ params }: PageProps) {
     ? `${patient.first_name ?? ""} ${patient.last_name ?? ""}`.trim()
     : "Patient";
 
-  const lines: InvoiceDocumentLine[] = (invoice.invoice_line_items ?? []).map(
-    (line: {
-      description: string;
-      quantity: number;
-      unit_price_cents: number;
-      amount_cents: number;
-      treatment_code: string | null;
-    }) => ({
-      description: line.description,
-      quantity: Number(line.quantity) || 1,
-      unitPriceCents: line.unit_price_cents,
-      amountCents: line.amount_cents,
-      treatmentCode: line.treatment_code,
-    }),
-  );
+  const rawLines = (invoice.invoice_line_items ?? []) as Array<{
+    description: string;
+    quantity: number;
+    unit_price_cents: number;
+    amount_cents: number;
+    treatment_code: string | null;
+  }>;
+
+  const lines: InvoiceDocumentLine[] = rawLines.map((line) => ({
+    description: line.description,
+    quantity: Number(line.quantity) || 1,
+    unitPriceCents: line.unit_price_cents,
+    amountCents: line.amount_cents,
+    treatmentCode: line.treatment_code,
+  }));
 
   if (!lines.length && invoice.notes) {
     lines.push({
@@ -73,6 +75,7 @@ export default async function AdminInvoiceDetailPage({ params }: PageProps) {
     | { method?: string; paid_at?: string; amount_cents?: number }
     | undefined;
   const isReceipt = invoice.status === "paid";
+  const canEdit = EDITABLE_INVOICE_STATUSES.has(invoice.status);
   const initials = patientName
     .split(" ")
     .filter(Boolean)
@@ -95,6 +98,32 @@ export default async function AdminInvoiceDetailPage({ params }: PageProps) {
         </div>
         <InvoiceDocumentToolbar invoiceId={invoice.id} canSend />
       </div>
+
+      {canEdit ? (
+        <InvoiceLineEditor
+          invoiceId={invoice.id}
+          initialLines={
+            lines.length
+              ? lines.map((line) => ({
+                  description: line.description,
+                  quantity: line.quantity,
+                  unitPriceCents: line.unitPriceCents,
+                }))
+              : [
+                  {
+                    description: invoice.notes || "Physiotherapy consultation",
+                    quantity: 1,
+                    unitPriceCents: invoice.subtotal_cents,
+                  },
+                ]
+          }
+        />
+      ) : (
+        <p className="print:hidden text-sm text-muted-foreground">
+          This invoice is {invoice.status} and cannot be edited. Create a new invoice for
+          additional charges.
+        </p>
+      )}
 
       <InvoiceReceiptDocument
         variant={isReceipt ? "receipt" : "invoice"}

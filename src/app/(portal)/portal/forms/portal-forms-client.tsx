@@ -7,6 +7,8 @@ import {
   submitFouzaConsentPackageAction,
   type ConsentActionState,
 } from "@/features/consent-forms/actions/consent";
+import { SignedConsentView } from "@/features/consent-forms/components/signed-consent-view";
+import type { SignedConsentPackage } from "@/features/consent-forms/lib/signed-package";
 import { pricingPlans } from "@/content/pricing";
 import { siteConfig } from "@/config/site";
 import { Button } from "@/components/ui/button";
@@ -26,6 +28,7 @@ export interface PortalFormsClientProps {
   patientId: string;
   appointmentId?: string | null;
   alreadyComplete?: boolean;
+  signedPackage?: SignedConsentPackage | null;
   intakeForm: { id: string; title: string };
   treatmentConsent: { id: string; title: string; body_md: string };
   accountConsent: { id: string; title: string; body_md: string };
@@ -128,6 +131,7 @@ export function PortalFormsClient({
   patientId,
   appointmentId,
   alreadyComplete,
+  signedPackage,
   intakeForm,
   treatmentConsent,
   accountConsent,
@@ -238,6 +242,9 @@ export function PortalFormsClient({
   }
 
   if (alreadyComplete) {
+    if (signedPackage) {
+      return <SignedConsentView package={signedPackage} />;
+    }
     return (
       <Card>
         <CardHeader>

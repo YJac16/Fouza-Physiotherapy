@@ -5,8 +5,10 @@ import { Calendar, FileText, Receipt } from "lucide-react";
 import { EmptyState } from "@/components/shared/states";
 import { Timeline, type TimelineItem } from "@/components/shared/timeline";
 import { MedicalAidCard, PatientProfileCard } from "@/components/patient/cards";
+import { Badge } from "@/components/ui/badge";
 import { Button } from "@/components/ui/button";
 import { Card, CardContent, CardHeader, CardTitle } from "@/components/ui/card";
+import { getPatientConsentCompletionAdmin } from "@/features/consent-forms/lib/completion";
 import { getPatient, getPatientTimeline } from "@/features/patients/api/patients";
 import { routes } from "@/config/routes";
 
@@ -19,7 +21,10 @@ export default async function PatientDetailPage({
   const { data: patient } = await getPatient(id);
   if (!patient) notFound();
 
-  const timeline = await getPatientTimeline(id);
+  const [timeline, consent] = await Promise.all([
+    getPatientTimeline(id),
+    getPatientConsentCompletionAdmin(id),
+  ]);
   const hasTimeline =
     timeline.appointments.length + timeline.notes.length + timeline.invoices.length > 0;
 
@@ -82,6 +87,31 @@ export default async function PatientDetailPage({
           </Button>
         </div>
       </div>
+
+      <Card>
+        <CardHeader className="flex flex-row flex-wrap items-center justify-between gap-3 space-y-0">
+          <CardTitle className="text-h5">Informed consent</CardTitle>
+          <Badge variant={consent.complete ? "success" : "warning"}>
+            {consent.complete ? "Complete" : "Pending"}
+          </Badge>
+        </CardHeader>
+        <CardContent className="space-y-3">
+          {!consent.complete && consent.missing.length ? (
+            <p className="text-sm text-muted-foreground">
+              Missing: {consent.missing.join(", ")}
+            </p>
+          ) : (
+            <p className="text-sm text-muted-foreground">
+              Intake and consent signatures are on file.
+            </p>
+          )}
+          {consent.complete ? (
+            <Button asChild variant="outline" size="sm">
+              <Link href={routes.admin.consentFormPatient(id)}>View signed consent</Link>
+            </Button>
+          ) : null}
+        </CardContent>
+      </Card>
 
       <div className="grid gap-6 lg:grid-cols-2">
         <PatientProfileCard

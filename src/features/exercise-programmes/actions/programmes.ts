@@ -4,6 +4,7 @@ import { revalidatePath } from "next/cache";
 import { z } from "zod";
 
 import { requireStaff, requireUser } from "@/lib/auth/guards";
+import { createServiceClient } from "@/lib/supabase/admin";
 import { createClient } from "@/lib/supabase/server";
 
 const exerciseSchema = z.object({
@@ -24,19 +25,51 @@ const programmeSchema = z.object({
 
 export type ExerciseActionState = { error?: string; success?: string };
 
+const ALLOWED_DIAGRAM_TYPES = new Set(["image/jpeg", "image/png", "image/webp"]);
+
+function sanitizeFilename(name: string) {
+  return name.replace(/[^a-zA-Z0-9._-]/g, "-").toLowerCase().slice(0, 80);
+}
+
+async function uploadExerciseDiagram(file: File): Promise<{ path?: string; error?: string }> {
+  if (!ALLOWED_DIAGRAM_TYPES.has(file.type)) {
+    return { error: "Diagram must be a JPEG, PNG, or WebP image" };
+  }
+  if (file.size > 12 * 1024 * 1024) {
+    return { error: "Diagram must be 12MB or smaller" };
+  }
+  const path = `diagrams/${Date.now()}-${sanitizeFilename(file.name || "diagram.jpg")}`;
+  const admin = createServiceClient();
+  const buffer = Buffer.from(await file.arrayBuffer());
+  const { error } = await admin.storage.from("exercise-media").upload(path, buffer, {
+    contentType: file.type,
+    upsert: true,
+  });
+  if (error) return { error: error.message };
+  return { path };
+}
+
 export async function createExerciseAction(
   _prev: ExerciseActionState,
   formData: FormData,
 ): Promise<ExerciseActionState> {
   await requireStaff();
-  const mediaRaw = formData.get("mediaUrl")?.toString()?.trim() || undefined;
+
+  let mediaUrl = formData.get("mediaUrl")?.toString()?.trim() || undefined;
+  const diagram = formData.get("diagram");
+  if (diagram instanceof File && diagram.size > 0) {
+    const uploaded = await uploadExerciseDiagram(diagram);
+    if (uploaded.error) return { error: uploaded.error };
+    mediaUrl = uploaded.path;
+  }
+
   const parsed = exerciseSchema.safeParse({
     name: formData.get("name"),
     slug: formData.get("slug"),
     description: formData.get("description") || undefined,
     instructions: formData.get("instructions") || undefined,
     category: formData.get("category") || undefined,
-    media_url: mediaRaw,
+    media_url: mediaUrl,
   });
   if (!parsed.success) return { error: "Invalid exercise" };
 
@@ -78,7 +111,7 @@ export async function createProgrammeAction(
   const supabase = await createClient();
   const { data: libraryExercises, error: libraryError } = await supabase
     .from("exercises")
-    .select("id, name, media_url")
+    .select("id, name, media_url, instructions")
     .in("id", exerciseIds)
     .eq("is_active", true);
 
@@ -119,6 +152,7 @@ export async function createProgrammeAction(
         programme_id: data.id,
         exercise_id: exercise.id,
         name: exercise.name,
+        instructions: exercise.instructions,
         media_url: exercise.media_url,
         sets,
         reps,

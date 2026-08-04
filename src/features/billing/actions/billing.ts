@@ -9,6 +9,7 @@ import { createClient } from "@/lib/supabase/server";
 import { createServiceClient } from "@/lib/supabase/admin";
 import { drainEmailOutbox } from "@/features/notifications/lib/outbox";
 import { getInvoiceBankingSettings } from "@/features/billing/lib/invoice-data";
+import { EDITABLE_INVOICE_STATUSES } from "@/features/billing/lib/addons";
 
 const invoiceSchema = z.object({
   patientId: z.string().uuid(),
@@ -24,6 +25,12 @@ const paymentSchema = z.object({
   amountCents: z.coerce.number().int().positive(),
   method: z.enum(["cash", "card", "eft", "other"]).default("eft"),
   notes: z.string().optional(),
+});
+
+const lineItemSchema = z.object({
+  description: z.string().min(1),
+  quantity: z.coerce.number().positive(),
+  unitPriceCents: z.coerce.number().int().nonnegative(),
 });
 
 export type BillingActionState = { error?: string; success?: string; id?: string };
@@ -119,6 +126,81 @@ export async function createInvoiceAction(
   revalidatePath("/admin/billing");
   revalidatePath(`/admin/billing/${data.id}`);
   redirect(`/admin/billing/${data.id}`);
+}
+
+export async function updateInvoiceLineItemsAction(
+  _prev: BillingActionState,
+  formData: FormData,
+): Promise<BillingActionState> {
+  const profile = await requireStaff();
+  const invoiceId = formData.get("invoiceId")?.toString();
+  if (!invoiceId) return { error: "Missing invoice" };
+
+  let linesRaw: unknown;
+  try {
+    linesRaw = JSON.parse(formData.get("linesJson")?.toString() ?? "[]");
+  } catch {
+    return { error: "Invalid line items" };
+  }
+
+  const linesParsed = z.array(lineItemSchema).min(1).safeParse(linesRaw);
+  if (!linesParsed.success) return { error: "Add at least one valid line item" };
+
+  const supabase = await createClient();
+  const { data: invoice, error: invoiceError } = await supabase
+    .from("invoices")
+    .select("id, status, tax_cents, patient_id")
+    .eq("id", invoiceId)
+    .maybeSingle();
+
+  if (invoiceError || !invoice) return { error: invoiceError?.message ?? "Invoice not found" };
+  if (!EDITABLE_INVOICE_STATUSES.has(invoice.status)) {
+    return { error: "Paid or void invoices cannot be edited. Create a new invoice for extras." };
+  }
+
+  const lines = linesParsed.data.map((line) => ({
+    invoice_id: invoiceId,
+    description: line.description.trim(),
+    quantity: line.quantity,
+    unit_price_cents: line.unitPriceCents,
+    amount_cents: Math.round(line.quantity * line.unitPriceCents),
+  }));
+
+  const subtotal = lines.reduce((sum, line) => sum + line.amount_cents, 0);
+  const taxCents = invoice.tax_cents ?? 0;
+  const total = subtotal + taxCents;
+
+  const { error: deleteError } = await supabase
+    .from("invoice_line_items")
+    .delete()
+    .eq("invoice_id", invoiceId);
+  if (deleteError) return { error: deleteError.message };
+
+  const { error: insertError } = await supabase.from("invoice_line_items").insert(lines);
+  if (insertError) return { error: insertError.message };
+
+  const { error: updateError } = await supabase
+    .from("invoices")
+    .update({
+      subtotal_cents: subtotal,
+      total_cents: total,
+      notes: lines[0]?.description ?? null,
+    })
+    .eq("id", invoiceId);
+  if (updateError) return { error: updateError.message };
+
+  await supabase.from("audit_logs").insert({
+    actor_id: profile.id,
+    action: "invoice.update_lines",
+    entity_type: "invoice",
+    entity_id: invoiceId,
+  });
+
+  revalidatePath("/admin/billing");
+  revalidatePath(`/admin/billing/${invoiceId}`);
+  revalidatePath("/portal/invoices");
+  revalidatePath(`/portal/invoices/${invoiceId}`);
+  return { success: "Invoice updated", id: invoiceId };
 }
 
 export async function sendInvoiceEmailAction(invoiceId: string): Promise<SendInvoiceState> {

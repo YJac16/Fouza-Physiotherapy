@@ -132,6 +132,7 @@ export interface ExerciseCardProps extends HTMLAttributes<HTMLDivElement> {
   sets?: string;
   reps?: string;
   duration?: string;
+  instructions?: string | null;
   mediaUrl?: string | null;
   progress?: number;
   completed?: boolean;
@@ -143,6 +144,7 @@ export function ExerciseCard({
   sets,
   reps,
   duration,
+  instructions,
   mediaUrl,
   progress,
   completed = false,
@@ -180,17 +182,21 @@ export function ExerciseCard({
       </CardHeader>
       {mediaUrl ? (
         <CardContent className="pt-0">
-          <video
-            className="aspect-video w-full rounded-xl bg-muted object-cover"
-            controls
-            preload="metadata"
-            playsInline
+          {/* eslint-disable-next-line @next/next/no-img-element -- signed storage URLs */}
+          <img
             src={mediaUrl}
+            alt={`${name} diagram`}
+            className="aspect-video w-full rounded-xl bg-muted object-contain"
           />
         </CardContent>
       ) : null}
-      {progress !== undefined && !completed ? (
+      {instructions ? (
         <CardContent className={cn("pt-0", mediaUrl && "pt-3")}>
+          <p className="whitespace-pre-wrap text-sm text-muted-foreground">{instructions}</p>
+        </CardContent>
+      ) : null}
+      {progress !== undefined && !completed ? (
+        <CardContent className={cn("pt-0", (mediaUrl || instructions) && "pt-3")}>
           <Progress value={progress} aria-label={`${name} progress`} />
         </CardContent>
       ) : null}

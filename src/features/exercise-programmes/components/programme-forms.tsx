@@ -45,12 +45,18 @@ export function ExerciseLibraryForm() {
         </datalist>
       </div>
       <div className="space-y-1">
-        <Label htmlFor="mediaUrl">Video URL or storage path (optional)</Label>
+        <Label htmlFor="diagram">Diagram photo (optional)</Label>
         <Input
-          id="mediaUrl"
-          name="mediaUrl"
-          placeholder="lower-limb/hip/hip-isometric-abd-add.mp4"
+          id="diagram"
+          name="diagram"
+          type="file"
+          accept="image/jpeg,image/png,image/webp,image/*"
+          capture="environment"
+          className="cursor-pointer file:mr-3 file:rounded-lg file:border-0 file:bg-muted file:px-3 file:py-1.5 file:text-sm"
         />
+        <p className="text-xs text-muted-foreground">
+          Take a photo or upload a JPEG/PNG/WebP diagram from your phone.
+        </p>
       </div>
       <div className="space-y-1">
         <Label htmlFor="description">Description</Label>
@@ -185,7 +191,7 @@ export function AssignProgrammeForm({
         </div>
         {!filtered.length ? (
           <p className="text-sm text-muted-foreground">
-            No library exercises yet. Add videos to the library first, then select them here by
+            No library exercises yet. Add diagrams to the library first, then select them here by
             injury region.
           </p>
         ) : (
@@ -204,7 +210,7 @@ export function AssignProgrammeForm({
                 <span className="min-w-0 flex-1">
                   <span className="block text-sm font-medium">{exercise.name}</span>
                   <span className="block text-xs text-muted-foreground">
-                    {[exercise.category, exercise.media_url ? "Has video" : "No video"]
+                    {[exercise.category, exercise.media_url ? "Has diagram" : "No diagram"]
                       .filter(Boolean)
                       .join(" · ")}
                   </span>

@@ -10,6 +10,7 @@ import {
   signInAction,
   signUpAction,
 } from "@/features/auth/actions/auth";
+import { PasswordField } from "@/components/forms/fields";
 import { Button } from "@/components/ui/button";
 import { FormMessage } from "@/components/ui/form-message";
 import { Input } from "@/components/ui/input";
@@ -27,16 +28,13 @@ export function LoginForm() {
         <Label htmlFor="email">Email</Label>
         <Input id="email" name="email" type="email" autoComplete="email" required />
       </div>
-      <div className="space-y-2">
-        <Label htmlFor="password">Password</Label>
-        <Input
-          id="password"
-          name="password"
-          type="password"
-          autoComplete="current-password"
-          required
-        />
-      </div>
+      <PasswordField
+        id="password"
+        name="password"
+        label="Password"
+        autoComplete="current-password"
+        required
+      />
       {state.error ? <FormMessage tone="error">{state.error}</FormMessage> : null}
       <Button type="submit" className="w-full" loading={pending}>
         Sign in
@@ -48,6 +46,11 @@ export function LoginForm() {
         {" · "}
         <Link href={routes.auth.register} className="text-primary hover:underline">
           Create account
+        </Link>
+      </p>
+      <p className="text-center text-sm">
+        <Link href={routes.marketing.home} className="text-primary hover:underline">
+          Back to home
         </Link>
       </p>
     </form>
@@ -67,26 +70,20 @@ export function RegisterForm() {
         <Label htmlFor="email">Email</Label>
         <Input id="email" name="email" type="email" autoComplete="email" required />
       </div>
-      <div className="space-y-2">
-        <Label htmlFor="password">Password</Label>
-        <Input
-          id="password"
-          name="password"
-          type="password"
-          autoComplete="new-password"
-          required
-        />
-      </div>
-      <div className="space-y-2">
-        <Label htmlFor="confirmPassword">Confirm password</Label>
-        <Input
-          id="confirmPassword"
-          name="confirmPassword"
-          type="password"
-          autoComplete="new-password"
-          required
-        />
-      </div>
+      <PasswordField
+        id="password"
+        name="password"
+        label="Password"
+        autoComplete="new-password"
+        required
+      />
+      <PasswordField
+        id="confirmPassword"
+        name="confirmPassword"
+        label="Confirm password"
+        autoComplete="new-password"
+        required
+      />
       {state.error ? <FormMessage tone="error">{state.error}</FormMessage> : null}
       {state.success ? <FormMessage tone="success">{state.success}</FormMessage> : null}
       <Button type="submit" className="w-full" loading={pending}>
@@ -96,6 +93,11 @@ export function RegisterForm() {
         Already have an account?{" "}
         <Link href={routes.auth.login} className="text-primary hover:underline">
           Sign in
+        </Link>
+      </p>
+      <p className="text-center text-sm">
+        <Link href={routes.marketing.home} className="text-primary hover:underline">
+          Back to home
         </Link>
       </p>
     </form>
@@ -120,6 +122,10 @@ export function ForgotPasswordForm() {
         <Link href={routes.auth.login} className="text-primary hover:underline">
           Back to sign in
         </Link>
+        {" · "}
+        <Link href={routes.marketing.home} className="text-primary hover:underline">
+          Back to home
+        </Link>
       </p>
     </form>
   );
@@ -130,30 +136,29 @@ export function ResetPasswordForm() {
 
   return (
     <form action={action} className="space-y-4">
-      <div className="space-y-2">
-        <Label htmlFor="password">New password</Label>
-        <Input
-          id="password"
-          name="password"
-          type="password"
-          autoComplete="new-password"
-          required
-        />
-      </div>
-      <div className="space-y-2">
-        <Label htmlFor="confirmPassword">Confirm password</Label>
-        <Input
-          id="confirmPassword"
-          name="confirmPassword"
-          type="password"
-          autoComplete="new-password"
-          required
-        />
-      </div>
+      <PasswordField
+        id="password"
+        name="password"
+        label="New password"
+        autoComplete="new-password"
+        required
+      />
+      <PasswordField
+        id="confirmPassword"
+        name="confirmPassword"
+        label="Confirm password"
+        autoComplete="new-password"
+        required
+      />
       {state.error ? <FormMessage tone="error">{state.error}</FormMessage> : null}
       <Button type="submit" className="w-full" loading={pending}>
         Update password
       </Button>
+      <p className="text-center text-sm">
+        <Link href={routes.marketing.home} className="text-primary hover:underline">
+          Back to home
+        </Link>
+      </p>
     </form>
   );
 }

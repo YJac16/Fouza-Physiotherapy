@@ -30,8 +30,10 @@ export default async function PortalProgrammesPage() {
                   | {
                       id: string;
                       name: string;
+                      instructions: string | null;
                       sets: number | null;
                       reps: number | null;
+                      hold_seconds: number | null;
                       media_url: string | null;
                       sort_order: number;
                     }[]
@@ -61,6 +63,12 @@ export default async function PortalProgrammesPage() {
                           name={exercise.name}
                           sets={exercise.sets?.toString()}
                           reps={exercise.reps?.toString()}
+                          duration={
+                            exercise.hold_seconds
+                              ? `Hold ${exercise.hold_seconds}s`
+                              : undefined
+                          }
+                          instructions={exercise.instructions}
                           mediaUrl={exercise.resolvedMediaUrl}
                         />
                       ))

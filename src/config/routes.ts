@@ -53,6 +53,8 @@ export const routes = {
     clinicalNotes: "/admin/clinical-notes",
     programmes: "/admin/programmes",
     consentForms: "/admin/consent-forms",
+    consentFormPatient: (patientId: string) =>
+      `/admin/consent-forms/${patientId}` as const,
     billing: "/admin/billing",
     invoices: "/admin/billing",
     invoice: (id: string) => `/admin/billing/${id}` as const,

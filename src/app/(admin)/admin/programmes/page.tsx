@@ -35,7 +35,7 @@ export default async function ProgrammesAdminPage() {
       <div>
         <h1 className="font-display text-2xl font-semibold">Exercise programmes</h1>
         <p className="text-sm text-muted-foreground">
-          Build the library, then assign injury-related exercises (with videos) to patients.
+          Build the library, then assign injury-related exercises (with diagrams) to patients.
         </p>
       </div>
 

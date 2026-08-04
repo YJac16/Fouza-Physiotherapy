@@ -3,24 +3,13 @@ import type { ReactNode } from "react";
 import { Card, CardContent, CardHeader, CardTitle } from "@/components/ui/card";
 import {
   INTAKE_ANSWER_LABELS,
+  formatIntakeAnswerValue,
   type SignedConsentPackage,
 } from "@/features/consent-forms/lib/signed-package-types";
+import { cn } from "@/lib/utils";
 
 function formatDate(iso: string) {
   return new Date(iso).toLocaleString("en-ZA", { timeZone: "Africa/Johannesburg" });
-}
-
-function formatAnswerValue(value: unknown): string {
-  if (value == null) return "—";
-  if (typeof value === "string" || typeof value === "number" || typeof value === "boolean") {
-    return String(value);
-  }
-  if (Array.isArray(value)) return value.map(String).join(", ");
-  try {
-    return JSON.stringify(value);
-  } catch {
-    return "—";
-  }
 }
 
 function ConsentText({ markdown }: { markdown: string }) {
@@ -148,12 +137,18 @@ export function SignedConsentView({
             {answerEntries.length ? (
               <dl className="grid gap-3 sm:grid-cols-2">
                 {answerEntries.map(([key, value]) => (
-                  <div key={key} className="min-w-0">
+                  <div
+                    key={key}
+                    className={cn(
+                      "min-w-0",
+                      key === "accountResponsible" && "sm:col-span-2",
+                    )}
+                  >
                     <dt className="text-xs uppercase tracking-wide text-muted-foreground">
                       {INTAKE_ANSWER_LABELS[key] ?? key}
                     </dt>
                     <dd className="mt-0.5 whitespace-pre-wrap text-sm font-medium leading-relaxed [overflow-wrap:anywhere]">
-                      {formatAnswerValue(value)}
+                      {formatIntakeAnswerValue(value)}
                     </dd>
                   </div>
                 ))}

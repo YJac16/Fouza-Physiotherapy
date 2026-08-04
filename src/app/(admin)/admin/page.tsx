@@ -133,7 +133,7 @@ export default async function AdminDashboardPage() {
               description="New bookings will appear here."
             />
           ) : (
-            <div className="grid gap-4 sm:grid-cols-2">
+            <div className="flex flex-col gap-3">
               {upcoming.map((appt) => {
                 const patient = (Array.isArray(appt.patients)
                   ? appt.patients[0]

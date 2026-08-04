@@ -170,31 +170,37 @@ export function AdminAppointmentCard({
     .toUpperCase();
 
   return (
-    <Card className={cn("shadow-sm", className)} {...props}>
-      <CardHeader className="flex-col items-stretch gap-3 space-y-0 pb-3 sm:flex-row sm:items-center">
-        <div className="flex min-w-0 flex-1 items-center gap-3">
+    <Card className={cn("min-w-0 overflow-hidden shadow-sm", className)} {...props}>
+      <CardHeader className="flex flex-col items-stretch gap-3 space-y-0 pb-3">
+        <div className="flex min-w-0 items-start gap-3">
           <Avatar className="size-10 shrink-0">
             {avatarSrc ? <AvatarImage src={avatarSrc} alt={patientName} /> : null}
             <AvatarFallback>{initials}</AvatarFallback>
           </Avatar>
-          <div className="min-w-0 flex-1">
-            <CardTitle className="truncate text-base">{patientName}</CardTitle>
-            <CardDescription className="line-clamp-2">{treatment}</CardDescription>
+          <div className="min-w-0 flex-1 space-y-1">
+            <div className="flex flex-wrap items-start justify-between gap-2">
+              <CardTitle className="min-w-0 text-base leading-snug [overflow-wrap:anywhere]">
+                {patientName}
+              </CardTitle>
+              <Badge
+                variant={adminApptStatus[status]}
+                className="w-fit shrink-0 capitalize"
+              >
+                {status.replace("-", " ")}
+              </Badge>
+            </div>
+            <CardDescription className="line-clamp-2 [overflow-wrap:anywhere]">
+              {treatment}
+            </CardDescription>
           </div>
         </div>
-        <Badge
-          variant={adminApptStatus[status]}
-          className="w-fit shrink-0 capitalize self-start sm:self-center"
-        >
-          {status.replace("-", " ")}
-        </Badge>
       </CardHeader>
-      <CardContent className="flex flex-col gap-3 pt-0 sm:flex-row sm:items-center sm:justify-between">
+      <CardContent className="flex flex-col gap-3 pt-0">
         <p className="flex min-w-0 items-start gap-1.5 text-sm text-muted-foreground">
           <Clock className="mt-0.5 size-3.5 shrink-0" aria-hidden />
-          <span className="break-words">{time}</span>
+          <span className="[overflow-wrap:anywhere]">{time}</span>
         </p>
-        {actions}
+        {actions ? <div className="min-w-0 w-full">{actions}</div> : null}
       </CardContent>
     </Card>
   );

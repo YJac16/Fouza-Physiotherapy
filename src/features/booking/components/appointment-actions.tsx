@@ -95,12 +95,13 @@ export function AppointmentActions({
   return (
     <div className={cn("w-full space-y-2", className)}>
       {mode === "idle" ? (
-        <div className="flex flex-wrap gap-2">
+        <div className="flex w-full flex-col gap-2 sm:flex-row sm:flex-wrap">
           <Button
             type="button"
             size="sm"
             variant="outline"
             disabled={pending}
+            className="w-full sm:w-auto"
             onClick={() => {
               setMessage(null);
               setMode("reschedule");
@@ -112,7 +113,7 @@ export function AppointmentActions({
             type="button"
             size="sm"
             variant="ghost"
-            className="text-destructive hover:text-destructive"
+            className="w-full text-destructive hover:text-destructive sm:w-auto"
             disabled={pending}
             onClick={() => {
               setMessage(null);
@@ -127,12 +128,13 @@ export function AppointmentActions({
       {mode === "confirm-cancel" ? (
         <div className="space-y-2 rounded-xl border border-destructive/30 bg-destructive/5 p-3">
           <p className="text-sm text-foreground">Cancel this appointment?</p>
-          <div className="flex flex-wrap gap-2">
+          <div className="flex flex-col gap-2 sm:flex-row sm:flex-wrap">
             <Button
               type="button"
               size="sm"
               variant="danger"
               loading={pending}
+              className="w-full sm:w-auto"
               onClick={handleCancel}
             >
               Yes, cancel
@@ -142,6 +144,7 @@ export function AppointmentActions({
               size="sm"
               variant="outline"
               disabled={pending}
+              className="w-full sm:w-auto"
               onClick={() => setMode("idle")}
             >
               Keep
@@ -163,7 +166,7 @@ export function AppointmentActions({
             />
           </div>
           {slots.length ? (
-            <div className="flex flex-wrap gap-2">
+            <div className="flex flex-col gap-2 sm:flex-row sm:flex-wrap">
               {slots.map((slot) => (
                 <Button
                   key={slot.startsAt}
@@ -171,6 +174,7 @@ export function AppointmentActions({
                   size="sm"
                   variant="outline"
                   disabled={pending}
+                  className="w-full justify-start sm:w-auto"
                   onClick={() => handleReschedule(slot)}
                 >
                   {slot.label}

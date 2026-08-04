@@ -1,4 +1,5 @@
 import type { ComponentProps, ReactNode } from "react";
+import Link from "next/link";
 
 import { cn } from "@/lib/utils";
 
@@ -8,6 +9,7 @@ export interface TimelineItem {
   description?: string;
   meta?: string;
   icon?: ReactNode;
+  href?: string;
 }
 
 export interface TimelineProps extends ComponentProps<"ol"> {
@@ -35,9 +37,18 @@ export function Timeline({ items, className, ...props }: TimelineProps) {
           </div>
           <div className="min-w-0 flex-1 pt-1">
             <div className="flex flex-wrap items-baseline gap-x-3 gap-y-1">
-              <p className="font-display text-h5 tracking-tight text-foreground">
-                {item.title}
-              </p>
+              {item.href ? (
+                <Link
+                  href={item.href}
+                  className="font-display text-h5 tracking-tight text-foreground underline-offset-4 hover:underline"
+                >
+                  {item.title}
+                </Link>
+              ) : (
+                <p className="font-display text-h5 tracking-tight text-foreground">
+                  {item.title}
+                </p>
+              )}
               {item.meta ? (
                 <span className="text-xs text-muted-foreground">{item.meta}</span>
               ) : null}

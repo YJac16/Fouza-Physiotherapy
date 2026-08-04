@@ -26,6 +26,7 @@ Each feature under `src/features/<name>` owns:
 | `booking` | Online appointment booking |
 | `patients` | Patient records & CRM |
 | `clinical-notes` | SOAP notes & clinical documentation |
+| `initial-assessments` | Mobile body-diagram initial assessments |
 | `exercise-programmes` | Home exercise programmes |
 | `consent-forms` | Digital consent & signatures |
 | `billing` | Invoices, statements, payments |

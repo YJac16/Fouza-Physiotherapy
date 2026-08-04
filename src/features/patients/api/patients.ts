@@ -93,13 +93,13 @@ export async function getMyPatientRecord() {
 }
 
 /**
- * Chronological patient timeline: appointments, clinical notes, invoices. Staff only.
+ * Chronological patient timeline: appointments, clinical notes, invoices, assessments. Staff only.
  */
 export async function getPatientTimeline(patientId: string) {
   await requireStaff();
   const supabase = await createClient();
 
-  const [appointments, notes, invoices] = await Promise.all([
+  const [appointments, notes, invoices, assessments] = await Promise.all([
     supabase
       .from("appointments")
       .select("id, starts_at, ends_at, status, notes")
@@ -118,12 +118,19 @@ export async function getPatientTimeline(patientId: string) {
       .eq("patient_id", patientId)
       .order("issue_date", { ascending: false })
       .limit(20),
+    supabase
+      .from("initial_assessments")
+      .select("id, created_at, chief_complaint, pain_scale, is_locked")
+      .eq("patient_id", patientId)
+      .order("created_at", { ascending: false })
+      .limit(20),
   ]);
 
   return {
     appointments: appointments.data ?? [],
     notes: notes.data ?? [],
     invoices: invoices.data ?? [],
+    assessments: assessments.data ?? [],
   };
 }
 

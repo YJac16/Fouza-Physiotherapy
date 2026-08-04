@@ -35,6 +35,7 @@ const adminNav = [
   { label: "Appointments", href: routes.admin.appointments, icon: Calendar },
   { label: "Patients", href: routes.admin.patients, icon: Users },
   { label: "Clinical notes", href: routes.admin.clinicalNotes, icon: ClipboardList },
+  { label: "Initial assessments", href: routes.admin.initialAssessments, icon: ClipboardList },
   { label: "Programmes", href: routes.admin.programmes, icon: Dumbbell },
   { label: "Billing", href: routes.admin.billing, icon: FileText },
   { label: "Documents", href: routes.admin.documents, icon: FileText },

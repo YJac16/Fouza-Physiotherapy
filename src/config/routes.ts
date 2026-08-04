@@ -51,6 +51,9 @@ export const routes = {
     patient: (id: string) => `/admin/patients/${id}` as const,
     appointments: "/admin/appointments",
     clinicalNotes: "/admin/clinical-notes",
+    initialAssessments: "/admin/initial-assessments",
+    initialAssessment: (id: string) => `/admin/initial-assessments/${id}` as const,
+    newInitialAssessment: "/admin/initial-assessments/new",
     programmes: "/admin/programmes",
     consentForms: "/admin/consent-forms",
     consentFormPatient: (patientId: string) =>

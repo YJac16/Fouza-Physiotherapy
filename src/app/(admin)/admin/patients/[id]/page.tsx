@@ -1,6 +1,6 @@
 import Link from "next/link";
 import { notFound } from "next/navigation";
-import { Calendar, FileText, Receipt } from "lucide-react";
+import { Calendar, ClipboardList, FileText, Receipt } from "lucide-react";
 
 import { EmptyState } from "@/components/shared/states";
 import { Timeline, type TimelineItem } from "@/components/shared/timeline";
@@ -26,7 +26,11 @@ export default async function PatientDetailPage({
     getPatientConsentCompletionAdmin(id),
   ]);
   const hasTimeline =
-    timeline.appointments.length + timeline.notes.length + timeline.invoices.length > 0;
+    timeline.appointments.length +
+      timeline.notes.length +
+      timeline.invoices.length +
+      timeline.assessments.length >
+    0;
 
   const fullName = `${patient.first_name} ${patient.last_name}`;
 
@@ -50,6 +54,21 @@ export default async function PatientDetailPage({
       }),
       icon: <FileText className="size-4" />,
       sortKey: note.created_at,
+    })),
+    ...timeline.assessments.map((assessment) => ({
+      id: `assessment-${assessment.id}`,
+      title: "Initial assessment",
+      description:
+        assessment.chief_complaint ||
+        (assessment.pain_scale != null
+          ? `Pain ${assessment.pain_scale}/10`
+          : "Body diagram assessment"),
+      meta: new Date(assessment.created_at).toLocaleString("en-ZA", {
+        timeZone: "Africa/Johannesburg",
+      }),
+      icon: <ClipboardList className="size-4" />,
+      sortKey: assessment.created_at,
+      href: routes.admin.initialAssessment(assessment.id),
     })),
     ...timeline.invoices.map((invoice) => ({
       id: `invoice-${invoice.id}`,
@@ -76,6 +95,11 @@ export default async function PatientDetailPage({
           <p className="text-sm text-muted-foreground">Patient record</p>
         </div>
         <div className="flex flex-wrap gap-2">
+          <Button asChild size="sm">
+            <Link href={`${routes.admin.newInitialAssessment}?patientId=${patient.id}`}>
+              New assessment
+            </Link>
+          </Button>
           <Button asChild variant="outline" size="sm">
             <Link href={routes.admin.clinicalNotes}>Clinical notes</Link>
           </Button>

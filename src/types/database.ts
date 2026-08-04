@@ -304,6 +304,54 @@ export type Database = {
         };
         Relationships: [];
       };
+      initial_assessments: {
+        Row: {
+          id: string;
+          patient_id: string;
+          practitioner_id: string;
+          appointment_id: string | null;
+          chief_complaint: string | null;
+          history: string | null;
+          pain_scale: number | null;
+          observations: string | null;
+          plan: string | null;
+          region_notes: Json;
+          is_locked: boolean;
+          created_at: string;
+          updated_at: string;
+        };
+        Insert: {
+          id?: string;
+          patient_id: string;
+          practitioner_id: string;
+          appointment_id?: string | null;
+          chief_complaint?: string | null;
+          history?: string | null;
+          pain_scale?: number | null;
+          observations?: string | null;
+          plan?: string | null;
+          region_notes?: Json;
+          is_locked?: boolean;
+          created_at?: string;
+          updated_at?: string;
+        };
+        Update: {
+          id?: string;
+          patient_id?: string;
+          practitioner_id?: string;
+          appointment_id?: string | null;
+          chief_complaint?: string | null;
+          history?: string | null;
+          pain_scale?: number | null;
+          observations?: string | null;
+          plan?: string | null;
+          region_notes?: Json;
+          is_locked?: boolean;
+          created_at?: string;
+          updated_at?: string;
+        };
+        Relationships: [];
+      };
       exercise_programmes: {
         Row: {
           id: string;

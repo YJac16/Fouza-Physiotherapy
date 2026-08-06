@@ -236,7 +236,7 @@ export default async function HomePage() {
       <WhyChooseUs
         eyebrow="Why Fouza Physiotherapy"
         title="Calm, modern care you can trust"
-        description="Professional physiotherapy that feels welcoming — never rushed or cold."
+        description="Professional physiotherapy that’s thoughtful, evidence-based, and focused on helping you move with confidence."
       >
         {whyChoose.map((item) => (
           <FeatureCard

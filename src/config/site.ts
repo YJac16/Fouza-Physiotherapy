@@ -82,6 +82,7 @@ export const siteConfig = {
     sports: "/rehab-03.jpg",
     manualTherapy: "/rehab-02.jpg",
     softTissue: "/rehab-08.jpg",
+    dryNeedling: "/dry-needling.png",
     backRehab: "/rehab-05.jpg",
     posture: "/rehab-06.jpg",
     shoulderRehab: "/rehab-05.jpg",

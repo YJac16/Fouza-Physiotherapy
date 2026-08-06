@@ -4,7 +4,6 @@ import {
   HeartHandshake,
   Syringe,
   ShieldCheck,
-  Sparkles,
   Stethoscope,
   type LucideIcon,
 } from "lucide-react";
@@ -130,12 +129,6 @@ export const fouzaBio = {
       title: "Manual Therapy",
       description: "Skilled hands-on treatment to restore mobility and ease pain.",
       icon: Hand,
-    },
-    {
-      title: "Post-Surgical Rehabilitation",
-      description:
-        "Structured recovery after orthopaedic procedures, including support when pain continues beyond the expected healing time.",
-      icon: Sparkles,
     },
   ] satisfies FouzaSpecialInterest[],
 

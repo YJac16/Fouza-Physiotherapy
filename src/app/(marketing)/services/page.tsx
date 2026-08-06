@@ -13,7 +13,7 @@ import { buildMetadata } from "@/lib/seo/metadata";
 export const metadata: Metadata = buildMetadata({
   title: "Physiotherapy Services | Fouza Physiotherapy",
   description:
-    "Explore physiotherapy services at Fouza Physiotherapy — dry needling, manual therapy, post-surgical rehab, and care for persistent pain.",
+    "Explore physiotherapy services at Fouza Physiotherapy — dry needling, manual therapy, and care for persistent pain.",
   path: routes.marketing.services,
 });
 
@@ -29,7 +29,7 @@ export default function ServicesPage() {
 
       <PageHero
         title="Physiotherapy services tailored to you"
-        description="From persistent pain to post-surgical rehabilitation, every service is delivered with the same evidence-based, personalised approach."
+        description="From persistent pain to targeted rehab, every service is delivered with the same evidence-based, personalised approach."
         breadcrumbs={[
           { label: "Home", href: routes.marketing.home },
           { label: "Services" },

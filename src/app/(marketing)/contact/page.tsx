@@ -51,7 +51,7 @@ export default function ContactPage() {
 
       <PageHero
         title="Get in touch"
-        description="Questions about booking, pricing, or whether we can help with your concern? Reach out — we respond quickly."
+        description="Questions about booking, pricing, or whether we can help with your concern? Reach out."
         breadcrumbs={[
           { label: "Home", href: routes.marketing.home },
           { label: "Contact" },
@@ -114,8 +114,7 @@ export default function ContactPage() {
                   </Typography>
                   <Typography variant="small" className="mt-1 leading-relaxed">
                     Street parking is available near the practice on Upper
-                    Duke Street. Please allow a few extra minutes to park
-                    before your appointment.
+                    Duke Street.
                   </Typography>
                 </div>
               </div>

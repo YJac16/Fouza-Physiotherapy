@@ -65,7 +65,7 @@ export const services: ServiceContent[] = [
       },
     ],
     icon: Syringe,
-    image: siteConfig.images.softTissue,
+    image: siteConfig.images.dryNeedling,
   },
   {
     slug: "manual-therapy",
@@ -100,40 +100,6 @@ export const services: ServiceContent[] = [
     ],
     icon: Hand,
     image: siteConfig.images.manualTherapy,
-  },
-  {
-    slug: "post-surgery-rehabilitation",
-    name: "Post Surgery Rehabilitation",
-    shortDescription:
-      "Structured recovery after orthopaedic and soft-tissue surgery to restore strength and function.",
-    overview:
-      "Post-operative physiotherapy guides safe progression from early protection through strength, mobility, and return to daily life or sport.",
-    whoItHelps: [
-      "Patients after orthopaedic procedures",
-      "People recovering from soft-tissue repairs",
-      "Anyone needing a clear rehab roadmap",
-    ],
-    benefits: [
-      "Safe staged recovery",
-      "Reduced stiffness and weakness",
-      "Clear milestones and education",
-    ],
-    process: [
-      "Review of surgical protocol and goals",
-      "Early mobility and swelling management",
-      "Progressive strengthening",
-      "Functional return planning",
-    ],
-    duration: "45–60 minutes",
-    faqs: [
-      {
-        question: "When should I start physiotherapy after surgery?",
-        answer:
-          "Timing depends on your surgeon’s protocol. Contact us with your operation details and we will advise.",
-      },
-    ],
-    icon: Bone,
-    image: siteConfig.images.postOp,
   },
   {
     slug: "back-pain",

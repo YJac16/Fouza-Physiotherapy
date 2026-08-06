@@ -101,6 +101,82 @@ export function renderEmailTemplate(
     };
   }
 
+  const patientName =
+    typeof payload.patientName === "string" ? payload.patientName : "a patient";
+  const serviceName =
+    typeof payload.serviceName === "string" ? payload.serviceName : "Physiotherapy";
+  const notes = typeof payload.notes === "string" ? payload.notes : null;
+
+  if (templateKey === "booking.practitioner_alert") {
+    const adminHref = `${appUrl}/admin/appointments`;
+    return {
+      subject: `New booking — ${patientName}`,
+      html: wrap(`
+        <h1 style="margin:0 0 12px;font-size:22px;color:#3a3a3c;">New appointment booked</h1>
+        <p style="margin:0;font-size:15px;line-height:1.6;">
+          <strong>${escapeHtml(patientName)}</strong> has booked <strong>${escapeHtml(serviceName)}</strong>.
+        </p>
+        ${
+          startsAt
+            ? `<p style="margin:16px 0 0;font-size:15px;line-height:1.6;"><strong>When:</strong> ${escapeHtml(startsAt)}</p>`
+            : ""
+        }
+        ${
+          notes
+            ? `<p style="margin:16px 0 0;font-size:15px;line-height:1.6;"><strong>Notes:</strong> ${escapeHtml(notes)}</p>`
+            : ""
+        }
+        ${cta(adminHref, "Open appointments")}
+      `),
+    };
+  }
+
+  if (templateKey === "booking.reminder.patient") {
+    const formsHref = magicLink ?? `${appUrl}/portal/forms`;
+    return {
+      subject: "Appointment reminder — Fouza Physiotherapy",
+      html: wrap(`
+        <h1 style="margin:0 0 12px;font-size:22px;color:#3a3a3c;">Reminder: your visit is coming up</h1>
+        <p style="margin:0;font-size:15px;line-height:1.6;">
+          Hi ${escapeHtml(firstName)}, this is a reminder of your upcoming appointment at
+          ${escapeHtml(siteConfig.practiceName)}.
+        </p>
+        ${
+          startsAt
+            ? `<p style="margin:16px 0 0;font-size:15px;line-height:1.6;"><strong>When:</strong> ${escapeHtml(startsAt)}</p>`
+            : ""
+        }
+        <p style="margin:16px 0 0;font-size:15px;line-height:1.6;">
+          <strong>Where:</strong> ${escapeHtml(siteConfig.address)}
+        </p>
+        <p style="margin:16px 0 0;font-size:15px;line-height:1.6;">
+          If you have not yet completed your forms, please do so before your visit.
+        </p>
+        ${cta(formsHref, "View portal / forms")}
+      `),
+    };
+  }
+
+  if (templateKey === "booking.reminder.practitioner") {
+    const adminHref = `${appUrl}/admin/appointments`;
+    return {
+      subject: `Reminder — ${patientName}`,
+      html: wrap(`
+        <h1 style="margin:0 0 12px;font-size:22px;color:#3a3a3c;">Upcoming appointment</h1>
+        <p style="margin:0;font-size:15px;line-height:1.6;">
+          Reminder: <strong>${escapeHtml(patientName)}</strong> is booked for
+          <strong>${escapeHtml(serviceName)}</strong>.
+        </p>
+        ${
+          startsAt
+            ? `<p style="margin:16px 0 0;font-size:15px;line-height:1.6;"><strong>When:</strong> ${escapeHtml(startsAt)}</p>`
+            : ""
+        }
+        ${cta(adminHref, "Open appointments")}
+      `),
+    };
+  }
+
   if (templateKey === "invoice.sent" || templateKey === "invoice.receipt") {
     const invoiceNumber =
       typeof payload.invoiceNumber === "string" ? payload.invoiceNumber : "your invoice";

@@ -2,6 +2,11 @@ import { createServiceClient } from "@/lib/supabase/admin";
 import type { ConfirmBookingInput, HoldInput } from "@/features/booking/schemas/booking";
 import { ensurePatientPortalInvite } from "@/features/auth/lib/portal-invite";
 import { drainEmailOutbox } from "@/features/notifications/lib/outbox";
+import {
+  cancelPendingAppointmentEmails,
+  resolvePractitionerEmail,
+} from "@/features/notifications/lib/appointment-emails";
+import { siteConfig } from "@/config/site";
 
 const HOLD_MINUTES = 10;
 
@@ -113,12 +118,24 @@ export async function confirmBooking(input: ConfirmBookingInput) {
     patientId,
   });
 
+  const { data: service } = await admin
+    .from("services")
+    .select("name")
+    .eq("id", hold.service_id)
+    .maybeSingle();
+
+  const practitionerEmail = await resolvePractitionerEmail(hold.practitioner_id);
+  const patientName = `${input.firstName} ${input.lastName}`.trim();
+  const serviceName = service?.name ?? "Physiotherapy";
+
   const emailPayload = {
     appointmentId: appointment.id,
     patientId,
     firstName: input.firstName,
     startsAt: hold.starts_at,
     magicLink: invite.magicLink,
+    patientName,
+    serviceName,
   };
 
   await admin.from("notification_outbox").insert([
@@ -132,6 +149,12 @@ export async function confirmBooking(input: ConfirmBookingInput) {
       channel: "email",
       template_key: "portal.invite",
       recipient: input.email.toLowerCase(),
+      payload: emailPayload,
+    },
+    {
+      channel: "email",
+      template_key: "booking.practitioner_alert",
+      recipient: (practitionerEmail || siteConfig.email).toLowerCase(),
       payload: emailPayload,
     },
   ]);
@@ -157,6 +180,9 @@ export async function cancelBooking(appointmentId: string, actorId?: string) {
     .update({ status: "cancelled" })
     .eq("id", appointmentId);
   if (error) return { error: error.message };
+
+  await cancelPendingAppointmentEmails(appointmentId);
+
   if (actorId) {
     await admin.from("audit_logs").insert({
       actor_id: actorId,
@@ -210,6 +236,9 @@ export async function rescheduleBooking(
     .eq("id", appointment.id);
 
   if (error) return { error: error.message };
+
+  // Drop any pending reminders so the next cron can enqueue for the new time.
+  await cancelPendingAppointmentEmails(appointment.id);
 
   if (actorId) {
     await admin.from("audit_logs").insert({

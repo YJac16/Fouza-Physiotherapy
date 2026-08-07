@@ -15,8 +15,14 @@ import {
   createHold,
   rescheduleBooking,
 } from "@/features/booking/api/bookings";
-import { requireStaff } from "@/lib/auth/guards";
+import {
+  canBookFollowUpServices,
+  filterBookableServices,
+  type BookingPatientContext,
+} from "@/features/booking/lib/eligibility";
+import { requireStaff, getSessionProfile } from "@/lib/auth/guards";
 import { createServiceClient } from "@/lib/supabase/admin";
+import { ensureMyPatientRecord } from "@/features/patients/api/patients";
 
 export type BookingActionState = {
   error?: string;
@@ -95,20 +101,74 @@ export async function adminRescheduleAppointmentAction(input: unknown) {
   return result;
 }
 
-export async function listBookableCatalog() {
-  // Service client so practitioner profile names resolve for anonymous bookers
-  // (profiles RLS only allows own-profile / staff reads).
+export type BookableCatalog = {
+  services: Array<{
+    id: string;
+    name: string;
+    slug: string;
+    description: string | null;
+    duration_minutes: number;
+    price_cents: number;
+  }>;
+  practitioners: Array<{
+    id: string;
+    title: string;
+    profile_id: string;
+    profiles: { full_name: string } | { full_name: string }[] | null;
+  }>;
+  patientContext: BookingPatientContext | null;
+  isAuthenticated: boolean;
+};
+
+export async function listBookableCatalog(): Promise<BookableCatalog> {
   const supabase = createServiceClient();
   const [{ data: services }, { data: practitioners }] = await Promise.all([
     supabase
       .from("services")
-      .select("id, name, description, duration_minutes, price_cents")
+      .select("id, name, slug, description, duration_minutes, price_cents")
       .eq("is_active", true)
-      .eq("is_bookable_online", true),
+      .eq("is_bookable_online", true)
+      .order("name"),
     supabase
       .from("practitioners")
       .select("id, title, profile_id, profiles(full_name)")
       .eq("is_active", true),
   ]);
-  return { services: services ?? [], practitioners: practitioners ?? [] };
+
+  const profile = await getSessionProfile();
+  let patientContext: BookingPatientContext | null = null;
+
+  if (profile && profile.role === "patient") {
+    const { data: patient } = await ensureMyPatientRecord();
+    if (patient) {
+      const canFollowUps = canBookFollowUpServices({
+        verified_account: patient.verified_account,
+        informed_consent_signed: patient.informed_consent_signed,
+      });
+      patientContext = {
+        patientId: patient.id,
+        firstName: patient.first_name,
+        lastName: patient.last_name,
+        email: patient.email ?? profile.email,
+        phone: patient.phone ?? profile.phone ?? "",
+        verifiedAccount: patient.verified_account,
+        informedConsentSigned: patient.informed_consent_signed,
+        needsConsent: !patient.informed_consent_signed,
+        canBookFollowUps: canFollowUps,
+      };
+    }
+  }
+
+  const allServices = services ?? [];
+  const filtered = filterBookableServices(
+    allServices,
+    Boolean(patientContext?.canBookFollowUps),
+  );
+
+  return {
+    services: filtered,
+    practitioners: practitioners ?? [],
+    patientContext,
+    isAuthenticated: Boolean(profile),
+  };
 }

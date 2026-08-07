@@ -25,12 +25,14 @@ import {
   createHoldAction,
   fetchSlotsAction,
 } from "@/features/booking/actions/booking";
+import type { BookingPatientContext } from "@/features/booking/lib/eligibility";
 import { BOOKING_TIMEZONE } from "@/features/booking/lib/timezone";
 import { cn } from "@/lib/utils";
 
 export type BookableService = {
   id: string;
   name: string;
+  slug?: string;
   description: string | null;
   duration_minutes: number;
   price_cents: number;
@@ -46,6 +48,8 @@ export type BookablePractitioner = {
 export interface BookingWizardProps {
   services: BookableService[];
   practitioners: BookablePractitioner[];
+  patientContext?: BookingPatientContext | null;
+  isAuthenticated?: boolean;
   className?: string;
 }
 
@@ -117,7 +121,13 @@ function SetmoreFallback({ message }: { message?: string }) {
   );
 }
 
-export function BookingWizard({ services, practitioners, className }: BookingWizardProps) {
+export function BookingWizard({
+  services,
+  practitioners,
+  patientContext = null,
+  isAuthenticated = false,
+  className,
+}: BookingWizardProps) {
   const router = useRouter();
   const [step, setStep] = useState(1);
   const [serviceId, setServiceId] = useState<string | null>(null);
@@ -126,24 +136,44 @@ export function BookingWizard({ services, practitioners, className }: BookingWiz
   const [slots, setSlots] = useState<BookingActionState["slots"]>([]);
   const [slotsError, setSlotsError] = useState<string | null>(null);
   const [loadingSlots, setLoadingSlots] = useState(false);
-  const [selectedSlot, setSelectedSlot] = useState<{ startsAt: string; endsAt: string; label: string } | null>(null);
+  const [selectedSlot, setSelectedSlot] = useState<{
+    startsAt: string;
+    endsAt: string;
+    label: string;
+  } | null>(null);
   const [holdToken, setHoldToken] = useState<string | null>(null);
   const [holdError, setHoldError] = useState<string | null>(null);
   const [holdingSlot, setHoldingSlot] = useState(false);
   const [details, setDetails] = useState({
-    firstName: "",
-    lastName: "",
-    email: "",
-    phone: "",
+    firstName: patientContext?.firstName ?? "",
+    lastName: patientContext?.lastName ?? "",
+    email: patientContext?.email ?? "",
+    phone: patientContext?.phone ?? "",
   });
   const [confirmState, confirmAction, confirmPending] = useActionState(
     confirmBookingAction,
     initialConfirmState,
   );
 
+  const needsConsent = Boolean(patientContext?.needsConsent) || !isAuthenticated;
+  const consentReturnTo = `${routes.booking.root}`;
+  const consentHref = `${routes.portal.forms}?returnTo=${encodeURIComponent(consentReturnTo)}`;
+  const loginHref = `${routes.auth.login}?redirectTo=${encodeURIComponent(consentHref)}`;
+  const registerHref = `${routes.auth.register}?redirectTo=${encodeURIComponent(consentHref)}`;
+
   const minDate = useMemo(() => getDateKeyInTimezone(), []);
   const selectedService = services.find((s) => s.id === serviceId) ?? null;
   const selectedPractitioner = practitioners.find((p) => p.id === practitionerId) ?? null;
+
+  useEffect(() => {
+    if (!patientContext) return;
+    setDetails((current) => ({
+      firstName: current.firstName || patientContext.firstName,
+      lastName: current.lastName || patientContext.lastName,
+      email: current.email || patientContext.email,
+      phone: current.phone || patientContext.phone,
+    }));
+  }, [patientContext]);
 
   const loadSlots = useCallback(
     async (nextDate: string) => {
@@ -236,22 +266,30 @@ export function BookingWizard({ services, practitioners, className }: BookingWiz
     setStep((current) => Math.max(current - 1, 1));
   }
 
-  const summaryItems = selectedService && selectedPractitioner && selectedSlot
-    ? [
-        { label: "Service", value: selectedService.name },
-        { label: "Practitioner", value: getPractitionerName(selectedPractitioner) },
-        { label: "Date", value: formatBookingDate(selectedSlot.startsAt) },
-        { label: "Time", value: selectedSlot.label },
-        { label: "Duration", value: formatDuration(selectedService.duration_minutes) },
-        { label: "Name", value: `${details.firstName} ${details.lastName}`.trim() },
-        { label: "Email", value: details.email },
-        { label: "Phone", value: details.phone },
-      ]
-    : [];
+  const summaryItems =
+    selectedService && selectedPractitioner && selectedSlot
+      ? [
+          { label: "Service", value: selectedService.name },
+          { label: "Practitioner", value: getPractitionerName(selectedPractitioner) },
+          { label: "Date", value: formatBookingDate(selectedSlot.startsAt) },
+          { label: "Time", value: selectedSlot.label },
+          { label: "Duration", value: formatDuration(selectedService.duration_minutes) },
+          { label: "Name", value: `${details.firstName} ${details.lastName}`.trim() },
+          { label: "Email", value: details.email },
+          { label: "Phone", value: details.phone },
+        ]
+      : [];
 
   return (
-    <div className={cn("space-y-8", className)}>
+    <div className={cn("min-w-0 space-y-8", className)}>
       <BookingProgressIndicator steps={[...STEPS]} currentStep={step} />
+
+      {!patientContext?.canBookFollowUps ? (
+        <FormMessage tone="info">
+          New patients can book an Initial Consultation or Injury Prevention Assessment. Follow-up
+          appointments unlock after verified account status and informed consent.
+        </FormMessage>
+      ) : null}
 
       {step === 1 ? (
         <section aria-labelledby="booking-step-service">
@@ -365,8 +403,8 @@ export function BookingWizard({ services, practitioners, className }: BookingWiz
                   ) : null}
                   {holdToken && selectedSlot ? (
                     <FormMessage tone="success" className="mt-4">
-                      {selectedSlot.label} on {formatBookingDate(selectedSlot.startsAt)} — held for 10
-                      minutes.
+                      {selectedSlot.label} on {formatBookingDate(selectedSlot.startsAt)} — held for
+                      10 minutes.
                     </FormMessage>
                   ) : null}
                 </>
@@ -382,7 +420,9 @@ export function BookingWizard({ services, practitioners, className }: BookingWiz
             Your details
           </Typography>
           <Typography variant="small" className="mb-6 text-muted-foreground">
-            We&apos;ll use this to confirm your appointment and send reminders.
+            {patientContext
+              ? "We’ve filled these from your profile — edit if anything needs updating."
+              : "We’ll use this to confirm your appointment and send reminders."}
           </Typography>
           <div className="grid max-w-lg gap-4 sm:grid-cols-2">
             <div className="space-y-2">
@@ -399,7 +439,7 @@ export function BookingWizard({ services, practitioners, className }: BookingWiz
               />
             </div>
             <div className="space-y-2">
-              <Label htmlFor="lastName">Last name</Label>
+              <Label htmlFor="lastName">Surname</Label>
               <Input
                 id="lastName"
                 name="lastName"
@@ -412,7 +452,7 @@ export function BookingWizard({ services, practitioners, className }: BookingWiz
               />
             </div>
             <div className="space-y-2 sm:col-span-2">
-              <Label htmlFor="email">Email</Label>
+              <Label htmlFor="email">Email address</Label>
               <Input
                 id="email"
                 name="email"
@@ -445,58 +485,90 @@ export function BookingWizard({ services, practitioners, className }: BookingWiz
 
       {step === 5 ? (
         <section aria-labelledby="booking-step-confirm" className="grid gap-6 lg:grid-cols-2">
-          <div>
+          <div className="min-w-0">
             <Typography as="h2" id="booking-step-confirm" variant="h3" className="mb-2">
               Confirm your booking
             </Typography>
             <Typography variant="small" className="mb-6 text-muted-foreground">
               Review your appointment details before confirming.
             </Typography>
-            <form
-              action={confirmAction}
-              className="space-y-4"
-              onSubmit={(event) => {
-                const honeypot = (event.currentTarget.elements.namedItem("website") as HTMLInputElement)
-                  ?.value;
-                if (honeypot) {
-                  event.preventDefault();
-                  return;
-                }
-                if (!holdToken) {
-                  event.preventDefault();
-                }
-              }}
-            >
-              <input type="hidden" name="holdToken" value={holdToken ?? ""} />
-              <input type="hidden" name="firstName" value={details.firstName} />
-              <input type="hidden" name="lastName" value={details.lastName} />
-              <input type="hidden" name="email" value={details.email} />
-              <input type="hidden" name="phone" value={details.phone} />
-              <input
-                type="text"
-                name="website"
-                tabIndex={-1}
-                autoComplete="off"
-                aria-hidden
-                className="pointer-events-none absolute left-[-9999px] h-0 w-0 opacity-0"
-              />
-              {confirmState.error ? <FormMessage tone="error">{confirmState.error}</FormMessage> : null}
-              {!holdToken ? (
-                <FormMessage tone="error">
-                  Your slot hold has expired.{" "}
-                  <button
-                    type="button"
-                    className="font-medium text-primary underline-offset-2 hover:underline"
-                    onClick={() => setStep(3)}
-                  >
-                    Choose a new time
-                  </button>
+
+            {needsConsent ? (
+              <div className="space-y-4 rounded-xl border border-warning/30 bg-warning/5 p-4">
+                <FormMessage tone="info">
+                  Informed consent must be completed before you can confirm this booking.
                 </FormMessage>
-              ) : null}
-              <Button type="submit" size="lg" className="w-full sm:w-auto" loading={confirmPending} disabled={!holdToken}>
-                Confirm appointment
-              </Button>
-            </form>
+                {isAuthenticated ? (
+                  <Button asChild size="lg" className="w-full sm:w-auto">
+                    <Link href={consentHref}>Complete informed consent</Link>
+                  </Button>
+                ) : (
+                  <div className="flex flex-col gap-2 sm:flex-row">
+                    <Button asChild size="lg" className="w-full sm:w-auto">
+                      <Link href={loginHref}>Sign in to continue</Link>
+                    </Button>
+                    <Button asChild size="lg" variant="outline" className="w-full sm:w-auto">
+                      <Link href={registerHref}>Create account</Link>
+                    </Button>
+                  </div>
+                )}
+              </div>
+            ) : (
+              <form
+                action={confirmAction}
+                className="space-y-4"
+                onSubmit={(event) => {
+                  const honeypot = (
+                    event.currentTarget.elements.namedItem("website") as HTMLInputElement
+                  )?.value;
+                  if (honeypot) {
+                    event.preventDefault();
+                    return;
+                  }
+                  if (!holdToken) {
+                    event.preventDefault();
+                  }
+                }}
+              >
+                <input type="hidden" name="holdToken" value={holdToken ?? ""} />
+                <input type="hidden" name="firstName" value={details.firstName} />
+                <input type="hidden" name="lastName" value={details.lastName} />
+                <input type="hidden" name="email" value={details.email} />
+                <input type="hidden" name="phone" value={details.phone} />
+                <input
+                  type="text"
+                  name="website"
+                  tabIndex={-1}
+                  autoComplete="off"
+                  aria-hidden
+                  className="pointer-events-none absolute left-[-9999px] h-0 w-0 opacity-0"
+                />
+                {confirmState.error ? (
+                  <FormMessage tone="error">{confirmState.error}</FormMessage>
+                ) : null}
+                {!holdToken ? (
+                  <FormMessage tone="error">
+                    Your slot hold has expired.{" "}
+                    <button
+                      type="button"
+                      className="font-medium text-primary underline-offset-2 hover:underline"
+                      onClick={() => setStep(3)}
+                    >
+                      Choose a new time
+                    </button>
+                  </FormMessage>
+                ) : null}
+                <Button
+                  type="submit"
+                  size="lg"
+                  className="w-full sm:w-auto"
+                  loading={confirmPending}
+                  disabled={!holdToken}
+                >
+                  Confirm appointment
+                </Button>
+              </form>
+            )}
           </div>
           <BookingSummaryCard
             items={summaryItems}
@@ -515,16 +587,16 @@ export function BookingWizard({ services, practitioners, className }: BookingWiz
 
       {step < 5 ? (
         <div className="flex flex-col-reverse gap-3 border-t border-border pt-6 sm:flex-row sm:justify-between">
-          <Button type="button" variant="outline" onClick={goBack} disabled={step === 1}>
+          <Button type="button" variant="outline" className="w-full sm:w-auto" onClick={goBack} disabled={step === 1}>
             Back
           </Button>
-          <Button type="button" onClick={goNext} disabled={!canContinue()}>
+          <Button type="button" className="w-full sm:w-auto" onClick={goNext} disabled={!canContinue()}>
             Continue
           </Button>
         </div>
       ) : (
         <div className="border-t border-border pt-6">
-          <Button type="button" variant="outline" onClick={goBack}>
+          <Button type="button" variant="outline" className="w-full sm:w-auto" onClick={goBack}>
             Back to details
           </Button>
         </div>

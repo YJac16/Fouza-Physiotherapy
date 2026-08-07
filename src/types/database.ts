@@ -68,6 +68,10 @@ export type Database = {
           id_number: string | null;
           postal_address: string | null;
           notes: string | null;
+          verified_account: boolean;
+          informed_consent_signed: boolean;
+          informed_consent_signed_at: string | null;
+          informed_consent_version: string | null;
           created_at: string;
           updated_at: string;
         };
@@ -85,6 +89,10 @@ export type Database = {
           id_number?: string | null;
           postal_address?: string | null;
           notes?: string | null;
+          verified_account?: boolean;
+          informed_consent_signed?: boolean;
+          informed_consent_signed_at?: string | null;
+          informed_consent_version?: string | null;
           created_at?: string;
           updated_at?: string;
         };
@@ -102,6 +110,10 @@ export type Database = {
           id_number?: string | null;
           postal_address?: string | null;
           notes?: string | null;
+          verified_account?: boolean;
+          informed_consent_signed?: boolean;
+          informed_consent_signed_at?: string | null;
+          informed_consent_version?: string | null;
           created_at?: string;
           updated_at?: string;
         };

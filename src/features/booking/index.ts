@@ -9,7 +9,14 @@ export {
   fetchSlotsAction,
   listBookableCatalog,
 } from "@/features/booking/actions/booking";
-export type { BookingActionState } from "@/features/booking/actions/booking";
+export type { BookingActionState, BookableCatalog } from "@/features/booking/actions/booking";
+export type { BookingPatientContext } from "@/features/booking/lib/eligibility";
+export {
+  canBookFollowUpServices,
+  filterBookableServices,
+  NEW_PATIENT_SERVICE_SLUGS,
+  VERIFIED_ONLY_SERVICE_SLUGS,
+} from "@/features/booking/lib/eligibility";
 export {
   confirmBookingSchema,
   holdSchema,

@@ -1,4 +1,5 @@
 import { requireStaff, requireUser } from "@/lib/auth/guards";
+import { createServiceClient } from "@/lib/supabase/admin";
 import { createClient } from "@/lib/supabase/server";
 import type { CreatePatientInput, UpdatePatientInput } from "@/features/patients/schemas/patient";
 
@@ -90,6 +91,63 @@ export async function getMyPatientRecord() {
   const profile = await requireUser();
   const supabase = await createClient();
   return supabase.from("patients").select("*").eq("profile_id", profile.id).maybeSingle();
+}
+
+/**
+ * Ensure the signed-in user has a linked patients row (needed for consent + booking gates).
+ * Matches existing email patient records when possible.
+ */
+export async function ensureMyPatientRecord() {
+  const profile = await requireUser();
+  const supabase = await createClient();
+  const admin = createServiceClient();
+
+  const { data: existing } = await supabase
+    .from("patients")
+    .select("*")
+    .eq("profile_id", profile.id)
+    .maybeSingle();
+  if (existing) return { data: existing, error: null };
+
+  const email = profile.email.toLowerCase();
+  const { data: byEmail } = await admin
+    .from("patients")
+    .select("*")
+    .eq("email", email)
+    .maybeSingle();
+
+  if (byEmail) {
+    const { error: linkError } = await admin
+      .from("patients")
+      .update({ profile_id: profile.id })
+      .eq("id", byEmail.id);
+    if (linkError) return { data: null, error: linkError };
+
+    const { data: linked } = await admin
+      .from("patients")
+      .select("*")
+      .eq("id", byEmail.id)
+      .single();
+    return { data: linked, error: null };
+  }
+
+  const nameParts = (profile.full_name ?? "").trim().split(/\s+/).filter(Boolean);
+  const firstName = nameParts[0] || "Patient";
+  const lastName = nameParts.slice(1).join(" ") || "Account";
+
+  const { data: created, error } = await admin
+    .from("patients")
+    .insert({
+      profile_id: profile.id,
+      first_name: firstName,
+      last_name: lastName,
+      email,
+      phone: profile.phone,
+    })
+    .select("*")
+    .single();
+
+  return { data: created, error };
 }
 
 /**

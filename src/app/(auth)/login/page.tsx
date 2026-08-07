@@ -10,15 +10,25 @@ export const metadata: Metadata = buildMetadata({
   noIndex: true,
 });
 
-export default function LoginPage() {
+export default async function LoginPage({
+  searchParams,
+}: {
+  searchParams: Promise<{ redirectTo?: string }>;
+}) {
+  const { redirectTo } = await searchParams;
+  const safeRedirect =
+    redirectTo && redirectTo.startsWith("/") && !redirectTo.startsWith("//")
+      ? redirectTo
+      : undefined;
+
   return (
-    <div className="rounded-2xl border border-border/80 bg-card p-8 shadow-soft">
+    <div className="rounded-2xl border border-border/80 bg-card p-6 shadow-soft sm:p-8">
       <h1 className="font-display text-2xl font-semibold tracking-tight">Sign in</h1>
       <p className="mt-2 text-sm text-muted-foreground">
         Access your patient portal or practice dashboard.
       </p>
       <div className="mt-6">
-        <LoginForm />
+        <LoginForm redirectTo={safeRedirect} />
       </div>
     </div>
   );

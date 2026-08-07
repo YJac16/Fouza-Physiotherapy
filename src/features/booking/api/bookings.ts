@@ -1,5 +1,9 @@
 import { createServiceClient } from "@/lib/supabase/admin";
 import type { ConfirmBookingInput, HoldInput } from "@/features/booking/schemas/booking";
+import {
+  canBookFollowUpServices,
+  isFollowUpServiceSlug,
+} from "@/features/booking/lib/eligibility";
 import { ensurePatientPortalInvite } from "@/features/auth/lib/portal-invite";
 import { drainEmailOutbox } from "@/features/notifications/lib/outbox";
 import {
@@ -7,6 +11,7 @@ import {
   resolvePractitionerEmail,
 } from "@/features/notifications/lib/appointment-emails";
 import { siteConfig } from "@/config/site";
+import { getSessionProfile } from "@/lib/auth/guards";
 
 const HOLD_MINUTES = 10;
 
@@ -54,24 +59,83 @@ export async function confirmBooking(input: ConfirmBookingInput) {
 
   if (!hold) return { error: "Hold expired or not found", appointmentId: null };
 
+  const { data: service } = await admin
+    .from("services")
+    .select("id, name, slug")
+    .eq("id", hold.service_id)
+    .maybeSingle();
+
+  if (!service) return { error: "Service not found", appointmentId: null };
+
+  const session = await getSessionProfile();
   let patientId: string | null = null;
-  const { data: existing } = await admin
+
+  const { data: existingByEmail } = await admin
     .from("patients")
-    .select("id")
+    .select(
+      "id, profile_id, verified_account, informed_consent_signed, first_name, last_name, email, phone",
+    )
     .eq("email", input.email.toLowerCase())
     .maybeSingle();
 
-  if (existing) {
-    patientId = existing.id;
+  let patientRow = existingByEmail;
+
+  if (session) {
+    const { data: linked } = await admin
+      .from("patients")
+      .select(
+        "id, profile_id, verified_account, informed_consent_signed, first_name, last_name, email, phone",
+      )
+      .eq("profile_id", session.id)
+      .maybeSingle();
+    if (linked) patientRow = linked;
+  }
+
+  const flags = {
+    verified_account: Boolean(patientRow?.verified_account),
+    informed_consent_signed: Boolean(patientRow?.informed_consent_signed),
+  };
+
+  if (!flags.informed_consent_signed) {
+    return {
+      error:
+        "Please complete informed consent in your patient portal before confirming this booking.",
+      appointmentId: null,
+    };
+  }
+
+  if (isFollowUpServiceSlug(service.slug) && !canBookFollowUpServices(flags)) {
+    return {
+      error:
+        "Follow-up bookings are available after your account is verified and informed consent is on file. Please book an Initial Consultation or Injury Prevention Assessment.",
+      appointmentId: null,
+    };
+  }
+
+  if (patientRow) {
+    patientId = patientRow.id;
     await admin
       .from("patients")
       .update({
         first_name: input.firstName,
         last_name: input.lastName,
         phone: input.phone,
+        email: input.email.toLowerCase(),
+        ...(session && !patientRow.profile_id ? { profile_id: session.id } : {}),
       })
-      .eq("id", existing.id);
+      .eq("id", patientRow.id);
+
+    if (session) {
+      await admin
+        .from("profiles")
+        .update({
+          full_name: `${input.firstName} ${input.lastName}`.trim(),
+          phone: input.phone,
+        })
+        .eq("id", session.id);
+    }
   } else {
+    // Should not normally happen once consent is required (patient row exists after consent).
     const { data: created, error: patientError } = await admin
       .from("patients")
       .insert({
@@ -79,11 +143,19 @@ export async function confirmBooking(input: ConfirmBookingInput) {
         last_name: input.lastName,
         email: input.email.toLowerCase(),
         phone: input.phone,
+        profile_id: session?.id ?? null,
       })
-      .select("id")
+      .select("id, verified_account, informed_consent_signed")
       .single();
     if (patientError || !created) {
       return { error: patientError?.message ?? "Patient create failed", appointmentId: null };
+    }
+    if (!created.informed_consent_signed) {
+      return {
+        error:
+          "Please complete informed consent in your patient portal before confirming this booking.",
+        appointmentId: null,
+      };
     }
     patientId = created.id;
   }
@@ -118,15 +190,9 @@ export async function confirmBooking(input: ConfirmBookingInput) {
     patientId,
   });
 
-  const { data: service } = await admin
-    .from("services")
-    .select("name")
-    .eq("id", hold.service_id)
-    .maybeSingle();
-
   const practitionerEmail = await resolvePractitionerEmail(hold.practitioner_id);
   const patientName = `${input.firstName} ${input.lastName}`.trim();
-  const serviceName = service?.name ?? "Physiotherapy";
+  const serviceName = service.name ?? "Physiotherapy";
 
   const emailPayload = {
     appointmentId: appointment.id,
@@ -159,7 +225,6 @@ export async function confirmBooking(input: ConfirmBookingInput) {
     },
   ]);
 
-  // Opportunistic send when Resend is configured; cron remains the reliable drain.
   await drainEmailOutbox(10);
 
   await admin.from("patient_timeline_events").insert({

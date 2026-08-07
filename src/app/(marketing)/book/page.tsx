@@ -112,11 +112,15 @@ export default async function BookPage() {
   let catalogAvailable = false;
   let services: Awaited<ReturnType<typeof listBookableCatalog>>["services"] = [];
   let practitioners: Awaited<ReturnType<typeof listBookableCatalog>>["practitioners"] = [];
+  let patientContext: Awaited<ReturnType<typeof listBookableCatalog>>["patientContext"] = null;
+  let isAuthenticated = false;
 
   try {
     const catalog = await listBookableCatalog();
     services = catalog.services;
     practitioners = catalog.practitioners;
+    patientContext = catalog.patientContext;
+    isAuthenticated = catalog.isAuthenticated;
     catalogAvailable = services.length > 0 && practitioners.length > 0;
   } catch {
     catalogAvailable = false;
@@ -143,7 +147,12 @@ export default async function BookPage() {
       {catalogAvailable ? (
         <Section spacing="md">
           <Container size="md">
-            <BookingWizard services={services} practitioners={practitioners} />
+            <BookingWizard
+              services={services}
+              practitioners={practitioners}
+              patientContext={patientContext}
+              isAuthenticated={isAuthenticated}
+            />
           </Container>
         </Section>
       ) : (

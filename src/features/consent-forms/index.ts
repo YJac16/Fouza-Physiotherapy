@@ -4,6 +4,7 @@ export {
   signConsentAction,
   submitIntakeAction,
   submitFouzaConsentPackageAction,
+  setPatientVerifiedAction,
 } from "./actions/consent";
 export {
   getPatientConsentCompletion,

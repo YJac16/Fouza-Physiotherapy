@@ -53,12 +53,6 @@ const ACCOUNTS = [
     fullName: "Test Reception",
     role: "receptionist" as const,
   },
-  {
-    email: "test.practitioner.fouza@example.com",
-    password: "TestPractitioner1!",
-    fullName: "Test Practitioner",
-    role: "practitioner" as const,
-  },
 ] as const;
 
 async function findUserIdByEmail(email: string) {
@@ -115,24 +109,6 @@ async function ensureAccount(account: (typeof ACCOUNTS)[number]) {
       });
       if (error) throw new Error(`patient row: ${error.message}`);
       console.log("Linked patient row");
-    }
-  }
-
-  if (account.role === "practitioner") {
-    const { data: existing } = await admin
-      .from("practitioners")
-      .select("id")
-      .eq("profile_id", userId)
-      .maybeSingle();
-    if (!existing) {
-      const { error } = await admin.from("practitioners").insert({
-        profile_id: userId,
-        title: "Physiotherapist",
-        bio: "Test practitioner account",
-        is_active: true,
-      });
-      if (error) throw new Error(`practitioner row: ${error.message}`);
-      console.log("Linked practitioner row");
     }
   }
 

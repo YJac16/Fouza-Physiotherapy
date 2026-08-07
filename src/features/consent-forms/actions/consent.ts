@@ -3,7 +3,10 @@
 import { revalidatePath } from "next/cache";
 import { z } from "zod";
 
+import { buildConsentVersionLabel } from "@/features/booking/lib/eligibility";
 import { requireStaff, requireUser } from "@/lib/auth/guards";
+import { getRequestIpAddress } from "@/lib/http/request-ip";
+import { createServiceClient } from "@/lib/supabase/admin";
 import { createClient } from "@/lib/supabase/server";
 
 const signSchema = z.object({
@@ -46,11 +49,13 @@ export async function signConsentAction(
       })
     : parsed.data.signatureData;
 
+  const ipAddress = await getRequestIpAddress();
   const supabase = await createClient();
   const { error } = await supabase.from("consent_signatures").insert({
     form_id: parsed.data.formId,
     patient_id: parsed.data.patientId,
     signature_data: signaturePayload,
+    ip_address: ipAddress,
   });
   if (error) return { error: error.message };
   revalidatePath("/portal/forms");
@@ -139,30 +144,29 @@ export async function submitFouzaConsentPackageAction(
 
   const supabase = await createClient();
 
-  // Ensure the patient belongs to this user
   const { data: patient } = await supabase
     .from("patients")
-    .select("id, profile_id")
+    .select("id, profile_id, informed_consent_signed")
     .eq("id", parsed.data.patientId)
     .maybeSingle();
   if (!patient || patient.profile_id !== user.id) {
     return { error: "Patient record not linked to your account" };
   }
 
+  if (patient.informed_consent_signed) {
+    return { error: "Informed consent is already on file for your account." };
+  }
+
   const medicalAid = String(answers.medicalAid ?? "").trim();
   const medicalAidNumber = String(answers.medicalAidNumber ?? "").trim();
   const dependant = String(answers.dependantCode ?? "").trim();
   const idNumber = String(answers.idNumber ?? "").trim();
-  const postal = [
-    answers.street,
-    answers.suburb,
-    answers.areaCode,
-  ]
+  const postal = [answers.street, answers.suburb, answers.areaCode]
     .map((v) => String(v ?? "").trim())
     .filter(Boolean)
     .join(", ");
 
-  await supabase
+  const { error: demoError } = await supabase
     .from("patients")
     .update({
       medical_aid_name: medicalAid || null,
@@ -174,6 +178,7 @@ export async function submitFouzaConsentPackageAction(
       email: String(answers.email ?? "").trim().toLowerCase() || undefined,
     })
     .eq("id", parsed.data.patientId);
+  if (demoError) return { error: demoError.message };
 
   const { error: intakeError } = await supabase.from("intake_responses").insert({
     form_id: parsed.data.intakeFormId,
@@ -192,25 +197,73 @@ export async function submitFouzaConsentPackageAction(
     pad: parsed.data.accountSignature,
   });
 
+  const ipAddress = await getRequestIpAddress();
+  const signedAt = new Date().toISOString();
+
+  const { data: formVersions } = await supabase
+    .from("consent_forms")
+    .select("id, slug, version")
+    .in("id", [parsed.data.treatmentFormId, parsed.data.accountFormId]);
+
   const { error: sigError } = await supabase.from("consent_signatures").insert([
     {
       form_id: parsed.data.treatmentFormId,
       patient_id: parsed.data.patientId,
       signature_data: treatmentPayload,
+      ip_address: ipAddress,
+      signed_at: signedAt,
     },
     {
       form_id: parsed.data.accountFormId,
       patient_id: parsed.data.patientId,
       signature_data: accountPayload,
+      ip_address: ipAddress,
+      signed_at: signedAt,
     },
   ]);
   if (sigError) return { error: sigError.message };
 
+  const versionLabel = buildConsentVersionLabel(
+    (formVersions ?? []).map((f) => ({ slug: f.slug, version: f.version })),
+  );
+
+  const admin = createServiceClient();
+  const { error: flagError } = await admin
+    .from("patients")
+    .update({
+      informed_consent_signed: true,
+      informed_consent_signed_at: signedAt,
+      informed_consent_version: versionLabel || null,
+      verified_account: true,
+    })
+    .eq("id", parsed.data.patientId);
+  if (flagError) return { error: flagError.message };
+
   revalidatePath("/portal/forms");
   revalidatePath("/portal");
+  revalidatePath("/book");
   revalidatePath("/admin/consent-forms");
   revalidatePath("/admin/patients");
+  revalidatePath(`/admin/patients/${parsed.data.patientId}`);
   return { success: "Informed consent submitted. Thank you." };
+}
+
+export async function setPatientVerifiedAction(patientId: string, verified: boolean) {
+  await requireStaff();
+  const parsed = z.string().uuid().safeParse(patientId);
+  if (!parsed.success) return { error: "Invalid patient" };
+
+  const admin = createServiceClient();
+  const { error } = await admin
+    .from("patients")
+    .update({ verified_account: verified })
+    .eq("id", parsed.data);
+  if (error) return { error: error.message };
+
+  revalidatePath("/admin/patients");
+  revalidatePath(`/admin/patients/${parsed.data}`);
+  revalidatePath("/admin/consent-forms");
+  return { error: null as string | null, success: verified ? "Patient verified" : "Verification removed" };
 }
 
 export async function listConsentForms() {

@@ -64,7 +64,13 @@ export async function middleware(request: NextRequest) {
       .maybeSingle();
     const role = (profile?.role ?? "patient") as AppRole;
     const url = request.nextUrl.clone();
+    const redirectTo = request.nextUrl.searchParams.get("redirectTo");
+    if (redirectTo && redirectTo.startsWith("/") && !redirectTo.startsWith("//")) {
+      // Preserve query string on absolute app paths (e.g. /portal/forms?returnTo=...)
+      return NextResponse.redirect(new URL(redirectTo, request.url));
+    }
     url.pathname = homeForRole(role);
+    url.search = "";
     return NextResponse.redirect(url);
   }
 

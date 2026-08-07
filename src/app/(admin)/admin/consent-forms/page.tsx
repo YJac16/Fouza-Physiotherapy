@@ -11,6 +11,19 @@ import { routes } from "@/config/routes";
 import { requireStaff } from "@/lib/auth/guards";
 import { createClient } from "@/lib/supabase/server";
 
+function formatSignedParts(iso: string | null | undefined) {
+  if (!iso) return { date: "—", time: "—" };
+  const d = new Date(iso);
+  return {
+    date: d.toLocaleDateString("en-ZA", { timeZone: "Africa/Johannesburg" }),
+    time: d.toLocaleTimeString("en-ZA", {
+      timeZone: "Africa/Johannesburg",
+      hour: "2-digit",
+      minute: "2-digit",
+    }),
+  };
+}
+
 export default async function ConsentFormsAdminPage() {
   await requireStaff();
   const supabase = await createClient();
@@ -30,20 +43,32 @@ export default async function ConsentFormsAdminPage() {
         .limit(20),
       supabase
         .from("patients")
-        .select("id, first_name, last_name, email")
+        .select(
+          "id, first_name, last_name, email, verified_account, informed_consent_signed, informed_consent_signed_at, informed_consent_version",
+        )
         .order("updated_at", { ascending: false })
         .limit(40),
     ]);
 
+  const patientIds = (patients ?? []).map((p) => p.id);
+  const { data: appointmentCounts } = patientIds.length
+    ? await supabase.from("appointments").select("id, patient_id, starts_at, status").in("patient_id", patientIds)
+    : { data: [] as Array<{ id: string; patient_id: string; starts_at: string; status: string }> };
+
+  const bookingsByPatient = new Map<string, number>();
+  for (const appt of appointmentCounts ?? []) {
+    bookingsByPatient.set(appt.patient_id, (bookingsByPatient.get(appt.patient_id) ?? 0) + 1);
+  }
+
   const patientStatus = await Promise.all(
     (patients ?? []).map(async (p) => {
       const completion = await getPatientConsentCompletionAdmin(p.id);
-      return { ...p, completion };
+      return { ...p, completion, bookingCount: bookingsByPatient.get(p.id) ?? 0 };
     }),
   );
 
   return (
-    <div className="space-y-8">
+    <div className="min-w-0 space-y-8">
       <div>
         <h1 className="font-display text-2xl font-semibold">Informed consent</h1>
         <p className="text-sm text-muted-foreground">
@@ -60,33 +85,65 @@ export default async function ConsentFormsAdminPage() {
           />
         ) : (
           <div className="grid gap-3">
-            {patientStatus.map((p) => (
-              <Card key={p.id}>
-                <CardContent className="flex flex-col gap-3 py-4 sm:flex-row sm:items-center sm:justify-between">
-                  <div>
-                    <p className="font-medium">
-                      {p.first_name} {p.last_name}
-                    </p>
-                    <p className="text-sm text-muted-foreground">{p.email}</p>
-                    {!p.completion.complete && p.completion.missing.length ? (
-                      <p className="mt-1 text-xs text-muted-foreground">
-                        Missing: {p.completion.missing.join(", ")}
+            {patientStatus.map((p) => {
+              const signed = formatSignedParts(p.informed_consent_signed_at);
+              const complete = p.informed_consent_signed || p.completion.complete;
+              return (
+                <Card key={p.id} className="min-w-0 overflow-hidden">
+                  <CardContent className="flex flex-col gap-4 py-4 lg:flex-row lg:items-start lg:justify-between">
+                    <div className="min-w-0 space-y-1">
+                      <p className="font-medium [overflow-wrap:anywhere]">
+                        {p.first_name} {p.last_name}
                       </p>
-                    ) : null}
-                  </div>
-                  <div className="flex flex-wrap items-center gap-2">
-                    <Badge variant={p.completion.complete ? "success" : "warning"}>
-                      {p.completion.complete ? "Complete" : "Pending"}
-                    </Badge>
-                    {p.completion.complete ? (
+                      <p className="text-sm text-muted-foreground [overflow-wrap:anywhere]">
+                        {p.email ?? "—"}
+                      </p>
+                      <dl className="mt-2 grid gap-1 text-xs text-muted-foreground sm:grid-cols-2">
+                        <div>
+                          <dt className="inline font-medium text-foreground">Date signed: </dt>
+                          <dd className="inline">{signed.date}</dd>
+                        </div>
+                        <div>
+                          <dt className="inline font-medium text-foreground">Time signed: </dt>
+                          <dd className="inline">{signed.time}</dd>
+                        </div>
+                        <div className="sm:col-span-2">
+                          <dt className="inline font-medium text-foreground">Consent version: </dt>
+                          <dd className="inline [overflow-wrap:anywhere]">
+                            {p.informed_consent_version ?? "—"}
+                          </dd>
+                        </div>
+                        <div>
+                          <dt className="inline font-medium text-foreground">Bookings: </dt>
+                          <dd className="inline">{p.bookingCount}</dd>
+                        </div>
+                      </dl>
+                      {!complete && p.completion.missing.length ? (
+                        <p className="mt-1 text-xs text-muted-foreground">
+                          Missing: {p.completion.missing.join(", ")}
+                        </p>
+                      ) : null}
+                    </div>
+                    <div className="flex flex-wrap items-center gap-2">
+                      <Badge variant={p.verified_account ? "success" : "secondary"}>
+                        {p.verified_account ? "Verified" : "Unverified"}
+                      </Badge>
+                      <Badge variant={complete ? "success" : "warning"}>
+                        {complete ? "Consent complete" : "Consent pending"}
+                      </Badge>
                       <Button asChild variant="outline" size="sm">
-                        <Link href={routes.admin.consentFormPatient(p.id)}>View signed</Link>
+                        <Link href={routes.admin.patient(p.id)}>Booking history</Link>
                       </Button>
-                    ) : null}
-                  </div>
-                </CardContent>
-              </Card>
-            ))}
+                      {complete ? (
+                        <Button asChild variant="outline" size="sm">
+                          <Link href={routes.admin.consentFormPatient(p.id)}>View signed</Link>
+                        </Button>
+                      ) : null}
+                    </div>
+                  </CardContent>
+                </Card>
+              );
+            })}
           </div>
         )}
       </section>
@@ -129,14 +186,13 @@ export default async function ConsentFormsAdminPage() {
             {intakeResponses.map((response) => {
               const answers = (response.answers ?? {}) as Record<string, unknown>;
               return (
-                <Card key={response.id}>
+                <Card key={response.id} className="min-w-0">
                   <CardHeader className="pb-2">
-                    <CardTitle className="text-base">
+                    <CardTitle className="text-base [overflow-wrap:anywhere]">
                       Intake · {new Date(response.submitted_at).toLocaleString("en-ZA")}
                     </CardTitle>
                   </CardHeader>
                   <CardContent className="space-y-2 text-sm text-muted-foreground">
-                    <p>Patient ID: {response.patient_id}</p>
                     {typeof answers.fullName === "string" ? (
                       <p>Name: {answers.fullName}</p>
                     ) : null}

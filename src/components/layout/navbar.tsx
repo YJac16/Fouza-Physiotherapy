@@ -111,7 +111,7 @@ export function Navbar({
           </Button>
         </div>
 
-        <div className="flex items-center gap-2 lg:hidden">
+        <div className="flex items-center gap-2 xl:hidden">
           <ThemeToggle />
           <Button
             type="button"
@@ -130,7 +130,7 @@ export function Navbar({
       {open ? (
         <div
           id="mobile-nav"
-          className="max-h-[calc(100dvh-4rem)] overflow-y-auto border-t border-border/70 bg-background lg:hidden"
+          className="max-h-[calc(100dvh-4rem)] overflow-y-auto border-t border-border/70 bg-background xl:hidden"
         >
           <nav className="mx-auto flex max-w-7xl flex-col gap-1 px-5 py-4" aria-label="Mobile">
             {navLinks.map((link) => (

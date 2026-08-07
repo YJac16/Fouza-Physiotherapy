@@ -20,6 +20,20 @@ export async function getPatientConsentCompletion(
 ): Promise<ConsentCompletion> {
   const supabase = await createClient();
 
+  const { data: patientFlags } = await supabase
+    .from("patients")
+    .select("informed_consent_signed")
+    .eq("id", patientId)
+    .maybeSingle();
+  if (patientFlags?.informed_consent_signed) {
+    return {
+      intakeComplete: true,
+      consentsComplete: true,
+      complete: true,
+      missing: [],
+    };
+  }
+
   const [{ data: intakeForm }, { data: consentForms }] = await Promise.all([
     supabase
       .from("intake_forms")
@@ -78,6 +92,20 @@ export async function getPatientConsentCompletionAdmin(
   patientId: string,
 ): Promise<ConsentCompletion> {
   const admin = createServiceClient();
+
+  const { data: patientFlags } = await admin
+    .from("patients")
+    .select("informed_consent_signed")
+    .eq("id", patientId)
+    .maybeSingle();
+  if (patientFlags?.informed_consent_signed) {
+    return {
+      intakeComplete: true,
+      consentsComplete: true,
+      complete: true,
+      missing: [],
+    };
+  }
 
   const [{ data: intakeForm }, { data: consentForms }] = await Promise.all([
     admin

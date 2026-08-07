@@ -35,11 +35,6 @@ const service = process.env.SUPABASE_SERVICE_ROLE_KEY!;
 const accounts = [
   { email: "test.patient.fouza@example.com", password: "TestPatient1!", role: "patient" },
   { email: "test.reception.fouza@example.com", password: "TestReception1!", role: "receptionist" },
-  {
-    email: "test.practitioner.fouza@example.com",
-    password: "TestPractitioner1!",
-    role: "practitioner",
-  },
 ];
 
 async function main() {

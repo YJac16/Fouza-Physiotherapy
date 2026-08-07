@@ -386,7 +386,7 @@ export function PatientTable({
 }: PatientTableProps) {
   return (
     <Card className={cn("overflow-hidden shadow-sm", className)} {...props}>
-      <div className="overflow-x-auto">
+      <div className="overflow-x-auto rounded-xl border border-border">
         <table className="w-full min-w-[640px] text-sm">
           <caption className="sr-only">{caption}</caption>
           <thead>

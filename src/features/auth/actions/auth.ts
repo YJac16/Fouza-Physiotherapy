@@ -45,6 +45,10 @@ export async function signInAction(
     .maybeSingle();
 
   const role = (profile?.role ?? "patient") as AppRole;
+  const redirectTo = formData.get("redirectTo")?.toString();
+  if (redirectTo && redirectTo.startsWith("/") && !redirectTo.startsWith("//")) {
+    redirect(redirectTo);
+  }
   redirect(isStaffRole(role) ? "/admin" : "/portal");
 }
 
@@ -75,6 +79,14 @@ export async function signUpAction(
   });
 
   if (error) return { error: error.message };
+
+  const redirectTo = formData.get("redirectTo")?.toString();
+  if (redirectTo && redirectTo.startsWith("/") && !redirectTo.startsWith("//")) {
+    return {
+      success:
+        "Check your email to confirm your account, then sign in to continue your booking.",
+    };
+  }
   return {
     success: "Check your email to confirm your account, then sign in.",
   };

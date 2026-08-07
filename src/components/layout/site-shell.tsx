@@ -21,9 +21,9 @@ export function SiteShell({
   navbarCtaLabel,
 }: SiteShellProps) {
   return (
-    <div className={cn("flex min-h-screen flex-col bg-background", className)}>
+    <div className={cn("flex min-h-screen min-w-0 flex-col overflow-x-hidden bg-background", className)}>
       <Navbar ctaHref={navbarCtaHref} ctaLabel={navbarCtaLabel} />
-      <main className="flex-1">{children}</main>
+      <main className="min-w-0 flex-1">{children}</main>
       <Footer showNewsletter={showNewsletter} />
     </div>
   );

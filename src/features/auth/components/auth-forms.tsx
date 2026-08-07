@@ -19,11 +19,12 @@ import { routes } from "@/config/routes";
 
 const initial: AuthActionState = {};
 
-export function LoginForm() {
+export function LoginForm({ redirectTo }: { redirectTo?: string }) {
   const [state, action, pending] = useActionState(signInAction, initial);
 
   return (
     <form action={action} className="space-y-4">
+      {redirectTo ? <input type="hidden" name="redirectTo" value={redirectTo} /> : null}
       <div className="space-y-2">
         <Label htmlFor="email">Email</Label>
         <Input id="email" name="email" type="email" autoComplete="email" required />
@@ -57,11 +58,12 @@ export function LoginForm() {
   );
 }
 
-export function RegisterForm() {
+export function RegisterForm({ redirectTo }: { redirectTo?: string }) {
   const [state, action, pending] = useActionState(signUpAction, initial);
 
   return (
     <form action={action} className="space-y-4">
+      {redirectTo ? <input type="hidden" name="redirectTo" value={redirectTo} /> : null}
       <div className="space-y-2">
         <Label htmlFor="fullName">Full name</Label>
         <Input id="fullName" name="fullName" autoComplete="name" required />

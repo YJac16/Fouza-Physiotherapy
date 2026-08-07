@@ -1,6 +1,7 @@
 "use client";
 
-import { useActionState, useMemo, useState, type ReactNode } from "react";
+import { useActionState, useEffect, useMemo, useState, type ReactNode } from "react";
+import { useRouter } from "next/navigation";
 
 import { SignaturePad } from "@/components/forms/signature-pad";
 import {
@@ -32,10 +33,18 @@ export interface PortalFormsClientProps {
   intakeForm: { id: string; title: string };
   treatmentConsent: { id: string; title: string; body_md: string };
   accountConsent: { id: string; title: string; body_md: string };
+  returnTo?: string | null;
   defaults?: {
     fullName?: string;
     email?: string;
     phone?: string;
+    idNumber?: string;
+    street?: string;
+    suburb?: string;
+    areaCode?: string;
+    medicalAid?: string;
+    medicalAidNumber?: string;
+    dependantCode?: string;
   };
 }
 
@@ -136,20 +145,30 @@ export function PortalFormsClient({
   treatmentConsent,
   accountConsent,
   defaults,
+  returnTo,
 }: PortalFormsClientProps) {
+  const router = useRouter();
   const [state, action, pending] = useActionState(
     submitFouzaConsentPackageAction,
     initial,
   );
 
+  useEffect(() => {
+    if (!state.success) return;
+    if (returnTo?.startsWith("/")) {
+      router.push(returnTo);
+    }
+    router.refresh();
+  }, [state.success, returnTo, router]);
+
   const [sameAsPatient, setSameAsPatient] = useState(false);
   const [fullName, setFullName] = useState(defaults?.fullName ?? "");
-  const [idNumber, setIdNumber] = useState("");
+  const [idNumber, setIdNumber] = useState(defaults?.idNumber ?? "");
   const [contactNumber, setContactNumber] = useState(defaults?.phone ?? "");
   const [email, setEmail] = useState(defaults?.email ?? "");
-  const [street, setStreet] = useState("");
-  const [suburb, setSuburb] = useState("");
-  const [areaCode, setAreaCode] = useState("");
+  const [street, setStreet] = useState(defaults?.street ?? "");
+  const [suburb, setSuburb] = useState(defaults?.suburb ?? "");
+  const [areaCode, setAreaCode] = useState(defaults?.areaCode ?? "");
 
   const [respName, setRespName] = useState("");
   const [respId, setRespId] = useState("");
@@ -157,9 +176,9 @@ export function PortalFormsClient({
   const [respEmail, setRespEmail] = useState("");
   const [respPostal, setRespPostal] = useState("");
 
-  const [medicalAid, setMedicalAid] = useState("");
-  const [medicalAidNumber, setMedicalAidNumber] = useState("");
-  const [dependantCode, setDependantCode] = useState("");
+  const [medicalAid, setMedicalAid] = useState(defaults?.medicalAid ?? "");
+  const [medicalAidNumber, setMedicalAidNumber] = useState(defaults?.medicalAidNumber ?? "");
+  const [dependantCode, setDependantCode] = useState(defaults?.dependantCode ?? "");
 
   const [release, setRelease] = useState<string[]>([]);
   const [releaseOther, setReleaseOther] = useState("");
@@ -261,7 +280,7 @@ export function PortalFormsClient({
   const accountLines = markdownToParagraphs(accountConsent.body_md);
 
   return (
-    <form action={action} className="space-y-6">
+    <form action={action} className="min-w-0 space-y-6 overflow-x-hidden">
       <input type="hidden" name="intakeFormId" value={intakeForm.id} />
       <input type="hidden" name="patientId" value={patientId} />
       {appointmentId ? (
@@ -331,7 +350,7 @@ export function PortalFormsClient({
           </div>
           <div className="space-y-2 sm:col-span-2">
             <Label>Postal Address *</Label>
-            <div className="grid gap-3 sm:grid-cols-3">
+            <div className="grid gap-3 md:grid-cols-3">
               <Input
                 placeholder="Street name and number"
                 required
@@ -359,9 +378,10 @@ export function PortalFormsClient({
         title="Person Responsible for Account / Main Member of Medical Aid"
         description='If the patient is responsible for the account, tick “Same as above”.'
       >
-        <label className="flex items-center gap-2 text-sm">
+        <label className="flex min-h-11 items-center gap-3 text-sm">
           <input
             type="checkbox"
+            className="size-4 shrink-0"
             checked={sameAsPatient}
             onChange={(e) => setSameAsPatient(e.target.checked)}
           />
@@ -411,7 +431,7 @@ export function PortalFormsClient({
         title="Medical Aid Details"
         description="If no Medical Aid, fill N/A."
       >
-        <div className="grid gap-4 sm:grid-cols-3">
+        <div className="grid gap-4 md:grid-cols-3">
           <div className="space-y-2">
             <Label>Medical Aid *</Label>
             <Input
@@ -445,9 +465,10 @@ export function PortalFormsClient({
       <Section title="Consent to release information *">
         <div className="grid gap-2 sm:grid-cols-2">
           {RELEASE_OPTIONS.map((opt) => (
-            <label key={opt} className="flex items-center gap-2 text-sm">
+            <label key={opt} className="flex min-h-11 items-center gap-3 text-sm">
               <input
                 type="checkbox"
+                className="size-4 shrink-0"
                 checked={release.includes(opt)}
                 onChange={() => toggle(release, opt, setRelease)}
               />
@@ -467,9 +488,10 @@ export function PortalFormsClient({
       <Section title="How did you find out about this practice? *">
         <div className="grid gap-2 sm:grid-cols-2">
           {SOURCE_OPTIONS.map((opt) => (
-            <label key={opt} className="flex items-center gap-2 text-sm">
+            <label key={opt} className="flex min-h-11 items-center gap-3 text-sm">
               <input
                 type="checkbox"
+                className="size-4 shrink-0"
                 checked={sources.includes(opt)}
                 onChange={() => toggle(sources, opt, setSources)}
               />
@@ -528,21 +550,23 @@ export function PortalFormsClient({
           </li>
         </ol>
         <p className="text-sm">I confirm that all the above information is true and correct.</p>
-        <div className="flex gap-6">
-          <label className="flex items-center gap-2 text-sm">
+        <div className="flex flex-col gap-2 sm:flex-row sm:gap-6">
+          <label className="flex min-h-11 items-center gap-3 text-sm">
             <input
               type="radio"
               name="undertaking"
+              className="size-4 shrink-0"
               checked={undertaking === "yes"}
               onChange={() => setUndertaking("yes")}
               required
             />
             Yes
           </label>
-          <label className="flex items-center gap-2 text-sm">
+          <label className="flex min-h-11 items-center gap-3 text-sm">
             <input
               type="radio"
               name="undertaking"
+              className="size-4 shrink-0"
               checked={undertaking === "no"}
               onChange={() => setUndertaking("no")}
             />
@@ -564,20 +588,22 @@ export function PortalFormsClient({
             ))}
         </ul>
         <div className="flex flex-col gap-2 sm:flex-row sm:gap-6">
-          <label className="flex items-center gap-2 text-sm">
+          <label className="flex min-h-11 items-center gap-3 text-sm">
             <input
               type="radio"
               name="pleaseNote"
+              className="size-4 shrink-0"
               checked={pleaseNote === "agree"}
               onChange={() => setPleaseNote("agree")}
               required
             />
             Agree and consent given
           </label>
-          <label className="flex items-center gap-2 text-sm">
+          <label className="flex min-h-11 items-center gap-3 text-sm">
             <input
               type="radio"
               name="pleaseNote"
+              className="size-4 shrink-0"
               checked={pleaseNote === "disagree"}
               onChange={() => setPleaseNote("disagree")}
             />

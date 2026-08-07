@@ -11,6 +11,7 @@ import { Card, CardContent, CardHeader, CardTitle } from "@/components/ui/card";
 import { getPatientConsentCompletionAdmin } from "@/features/consent-forms/lib/completion";
 import { listStaffDocuments } from "@/features/documents/actions/documents";
 import { PatientClinicalRecords } from "@/features/patients/components/patient-clinical-records";
+import { PatientVerificationControls } from "@/features/patients/components/patient-verification-controls";
 import { getPatient, getPatientTimeline } from "@/features/patients/api/patients";
 import { routes } from "@/config/routes";
 import { createSignedDownloadUrl } from "@/lib/supabase/storage";
@@ -141,23 +142,26 @@ export default async function PatientDetailPage({
 
       <Card>
         <CardHeader className="flex flex-row flex-wrap items-center justify-between gap-3 space-y-0">
-          <CardTitle className="text-h5">Informed consent</CardTitle>
-          <Badge variant={consent.complete ? "success" : "warning"}>
-            {consent.complete ? "Complete" : "Pending"}
+          <CardTitle className="text-h5">Informed consent & verification</CardTitle>
+          <Badge variant={consent.complete || patient.informed_consent_signed ? "success" : "warning"}>
+            {consent.complete || patient.informed_consent_signed ? "Complete" : "Pending"}
           </Badge>
         </CardHeader>
-        <CardContent className="space-y-3">
-          {!consent.complete && consent.missing.length ? (
+        <CardContent className="space-y-4">
+          <PatientVerificationControls
+            patientId={patient.id}
+            verified={patient.verified_account}
+            consentSigned={patient.informed_consent_signed || consent.complete}
+            consentSignedAt={patient.informed_consent_signed_at}
+            consentVersion={patient.informed_consent_version}
+          />
+          {!consent.complete && !patient.informed_consent_signed && consent.missing.length ? (
             <p className="text-sm text-muted-foreground">
               Missing: {consent.missing.join(", ")}
             </p>
-          ) : (
-            <p className="text-sm text-muted-foreground">
-              Intake and consent signatures are on file.
-            </p>
-          )}
-          {consent.complete ? (
-            <Button asChild variant="outline" size="sm">
+          ) : null}
+          {consent.complete || patient.informed_consent_signed ? (
+            <Button asChild variant="outline" size="sm" className="w-full sm:w-auto">
               <Link href={routes.admin.consentFormPatient(id)}>View signed consent</Link>
             </Button>
           ) : null}

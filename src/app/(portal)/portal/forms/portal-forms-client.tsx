@@ -1,6 +1,7 @@
 "use client";
 
 import { useActionState, useEffect, useMemo, useState, type ReactNode } from "react";
+import Link from "next/link";
 import { useRouter } from "next/navigation";
 
 import { SignaturePad } from "@/components/forms/signature-pad";
@@ -261,17 +262,34 @@ export function PortalFormsClient({
   }
 
   if (alreadyComplete) {
+    const continueCta =
+      returnTo && returnTo.startsWith("/") ? (
+        <div className="mt-4">
+          <Button asChild size="lg" className="w-full sm:w-auto">
+            <Link href={returnTo}>Continue to booking</Link>
+          </Button>
+        </div>
+      ) : null;
+
     if (signedPackage) {
-      return <SignedConsentView package={signedPackage} showTitle={false} />;
+      return (
+        <div className="space-y-4">
+          <SignedConsentView package={signedPackage} showTitle={false} />
+          {continueCta}
+        </div>
+      );
     }
     return (
       <Card className="min-w-0 overflow-hidden">
         <CardHeader className="p-4 sm:p-6">
           <CardTitle className="text-h5 leading-snug">Forms complete</CardTitle>
         </CardHeader>
-        <CardContent className="p-4 pt-0 text-sm leading-relaxed text-muted-foreground sm:p-6 sm:pt-0">
-          Your informed consent and intake forms are on file. Thank you — the practice can
-          prepare for your visit.
+        <CardContent className="space-y-4 p-4 pt-0 text-sm leading-relaxed text-muted-foreground sm:p-6 sm:pt-0">
+          <p>
+            Your informed consent and intake forms are on file. Thank you — the practice can
+            prepare for your visit.
+          </p>
+          {continueCta}
         </CardContent>
       </Card>
     );

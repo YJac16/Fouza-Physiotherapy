@@ -1,10 +1,15 @@
 -- Bootstrap staff accounts (run once against Fouza Physiotherapy data project)
+-- Prefer: npx tsx scripts/bootstrap-practice-admin.ts for fouza.physiotherapy@gmail.com
 alter table public.profiles disable trigger profiles_prevent_role_escalation;
 
 update public.profiles
 set role = 'admin'::public.app_role,
-    full_name = 'Fouza Abrahams',
-    email = 'fouzaabrahams0404@gmail.com'
+    full_name = 'Fouza Abrahams'
+where email = 'fouza.physiotherapy@gmail.com';
+
+update public.profiles
+set role = 'admin'::public.app_role,
+    full_name = 'Fouza Abrahams'
 where email = 'fouzaabrahams0404@gmail.com';
 
 update public.profiles
@@ -20,7 +25,7 @@ select p.id,
        array['musculoskeletal','rehab','injury prevention'],
        true
 from public.profiles p
-where p.email = 'fouzaabrahams0404@gmail.com'
+where p.email = 'fouza.physiotherapy@gmail.com'
 on conflict (profile_id) do update
 set title = excluded.title,
     bio = excluded.bio,

@@ -8,10 +8,11 @@ import { ensurePatientPortalInvite } from "@/features/auth/lib/portal-invite";
 import { drainEmailOutbox } from "@/features/notifications/lib/outbox";
 import {
   cancelPendingAppointmentEmails,
-  resolvePractitionerEmail,
+  loadAppointmentEmailContext,
+  resolvePracticeAlertRecipients,
 } from "@/features/notifications/lib/appointment-emails";
-import { siteConfig } from "@/config/site";
 import { getSessionProfile } from "@/lib/auth/guards";
+import { syncPatientConsentFlagsIfComplete } from "@/features/consent-forms/lib/completion";
 
 const HOLD_MINUTES = 10;
 
@@ -91,10 +92,18 @@ export async function confirmBooking(input: ConfirmBookingInput) {
     if (linked) patientRow = linked;
   }
 
-  const flags = {
+  let flags = {
     verified_account: Boolean(patientRow?.verified_account),
     informed_consent_signed: Boolean(patientRow?.informed_consent_signed),
   };
+
+  if (patientRow && !flags.informed_consent_signed) {
+    const synced = await syncPatientConsentFlagsIfComplete(patientRow.id);
+    flags = {
+      verified_account: synced.verified_account,
+      informed_consent_signed: synced.informed_consent_signed,
+    };
+  }
 
   if (!flags.informed_consent_signed) {
     return {
@@ -190,7 +199,7 @@ export async function confirmBooking(input: ConfirmBookingInput) {
     patientId,
   });
 
-  const practitionerEmail = await resolvePractitionerEmail(hold.practitioner_id);
+  const practiceRecipients = await resolvePracticeAlertRecipients(hold.practitioner_id);
   const patientName = `${input.firstName} ${input.lastName}`.trim();
   const serviceName = service.name ?? "Physiotherapy";
 
@@ -217,12 +226,12 @@ export async function confirmBooking(input: ConfirmBookingInput) {
       recipient: input.email.toLowerCase(),
       payload: emailPayload,
     },
-    {
-      channel: "email",
+    ...practiceRecipients.map((recipient) => ({
+      channel: "email" as const,
       template_key: "booking.practitioner_alert",
-      recipient: (practitionerEmail || siteConfig.email).toLowerCase(),
+      recipient,
       payload: emailPayload,
-    },
+    })),
   ]);
 
   await drainEmailOutbox(10);
@@ -240,6 +249,8 @@ export async function confirmBooking(input: ConfirmBookingInput) {
 
 export async function cancelBooking(appointmentId: string, actorId?: string) {
   const admin = createServiceClient();
+  const context = await loadAppointmentEmailContext(appointmentId);
+
   const { error } = await admin
     .from("appointments")
     .update({ status: "cancelled" })
@@ -247,6 +258,44 @@ export async function cancelBooking(appointmentId: string, actorId?: string) {
   if (error) return { error: error.message };
 
   await cancelPendingAppointmentEmails(appointmentId);
+
+  if (context) {
+    const payload = {
+      appointmentId: context.appointmentId,
+      patientId: context.patientId,
+      firstName: context.firstName,
+      startsAt: context.startsAt,
+      patientName: context.patientName,
+      serviceName: context.serviceName,
+    };
+    const rows: Array<{
+      channel: "email";
+      template_key: string;
+      recipient: string;
+      payload: typeof payload;
+    }> = [];
+    if (context.patientEmail) {
+      rows.push({
+        channel: "email",
+        template_key: "booking.cancelled.patient",
+        recipient: context.patientEmail,
+        payload,
+      });
+    }
+    const practiceRecipients = await resolvePracticeAlertRecipients(context.practitionerId);
+    for (const recipient of practiceRecipients) {
+      rows.push({
+        channel: "email",
+        template_key: "booking.cancelled.practitioner",
+        recipient,
+        payload,
+      });
+    }
+    if (rows.length) {
+      await admin.from("notification_outbox").insert(rows);
+      await drainEmailOutbox(10);
+    }
+  }
 
   if (actorId) {
     await admin.from("audit_logs").insert({
@@ -304,6 +353,45 @@ export async function rescheduleBooking(
 
   // Drop any pending reminders so the next cron can enqueue for the new time.
   await cancelPendingAppointmentEmails(appointment.id);
+
+  const context = await loadAppointmentEmailContext(appointment.id);
+  if (context) {
+    const payload = {
+      appointmentId: context.appointmentId,
+      patientId: context.patientId,
+      firstName: context.firstName,
+      startsAt: input.startsAt,
+      patientName: context.patientName,
+      serviceName: context.serviceName,
+    };
+    const rows: Array<{
+      channel: "email";
+      template_key: string;
+      recipient: string;
+      payload: typeof payload;
+    }> = [];
+    if (context.patientEmail) {
+      rows.push({
+        channel: "email",
+        template_key: "booking.rescheduled.patient",
+        recipient: context.patientEmail,
+        payload,
+      });
+    }
+    const practiceRecipients = await resolvePracticeAlertRecipients(context.practitionerId);
+    for (const recipient of practiceRecipients) {
+      rows.push({
+        channel: "email",
+        template_key: "booking.rescheduled.practitioner",
+        recipient,
+        payload,
+      });
+    }
+    if (rows.length) {
+      await admin.from("notification_outbox").insert(rows);
+      await drainEmailOutbox(10);
+    }
+  }
 
   if (actorId) {
     await admin.from("audit_logs").insert({

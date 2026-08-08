@@ -3,6 +3,7 @@ import { listConsentForms } from "@/features/consent-forms/actions/consent";
 import {
   getPatientConsentCompletion,
   INTAKE_SLUG,
+  syncPatientConsentFlagsIfComplete,
 } from "@/features/consent-forms/lib/completion";
 import { getSignedConsentPackage } from "@/features/consent-forms/lib/signed-package";
 import { ensureMyPatientRecord } from "@/features/patients/api/patients";
@@ -53,8 +54,12 @@ export default async function PortalFormsPage({
   if (patient) {
     alreadyComplete = Boolean(patient.informed_consent_signed);
     if (!alreadyComplete) {
-      const completion = await getPatientConsentCompletion(patient.id);
-      alreadyComplete = completion.complete;
+      const synced = await syncPatientConsentFlagsIfComplete(patient.id);
+      alreadyComplete = synced.informed_consent_signed;
+      if (!alreadyComplete) {
+        const completion = await getPatientConsentCompletion(patient.id);
+        alreadyComplete = completion.complete;
+      }
     }
     if (alreadyComplete) {
       signedPackage = await getSignedConsentPackage(patient.id);

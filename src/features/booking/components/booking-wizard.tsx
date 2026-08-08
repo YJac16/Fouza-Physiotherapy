@@ -155,7 +155,9 @@ export function BookingWizard({
     initialConfirmState,
   );
 
-  const needsConsent = Boolean(patientContext?.needsConsent) || !isAuthenticated;
+  const needsAuth = !isAuthenticated;
+  const needsConsentForms = Boolean(patientContext?.needsConsent);
+  const bookingBlocked = needsAuth || needsConsentForms;
   const consentReturnTo = `${routes.booking.root}`;
   const consentHref = `${routes.portal.forms}?returnTo=${encodeURIComponent(consentReturnTo)}`;
   const loginHref = `${routes.auth.login}?redirectTo=${encodeURIComponent(consentHref)}`;
@@ -493,16 +495,14 @@ export function BookingWizard({
               Review your appointment details before confirming.
             </Typography>
 
-            {needsConsent ? (
+            {bookingBlocked ? (
               <div className="space-y-4 rounded-xl border border-warning/30 bg-warning/5 p-4">
                 <FormMessage tone="info">
-                  Informed consent must be completed before you can confirm this booking.
+                  {needsAuth
+                    ? "Sign in or create an account to confirm this booking. New patients complete informed consent next."
+                    : "Informed consent must be completed before you can confirm this booking."}
                 </FormMessage>
-                {isAuthenticated ? (
-                  <Button asChild size="lg" className="w-full sm:w-auto">
-                    <Link href={consentHref}>Complete informed consent</Link>
-                  </Button>
-                ) : (
+                {needsAuth ? (
                   <div className="flex flex-col gap-2 sm:flex-row">
                     <Button asChild size="lg" className="w-full sm:w-auto">
                       <Link href={loginHref}>Sign in to continue</Link>
@@ -511,6 +511,10 @@ export function BookingWizard({
                       <Link href={registerHref}>Create account</Link>
                     </Button>
                   </div>
+                ) : (
+                  <Button asChild size="lg" className="w-full sm:w-auto">
+                    <Link href={consentHref}>Complete informed consent</Link>
+                  </Button>
                 )}
               </div>
             ) : (

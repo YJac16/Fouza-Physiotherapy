@@ -23,6 +23,7 @@ import {
 import { requireStaff, getSessionProfile } from "@/lib/auth/guards";
 import { createServiceClient } from "@/lib/supabase/admin";
 import { ensureMyPatientRecord } from "@/features/patients/api/patients";
+import { syncPatientConsentFlagsIfComplete } from "@/features/consent-forms/lib/completion";
 
 export type BookingActionState = {
   error?: string;
@@ -141,9 +142,16 @@ export async function listBookableCatalog(): Promise<BookableCatalog> {
   if (profile && profile.role === "patient") {
     const { data: patient } = await ensureMyPatientRecord();
     if (patient) {
+      let verifiedAccount = patient.verified_account;
+      let informedConsentSigned = patient.informed_consent_signed;
+      if (!informedConsentSigned) {
+        const synced = await syncPatientConsentFlagsIfComplete(patient.id);
+        informedConsentSigned = synced.informed_consent_signed;
+        verifiedAccount = synced.verified_account;
+      }
       const canFollowUps = canBookFollowUpServices({
-        verified_account: patient.verified_account,
-        informed_consent_signed: patient.informed_consent_signed,
+        verified_account: verifiedAccount,
+        informed_consent_signed: informedConsentSigned,
       });
       patientContext = {
         patientId: patient.id,
@@ -151,9 +159,9 @@ export async function listBookableCatalog(): Promise<BookableCatalog> {
         lastName: patient.last_name,
         email: patient.email ?? profile.email,
         phone: patient.phone ?? profile.phone ?? "",
-        verifiedAccount: patient.verified_account,
-        informedConsentSigned: patient.informed_consent_signed,
-        needsConsent: !patient.informed_consent_signed,
+        verifiedAccount,
+        informedConsentSigned,
+        needsConsent: !informedConsentSigned,
         canBookFollowUps: canFollowUps,
       };
     }

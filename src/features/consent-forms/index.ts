@@ -9,6 +9,7 @@ export {
 export {
   getPatientConsentCompletion,
   getPatientConsentCompletionAdmin,
+  syncPatientConsentFlagsIfComplete,
   INTAKE_SLUG,
   REQUIRED_CONSENT_SLUGS,
 } from "./lib/completion";

@@ -131,6 +131,83 @@ export function renderEmailTemplate(
     };
   }
 
+  if (templateKey === "booking.cancelled.patient") {
+    return {
+      subject: "Appointment cancelled — Fouza Physiotherapy",
+      html: wrap(`
+        <h1 style="margin:0 0 12px;font-size:22px;color:#3a3a3c;">Appointment cancelled</h1>
+        <p style="margin:0;font-size:15px;line-height:1.6;">
+          Hi ${escapeHtml(firstName)}, your appointment at ${escapeHtml(siteConfig.practiceName)} has been cancelled.
+        </p>
+        ${
+          startsAt
+            ? `<p style="margin:16px 0 0;font-size:15px;line-height:1.6;"><strong>Was scheduled for:</strong> ${escapeHtml(startsAt)}</p>`
+            : ""
+        }
+        ${cta(`${appUrl}/book`, "Book a new appointment")}
+      `),
+    };
+  }
+
+  if (templateKey === "booking.cancelled.practitioner") {
+    const adminHref = `${appUrl}/admin/appointments`;
+    return {
+      subject: `Cancelled — ${patientName}`,
+      html: wrap(`
+        <h1 style="margin:0 0 12px;font-size:22px;color:#3a3a3c;">Appointment cancelled</h1>
+        <p style="margin:0;font-size:15px;line-height:1.6;">
+          <strong>${escapeHtml(patientName)}</strong> / <strong>${escapeHtml(serviceName)}</strong> was cancelled.
+        </p>
+        ${
+          startsAt
+            ? `<p style="margin:16px 0 0;font-size:15px;line-height:1.6;"><strong>Was scheduled for:</strong> ${escapeHtml(startsAt)}</p>`
+            : ""
+        }
+        ${cta(adminHref, "Open appointments")}
+      `),
+    };
+  }
+
+  if (templateKey === "booking.rescheduled.patient") {
+    return {
+      subject: "Appointment rescheduled — Fouza Physiotherapy",
+      html: wrap(`
+        <h1 style="margin:0 0 12px;font-size:22px;color:#3a3a3c;">Your appointment was moved</h1>
+        <p style="margin:0;font-size:15px;line-height:1.6;">
+          Hi ${escapeHtml(firstName)}, your appointment at ${escapeHtml(siteConfig.practiceName)} has a new time.
+        </p>
+        ${
+          startsAt
+            ? `<p style="margin:16px 0 0;font-size:15px;line-height:1.6;"><strong>New time:</strong> ${escapeHtml(startsAt)}</p>`
+            : ""
+        }
+        <p style="margin:16px 0 0;font-size:15px;line-height:1.6;">
+          <strong>Where:</strong> ${escapeHtml(siteConfig.address)}
+        </p>
+        ${cta(`${appUrl}/portal/appointments`, "View appointments")}
+      `),
+    };
+  }
+
+  if (templateKey === "booking.rescheduled.practitioner") {
+    const adminHref = `${appUrl}/admin/appointments`;
+    return {
+      subject: `Rescheduled — ${patientName}`,
+      html: wrap(`
+        <h1 style="margin:0 0 12px;font-size:22px;color:#3a3a3c;">Appointment rescheduled</h1>
+        <p style="margin:0;font-size:15px;line-height:1.6;">
+          <strong>${escapeHtml(patientName)}</strong> / <strong>${escapeHtml(serviceName)}</strong> was moved.
+        </p>
+        ${
+          startsAt
+            ? `<p style="margin:16px 0 0;font-size:15px;line-height:1.6;"><strong>New time:</strong> ${escapeHtml(startsAt)}</p>`
+            : ""
+        }
+        ${cta(adminHref, "Open appointments")}
+      `),
+    };
+  }
+
   if (templateKey === "booking.reminder.patient") {
     const formsHref = magicLink ?? `${appUrl}/portal/forms`;
     return {

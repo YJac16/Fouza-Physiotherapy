@@ -7,6 +7,7 @@ import { Separator } from "@/components/ui/separator";
 import { routes } from "@/config/routes";
 import { mapsQueryUrl, siteConfig } from "@/config/site";
 import { cn } from "@/lib/utils";
+import type { AppRole } from "@/types/auth";
 
 const explore = [
   { label: "Home", href: routes.marketing.home },
@@ -17,27 +18,36 @@ const explore = [
   { label: "Pricing", href: routes.marketing.pricing },
 ];
 
-const care = [
-  { label: "Book appointment", href: routes.booking.root },
-  { label: "FAQs", href: routes.marketing.faq },
-  { label: "Blog", href: routes.marketing.blog },
-  { label: "Contact", href: routes.marketing.contact },
-  { label: "Reviews", href: routes.marketing.reviews },
-  { label: "Sign in", href: routes.auth.login },
-];
-
 const legal = [
   { label: "Privacy Policy", href: routes.marketing.privacy },
   { label: "Terms & Conditions", href: routes.marketing.terms },
 ];
 
+const STAFF_ROLES: AppRole[] = ["admin", "practitioner", "receptionist"];
+
 export interface FooterProps {
   className?: string;
   showNewsletter?: boolean;
+  auth?: { role: AppRole } | null;
 }
 
-export function Footer({ className, showNewsletter = true }: FooterProps) {
+export function Footer({ className, showNewsletter = true, auth = null }: FooterProps) {
   const year = new Date().getFullYear();
+  const account =
+    auth == null
+      ? { label: "Sign in", href: routes.auth.login }
+      : STAFF_ROLES.includes(auth.role)
+        ? { label: "Admin", href: routes.admin.root }
+        : { label: "My portal", href: routes.portal.root };
+
+  const care = [
+    { label: "Book appointment", href: routes.booking.root },
+    { label: "FAQs", href: routes.marketing.faq },
+    { label: "Blog", href: routes.marketing.blog },
+    { label: "Contact", href: routes.marketing.contact },
+    { label: "Reviews", href: routes.marketing.reviews },
+    account,
+  ];
 
   return (
     <footer className={cn("border-t border-border/70 bg-secondary/40", className)}>

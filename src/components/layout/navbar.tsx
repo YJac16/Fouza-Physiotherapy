@@ -10,6 +10,7 @@ import { ThemeToggle } from "@/components/shared/theme-toggle";
 import { Button } from "@/components/ui/button";
 import { routes } from "@/config/routes";
 import { cn } from "@/lib/utils";
+import type { AppRole } from "@/types/auth";
 
 const navLinks = [
   { label: "Home", href: routes.marketing.home },
@@ -23,20 +24,35 @@ const navLinks = [
   { label: "Contact", href: routes.marketing.contact },
 ];
 
+const STAFF_ROLES: AppRole[] = ["admin", "practitioner", "receptionist"];
+
 export interface NavbarProps {
   className?: string;
   ctaHref?: string;
   ctaLabel?: string;
+  /** When set, replace the guest "Sign in" link with the account home. */
+  auth?: {
+    role: AppRole;
+  } | null;
+}
+
+function accountLink(role: AppRole) {
+  if (STAFF_ROLES.includes(role)) {
+    return { href: routes.admin.root, label: "Admin" };
+  }
+  return { href: routes.portal.root, label: "My portal" };
 }
 
 export function Navbar({
   className,
   ctaHref = routes.booking.root,
   ctaLabel = "Book appointment",
+  auth = null,
 }: NavbarProps) {
   const pathname = usePathname();
   const [open, setOpen] = React.useState(false);
   const [scrolled, setScrolled] = React.useState(false);
+  const account = auth ? accountLink(auth.role) : null;
 
   React.useEffect(() => {
     function onScroll() {
@@ -100,12 +116,21 @@ export function Navbar({
 
         <div className="hidden items-center gap-2 lg:flex">
           <ThemeToggle />
-          <Link
-            href={routes.auth.login}
-            className="rounded-lg px-2.5 py-2 text-sm font-medium text-muted-foreground transition-colors hover:bg-secondary hover:text-foreground focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-ring"
-          >
-            Sign in
-          </Link>
+          {account ? (
+            <Link
+              href={account.href}
+              className="rounded-lg px-2.5 py-2 text-sm font-medium text-muted-foreground transition-colors hover:bg-secondary hover:text-foreground focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-ring"
+            >
+              {account.label}
+            </Link>
+          ) : (
+            <Link
+              href={routes.auth.login}
+              className="rounded-lg px-2.5 py-2 text-sm font-medium text-muted-foreground transition-colors hover:bg-secondary hover:text-foreground focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-ring"
+            >
+              Sign in
+            </Link>
+          )}
           <Button asChild size="sm">
             <Link href={ctaHref}>{ctaLabel}</Link>
           </Button>
@@ -147,7 +172,9 @@ export function Navbar({
                 <Link href={ctaHref}>{ctaLabel}</Link>
               </Button>
               <Button asChild variant="ghost" className="w-full">
-                <Link href={routes.auth.login}>Sign in</Link>
+                <Link href={account?.href ?? routes.auth.login}>
+                  {account?.label ?? "Sign in"}
+                </Link>
               </Button>
             </div>
           </nav>

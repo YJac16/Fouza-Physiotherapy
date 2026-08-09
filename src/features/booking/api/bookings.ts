@@ -1,9 +1,18 @@
 import { createServiceClient } from "@/lib/supabase/admin";
-import type { ConfirmBookingInput, HoldInput } from "@/features/booking/schemas/booking";
+import type {
+  ConfirmBookingInput,
+  HoldInput,
+  StaffCreateAppointmentInput,
+} from "@/features/booking/schemas/booking";
 import {
   canBookFollowUpServices,
   isFollowUpServiceSlug,
 } from "@/features/booking/lib/eligibility";
+import {
+  canCancelAppointmentStatus,
+  canRescheduleAppointmentStatus,
+  type AppointmentStatus,
+} from "@/features/booking/lib/status";
 import { ensurePatientPortalInvite } from "@/features/auth/lib/portal-invite";
 import { drainEmailOutbox } from "@/features/notifications/lib/outbox";
 import {
@@ -13,15 +22,43 @@ import {
 } from "@/features/notifications/lib/appointment-emails";
 import { getSessionProfile } from "@/lib/auth/guards";
 import { syncPatientConsentFlagsIfComplete } from "@/features/consent-forms/lib/completion";
+import { isSlotStillAvailable } from "@/features/booking/api/slots";
 
-const HOLD_MINUTES = 10;
+const DEFAULT_HOLD_MINUTES = 10;
 
-export async function createHold(input: HoldInput) {
-  const admin = createServiceClient();
-  const token = crypto.randomUUID();
-  const expiresAt = new Date(Date.now() + HOLD_MINUTES * 60_000).toISOString();
+function isConflictError(message: string | undefined) {
+  if (!message) return false;
+  const lower = message.toLowerCase();
+  return (
+    lower.includes("overlap") ||
+    lower.includes("conflict") ||
+    lower.includes("exclusion") ||
+    lower.includes("23p01") ||
+    lower.includes("appointments_no_overlap")
+  );
+}
 
-  const { data: conflicts } = await admin
+async function readHoldMinutes(admin: ReturnType<typeof createServiceClient>) {
+  const { data } = await admin
+    .from("practice_settings")
+    .select("value")
+    .eq("key", "booking.hold_minutes")
+    .maybeSingle();
+  const raw = data?.value;
+  const n = typeof raw === "number" ? raw : Number(raw);
+  return Number.isFinite(n) && n > 0 ? Math.floor(n) : DEFAULT_HOLD_MINUTES;
+}
+
+async function findAppointmentConflicts(
+  admin: ReturnType<typeof createServiceClient>,
+  input: {
+    practitionerId: string;
+    startsAt: string;
+    endsAt: string;
+    excludeAppointmentId?: string;
+  },
+) {
+  let query = admin
     .from("appointments")
     .select("id")
     .eq("practitioner_id", input.practitionerId)
@@ -30,7 +67,78 @@ export async function createHold(input: HoldInput) {
     .gt("ends_at", input.startsAt)
     .limit(1);
 
-  if (conflicts?.length) {
+  if (input.excludeAppointmentId) {
+    query = query.neq("id", input.excludeAppointmentId);
+  }
+
+  const { data } = await query;
+  return data ?? [];
+}
+
+async function findHoldConflicts(
+  admin: ReturnType<typeof createServiceClient>,
+  input: {
+    practitionerId: string;
+    startsAt: string;
+    endsAt: string;
+    excludeHoldId?: string;
+  },
+) {
+  let query = admin
+    .from("appointment_holds")
+    .select("id")
+    .eq("practitioner_id", input.practitionerId)
+    .gt("expires_at", new Date().toISOString())
+    .lt("starts_at", input.endsAt)
+    .gt("ends_at", input.startsAt)
+    .limit(1);
+
+  if (input.excludeHoldId) {
+    query = query.neq("id", input.excludeHoldId);
+  }
+
+  const { data } = await query;
+  return data ?? [];
+}
+
+export async function purgeExpiredHolds() {
+  const admin = createServiceClient();
+  const { data, error } = await admin.rpc("purge_expired_appointment_holds");
+  if (error) {
+    // Fallback delete if RPC unavailable
+    const { error: deleteError, count } = await admin
+      .from("appointment_holds")
+      .delete({ count: "exact" })
+      .lte("expires_at", new Date().toISOString());
+    if (deleteError) return { purged: 0, error: deleteError.message };
+    return { purged: count ?? 0, error: null };
+  }
+  return { purged: typeof data === "number" ? data : 0, error: null };
+}
+
+export async function createHold(input: HoldInput) {
+  const admin = createServiceClient();
+  await purgeExpiredHolds();
+
+  const token = crypto.randomUUID();
+  const holdMinutes = await readHoldMinutes(admin);
+  const expiresAt = new Date(Date.now() + holdMinutes * 60_000).toISOString();
+
+  const appointmentConflicts = await findAppointmentConflicts(admin, {
+    practitionerId: input.practitionerId,
+    startsAt: input.startsAt,
+    endsAt: input.endsAt,
+  });
+  if (appointmentConflicts.length) {
+    return { error: "That slot is no longer available", holdToken: null as string | null };
+  }
+
+  const holdConflicts = await findHoldConflicts(admin, {
+    practitionerId: input.practitionerId,
+    startsAt: input.startsAt,
+    endsAt: input.endsAt,
+  });
+  if (holdConflicts.length) {
     return { error: "That slot is no longer available", holdToken: null as string | null };
   }
 
@@ -44,12 +152,172 @@ export async function createHold(input: HoldInput) {
     expires_at: expiresAt,
   });
 
-  if (error) return { error: error.message, holdToken: null as string | null };
+  if (error) {
+    if (isConflictError(error.message)) {
+      return { error: "That slot is no longer available", holdToken: null as string | null };
+    }
+    return { error: error.message, holdToken: null as string | null };
+  }
   return { error: null, holdToken: token, expiresAt };
+}
+
+type CreateAppointmentCoreInput = {
+  patientId: string;
+  practitionerId: string;
+  serviceId: string;
+  startsAt: string;
+  endsAt: string;
+  source: "online" | "admin" | "phone";
+  status?: "pending" | "confirmed";
+  notes?: string | null;
+  actorId?: string;
+  /** Skip slot-engine check (online confirm already held the slot; still rechecks conflicts). */
+  skipSlotEngineCheck?: boolean;
+  excludeAppointmentId?: string;
+  /** When confirming a hold, exclude that hold from the conflict check. */
+  excludeHoldId?: string;
+};
+
+/**
+ * Shared appointment insert path for online confirm, staff create, and future AI.
+ * Enforces conflict checks; DB exclusion is the final safety net.
+ */
+export async function createAppointmentFromSlot(input: CreateAppointmentCoreInput) {
+  const admin = createServiceClient();
+
+  const appointmentConflicts = await findAppointmentConflicts(admin, {
+    practitionerId: input.practitionerId,
+    startsAt: input.startsAt,
+    endsAt: input.endsAt,
+    excludeAppointmentId: input.excludeAppointmentId,
+  });
+  if (appointmentConflicts.length) {
+    return { error: "That slot is no longer available", appointmentId: null as string | null };
+  }
+
+  const holdConflicts = await findHoldConflicts(admin, {
+    practitionerId: input.practitionerId,
+    startsAt: input.startsAt,
+    endsAt: input.endsAt,
+    excludeHoldId: input.excludeHoldId,
+  });
+  if (holdConflicts.length) {
+    return { error: "That slot is no longer available", appointmentId: null as string | null };
+  }
+
+  if (!input.skipSlotEngineCheck) {
+    const available = await isSlotStillAvailable({
+      practitionerId: input.practitionerId,
+      serviceId: input.serviceId,
+      startsAt: input.startsAt,
+      endsAt: input.endsAt,
+      excludeAppointmentId: input.excludeAppointmentId,
+    });
+    if (!available) {
+      return { error: "That slot is no longer available", appointmentId: null as string | null };
+    }
+  }
+
+  const { data: appointment, error } = await admin
+    .from("appointments")
+    .insert({
+      patient_id: input.patientId,
+      practitioner_id: input.practitionerId,
+      service_id: input.serviceId,
+      starts_at: input.startsAt,
+      ends_at: input.endsAt,
+      status: input.status ?? "confirmed",
+      source: input.source,
+      notes: input.notes ?? null,
+    })
+    .select("id")
+    .single();
+
+  if (error || !appointment) {
+    if (isConflictError(error?.message)) {
+      return { error: "That slot is no longer available", appointmentId: null as string | null };
+    }
+    return { error: error?.message ?? "Booking failed", appointmentId: null as string | null };
+  }
+
+  if (input.actorId) {
+    await admin.from("audit_logs").insert({
+      actor_id: input.actorId,
+      action: "appointment.create",
+      entity_type: "appointment",
+      entity_id: appointment.id,
+      meta: {
+        source: input.source,
+        patientId: input.patientId,
+        practitionerId: input.practitionerId,
+        serviceId: input.serviceId,
+        startsAt: input.startsAt,
+        endsAt: input.endsAt,
+      },
+    });
+  }
+
+  return { error: null, appointmentId: appointment.id as string };
+}
+
+async function enqueueBookingEmails(input: {
+  appointmentId: string;
+  patientId: string;
+  patientEmail: string | null;
+  patientName: string;
+  firstName: string;
+  startsAt: string;
+  serviceName: string;
+  practitionerId: string;
+  magicLink?: string | null;
+  templateConfirmed?: boolean;
+}) {
+  const admin = createServiceClient();
+  const practiceRecipients = await resolvePracticeAlertRecipients(input.practitionerId);
+  const emailPayload = {
+    appointmentId: input.appointmentId,
+    patientId: input.patientId,
+    firstName: input.firstName,
+    startsAt: input.startsAt,
+    magicLink: input.magicLink ?? null,
+    patientName: input.patientName,
+    serviceName: input.serviceName,
+  };
+
+  const rows: Array<{
+    channel: "email";
+    template_key: string;
+    recipient: string;
+    payload: typeof emailPayload;
+  }> = [];
+
+  if (input.templateConfirmed !== false && input.patientEmail) {
+    rows.push({
+      channel: "email",
+      template_key: "booking.confirmed",
+      recipient: input.patientEmail,
+      payload: emailPayload,
+    });
+  }
+
+  for (const recipient of practiceRecipients) {
+    rows.push({
+      channel: "email",
+      template_key: "booking.practitioner_alert",
+      recipient,
+      payload: emailPayload,
+    });
+  }
+
+  if (rows.length) {
+    await admin.from("notification_outbox").insert(rows);
+    await drainEmailOutbox(10);
+  }
 }
 
 export async function confirmBooking(input: ConfirmBookingInput) {
   const admin = createServiceClient();
+  await purgeExpiredHolds();
 
   const { data: hold } = await admin
     .from("appointment_holds")
@@ -144,7 +412,6 @@ export async function confirmBooking(input: ConfirmBookingInput) {
         .eq("id", session.id);
     }
   } else {
-    // Should not normally happen once consent is required (patient row exists after consent).
     const { data: created, error: patientError } = await admin
       .from("patients")
       .insert({
@@ -169,29 +436,65 @@ export async function confirmBooking(input: ConfirmBookingInput) {
     patientId = created.id;
   }
 
-  const { data: appointment, error } = await admin
-    .from("appointments")
-    .insert({
-      patient_id: patientId,
-      practitioner_id: hold.practitioner_id,
-      service_id: hold.service_id,
-      starts_at: hold.starts_at,
-      ends_at: hold.ends_at,
-      status: "confirmed",
-      source: "online",
-    })
-    .select("id")
-    .single();
-
-  if (error || !appointment) {
-    return { error: error?.message ?? "Booking failed", appointmentId: null };
+  // Re-validate: other appointments may have landed; own hold is still present so skip hold conflict for self
+  const appointmentConflicts = await findAppointmentConflicts(admin, {
+    practitionerId: hold.practitioner_id,
+    startsAt: hold.starts_at,
+    endsAt: hold.ends_at,
+  });
+  if (appointmentConflicts.length) {
+    return { error: "That slot is no longer available", appointmentId: null };
   }
 
   if (!patientId) {
-    return { error: "Patient missing after booking", appointmentId: null };
+    return { error: "Patient missing after booking prep", appointmentId: null };
   }
 
-  await admin.from("appointment_holds").delete().eq("id", hold.id);
+  if (!hold.service_id) {
+    return { error: "Hold is missing a service", appointmentId: null };
+  }
+
+  // Re-read hold so expired tokens cannot confirm after slow consent/patient prep
+  const { data: freshHold } = await admin
+    .from("appointment_holds")
+    .select("id, expires_at, starts_at, ends_at, practitioner_id, service_id")
+    .eq("id", hold.id)
+    .eq("hold_token", input.holdToken)
+    .gt("expires_at", new Date().toISOString())
+    .maybeSingle();
+
+  if (!freshHold) {
+    return { error: "Hold expired or not found", appointmentId: null };
+  }
+
+  const stillAvailable = await isSlotStillAvailable({
+    practitionerId: freshHold.practitioner_id,
+    serviceId: freshHold.service_id!,
+    startsAt: freshHold.starts_at,
+    endsAt: freshHold.ends_at,
+    excludeHoldId: freshHold.id,
+  });
+  if (!stillAvailable) {
+    return { error: "That slot is no longer available", appointmentId: null };
+  }
+
+  const created = await createAppointmentFromSlot({
+    patientId,
+    practitionerId: freshHold.practitioner_id,
+    serviceId: freshHold.service_id!,
+    startsAt: freshHold.starts_at,
+    endsAt: freshHold.ends_at,
+    source: "online",
+    status: "confirmed",
+    skipSlotEngineCheck: true,
+    excludeHoldId: freshHold.id,
+  });
+
+  if (created.error || !created.appointmentId) {
+    return { error: created.error ?? "Booking failed", appointmentId: null };
+  }
+
+  await admin.from("appointment_holds").delete().eq("id", freshHold.id);
 
   const invite = await ensurePatientPortalInvite({
     email: input.email,
@@ -199,52 +502,134 @@ export async function confirmBooking(input: ConfirmBookingInput) {
     patientId,
   });
 
-  const practiceRecipients = await resolvePracticeAlertRecipients(hold.practitioner_id);
   const patientName = `${input.firstName} ${input.lastName}`.trim();
-  const serviceName = service.name ?? "Physiotherapy";
-
-  const emailPayload = {
-    appointmentId: appointment.id,
+  await enqueueBookingEmails({
+    appointmentId: created.appointmentId,
     patientId,
-    firstName: input.firstName,
-    startsAt: hold.starts_at,
-    magicLink: invite.magicLink,
+    patientEmail: input.email.toLowerCase(),
     patientName,
-    serviceName,
-  };
-
-  // Consent is required before confirm, so skip portal.invite — that email asks
-  // patients to complete forms they have already signed.
-  await admin.from("notification_outbox").insert([
-    {
-      channel: "email",
-      template_key: "booking.confirmed",
-      recipient: input.email.toLowerCase(),
-      payload: emailPayload,
-    },
-    ...practiceRecipients.map((recipient) => ({
-      channel: "email" as const,
-      template_key: "booking.practitioner_alert",
-      recipient,
-      payload: emailPayload,
-    })),
-  ]);
-
-  await drainEmailOutbox(10);
+    firstName: input.firstName,
+    startsAt: freshHold.starts_at,
+    serviceName: service.name ?? "Physiotherapy",
+    practitionerId: freshHold.practitioner_id,
+    magicLink: invite.magicLink,
+  });
 
   await admin.from("patient_timeline_events").insert({
     patient_id: patientId,
     event_type: "appointment.booked",
     title: "Appointment booked",
     entity_type: "appointment",
-    entity_id: appointment.id,
+    entity_id: created.appointmentId,
   });
 
-  return { error: null, appointmentId: appointment.id, magicLink: invite.magicLink };
+  return { error: null, appointmentId: created.appointmentId, magicLink: invite.magicLink };
+}
+
+/**
+ * Staff / future-channel appointment creation.
+ * Does not hard-block on missing consent; callers should surface outstanding requirements in UI.
+ */
+export async function createStaffAppointment(
+  input: StaffCreateAppointmentInput,
+  actorId: string,
+) {
+  const admin = createServiceClient();
+  await purgeExpiredHolds();
+
+  const { data: patient } = await admin
+    .from("patients")
+    .select("id, first_name, last_name, email, verified_account, informed_consent_signed")
+    .eq("id", input.patientId)
+    .maybeSingle();
+  if (!patient) return { error: "Patient not found", appointmentId: null as string | null };
+
+  const { data: service } = await admin
+    .from("services")
+    .select("id, name, slug, duration_minutes, is_active")
+    .eq("id", input.serviceId)
+    .maybeSingle();
+  if (!service || !service.is_active) {
+    return { error: "Service not found or inactive", appointmentId: null as string | null };
+  }
+
+  const expectedEnd = new Date(
+    new Date(input.startsAt).getTime() + (service.duration_minutes ?? 60) * 60_000,
+  ).toISOString();
+  if (input.endsAt !== expectedEnd) {
+    // Allow exact duration match within 1s tolerance
+    const delta = Math.abs(new Date(input.endsAt).getTime() - new Date(expectedEnd).getTime());
+    if (delta > 1000) {
+      return {
+        error: "Appointment duration does not match the selected service",
+        appointmentId: null as string | null,
+      };
+    }
+  }
+
+  const created = await createAppointmentFromSlot({
+    patientId: patient.id,
+    practitionerId: input.practitionerId,
+    serviceId: input.serviceId,
+    startsAt: input.startsAt,
+    endsAt: input.endsAt,
+    source: input.source ?? "admin",
+    status: "confirmed",
+    notes: input.notes ?? null,
+    actorId,
+  });
+
+  if (created.error || !created.appointmentId) {
+    return { error: created.error ?? "Booking failed", appointmentId: null as string | null };
+  }
+
+  const patientName = `${patient.first_name} ${patient.last_name}`.trim();
+  await enqueueBookingEmails({
+    appointmentId: created.appointmentId,
+    patientId: patient.id,
+    patientEmail: patient.email,
+    patientName,
+    firstName: patient.first_name,
+    startsAt: input.startsAt,
+    serviceName: service.name ?? "Physiotherapy",
+    practitionerId: input.practitionerId,
+  });
+
+  await admin.from("patient_timeline_events").insert({
+    patient_id: patient.id,
+    event_type: "appointment.booked",
+    title: "Appointment booked (staff)",
+    entity_type: "appointment",
+    entity_id: created.appointmentId,
+  });
+
+  const outstanding = {
+    needsConsent: !patient.informed_consent_signed,
+    needsVerification: !patient.verified_account,
+  };
+
+  return {
+    error: null,
+    appointmentId: created.appointmentId,
+    outstanding,
+  };
 }
 
 export async function cancelBooking(appointmentId: string, actorId?: string) {
   const admin = createServiceClient();
+  const { data: existing } = await admin
+    .from("appointments")
+    .select("id, status")
+    .eq("id", appointmentId)
+    .maybeSingle();
+
+  if (!existing) return { error: "Appointment not found" };
+
+  const status = existing.status as AppointmentStatus;
+  if (!canCancelAppointmentStatus(status)) {
+    return { error: "This appointment can no longer be cancelled" };
+  }
+
   const context = await loadAppointmentEmailContext(appointmentId);
 
   const { error } = await admin
@@ -299,6 +684,7 @@ export async function cancelBooking(appointmentId: string, actorId?: string) {
       action: "appointment.cancel",
       entity_type: "appointment",
       entity_id: appointmentId,
+      meta: { previousStatus: status },
     });
   }
   return { error: null };
@@ -309,30 +695,44 @@ export async function rescheduleBooking(
   actorId?: string,
 ) {
   const admin = createServiceClient();
+  await purgeExpiredHolds();
+
   const { data: appointment, error: loadError } = await admin
     .from("appointments")
-    .select("id, practitioner_id, status, patient_id")
+    .select("id, practitioner_id, service_id, status, patient_id, starts_at, ends_at")
     .eq("id", input.appointmentId)
     .maybeSingle();
 
   if (loadError || !appointment) {
     return { error: loadError?.message ?? "Appointment not found" };
   }
-  if (appointment.status === "cancelled" || appointment.status === "completed") {
+
+  const status = appointment.status as AppointmentStatus;
+  if (!canRescheduleAppointmentStatus(status)) {
     return { error: "This appointment can no longer be rescheduled" };
   }
 
-  const { data: conflicts } = await admin
-    .from("appointments")
-    .select("id")
-    .eq("practitioner_id", appointment.practitioner_id)
-    .in("status", ["pending", "confirmed"])
-    .neq("id", appointment.id)
-    .lt("starts_at", input.endsAt)
-    .gt("ends_at", input.startsAt)
-    .limit(1);
+  if (!appointment.service_id) {
+    return { error: "Appointment is missing a service and cannot be rescheduled via slots" };
+  }
 
-  if (conflicts?.length) {
+  const available = await isSlotStillAvailable({
+    practitionerId: appointment.practitioner_id,
+    serviceId: appointment.service_id,
+    startsAt: input.startsAt,
+    endsAt: input.endsAt,
+    excludeAppointmentId: appointment.id,
+  });
+  if (!available) {
+    return { error: "That slot is no longer available" };
+  }
+
+  const holdConflicts = await findHoldConflicts(admin, {
+    practitionerId: appointment.practitioner_id,
+    startsAt: input.startsAt,
+    endsAt: input.endsAt,
+  });
+  if (holdConflicts.length) {
     return { error: "That slot is no longer available" };
   }
 
@@ -341,13 +741,17 @@ export async function rescheduleBooking(
     .update({
       starts_at: input.startsAt,
       ends_at: input.endsAt,
-      status: appointment.status === "pending" ? "confirmed" : appointment.status,
+      status: status === "pending" ? "confirmed" : status,
     })
     .eq("id", appointment.id);
 
-  if (error) return { error: error.message };
+  if (error) {
+    if (isConflictError(error.message)) {
+      return { error: "That slot is no longer available" };
+    }
+    return { error: error.message };
+  }
 
-  // Drop any pending reminders so the next cron can enqueue for the new time.
   await cancelPendingAppointmentEmails(appointment.id);
 
   const context = await loadAppointmentEmailContext(appointment.id);
@@ -395,6 +799,12 @@ export async function rescheduleBooking(
       action: "appointment.reschedule",
       entity_type: "appointment",
       entity_id: appointment.id,
+      meta: {
+        previousStartsAt: appointment.starts_at,
+        previousEndsAt: appointment.ends_at,
+        startsAt: input.startsAt,
+        endsAt: input.endsAt,
+      },
     });
   }
 

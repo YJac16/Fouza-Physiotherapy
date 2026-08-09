@@ -1,5 +1,6 @@
 import { requireStaff } from "@/lib/auth/guards";
 import { createClient } from "@/lib/supabase/server";
+import { toDateKey } from "@/features/booking/lib/timezone";
 
 /**
  * Read a single practice_settings value by key. Public — used on marketing
@@ -34,14 +35,15 @@ export async function setPracticeSetting(key: string, value: unknown) {
 export async function getDashboardMetrics() {
   await requireStaff();
   const supabase = await createClient();
-  const today = new Date().toISOString().slice(0, 10);
+  const today = toDateKey(new Date());
+  const dayStart = `${today}T00:00:00+02:00`;
 
   const [patients, appointments, invoices, notes] = await Promise.all([
     supabase.from("patients").select("id", { count: "exact", head: true }),
     supabase
       .from("appointments")
       .select("id", { count: "exact", head: true })
-      .gte("starts_at", `${today}T00:00:00Z`),
+      .gte("starts_at", dayStart),
     supabase
       .from("invoices")
       .select("total_cents")

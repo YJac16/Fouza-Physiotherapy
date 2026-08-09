@@ -77,7 +77,7 @@ export function renderEmailTemplate(
   }
 
   if (templateKey === "booking.confirmed") {
-    const formsHref = magicLink ?? `${appUrl}/portal/forms`;
+    const appointmentsHref = `${appUrl}/portal/appointments`;
     return {
       subject: "Appointment confirmed — Fouza Physiotherapy",
       html: wrap(`
@@ -94,9 +94,9 @@ export function renderEmailTemplate(
           <strong>Where:</strong> ${escapeHtml(siteConfig.address)}
         </p>
         <p style="margin:16px 0 0;font-size:15px;line-height:1.6;">
-          Please complete your informed consent forms before your visit so we can prepare for your session.
+          You can view and manage this appointment anytime in your patient portal.
         </p>
-        ${cta(formsHref, "Complete forms now")}
+        ${cta(appointmentsHref, "View my appointments")}
       `),
     };
   }

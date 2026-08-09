@@ -8,13 +8,14 @@ import { Container, Section } from "@/components/layout/container";
 import { Typography } from "@/components/ui/typography";
 import { routes } from "@/config/routes";
 import { siteConfig } from "@/config/site";
+import { getSessionProfile } from "@/lib/auth/guards";
 import { JsonLd, breadcrumbJsonLd } from "@/lib/seo/json-ld";
 import { buildMetadata } from "@/lib/seo/metadata";
 
 export const metadata: Metadata = buildMetadata({
   title: "Booking Confirmed | Fouza Physiotherapy",
   description:
-    "Your physiotherapy appointment at Fouza Physiotherapy has been confirmed. Complete your patient intake and access your portal.",
+    "Your physiotherapy appointment at Fouza Physiotherapy has been confirmed. Access your patient portal to manage your visit.",
   path: routes.booking.success,
   noIndex: true,
 });
@@ -25,6 +26,8 @@ interface BookSuccessPageProps {
 
 export default async function BookSuccessPage({ searchParams }: BookSuccessPageProps) {
   const { id } = await searchParams;
+  const profile = await getSessionProfile();
+  const isSignedInPatient = profile?.role === "patient";
 
   return (
     <>
@@ -50,7 +53,11 @@ export default async function BookSuccessPage({ searchParams }: BookSuccessPageP
         <Container size="md">
           <ConfirmationCard
             title="Appointment confirmed"
-            message="We've received your booking. Check your email for a secure link to complete informed consent before your visit."
+            message={
+              isSignedInPatient
+                ? "We've received your booking. A confirmation email is on its way. You can manage this appointment anytime in your patient portal."
+                : "We've received your booking. A confirmation email is on its way. Sign in to your patient portal to view and manage your appointment."
+            }
             reference={id}
             details={[
               { label: "Practice", value: siteConfig.practiceName },
@@ -58,22 +65,31 @@ export default async function BookSuccessPage({ searchParams }: BookSuccessPageP
             ]}
             actions={
               <div className="flex w-full flex-col gap-3">
-                <Typography variant="small" className="text-center text-muted-foreground">
-                  A portal invite was sent to the email you booked with. Use that link (or sign
-                  in) to finish your forms before the appointment.
-                </Typography>
-                <Button asChild size="lg" className="w-full">
-                  <Link href={routes.portal.forms}>Open informed consent forms</Link>
-                </Button>
-                <Button asChild variant="outline" size="lg" className="w-full">
-                  <Link href={routes.auth.login}>Sign in to portal</Link>
-                </Button>
-                <Button asChild variant="secondary" size="lg" className="w-full">
-                  <Link href={routes.auth.register}>Create account (if email not received)</Link>
-                </Button>
-                <Button asChild variant="ghost" className="w-full">
-                  <Link href={routes.marketing.home}>Back to home</Link>
-                </Button>
+                {isSignedInPatient ? (
+                  <>
+                    <Typography variant="small" className="text-center text-muted-foreground">
+                      Your account is ready — no further forms are needed for this booking.
+                    </Typography>
+                    <Button asChild size="lg" className="w-full">
+                      <Link href={routes.portal.appointments}>View my appointments</Link>
+                    </Button>
+                    <Button asChild variant="ghost" className="w-full">
+                      <Link href={routes.portal.root}>Back to portal</Link>
+                    </Button>
+                  </>
+                ) : (
+                  <>
+                    <Typography variant="small" className="text-center text-muted-foreground">
+                      Use the same email you booked with to sign in and view your appointment.
+                    </Typography>
+                    <Button asChild size="lg" className="w-full">
+                      <Link href={routes.auth.login}>Sign in to portal</Link>
+                    </Button>
+                    <Button asChild variant="ghost" className="w-full">
+                      <Link href={routes.marketing.home}>Back to home</Link>
+                    </Button>
+                  </>
+                )}
               </div>
             }
           />

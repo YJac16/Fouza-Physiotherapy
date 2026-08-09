@@ -213,16 +213,12 @@ export async function confirmBooking(input: ConfirmBookingInput) {
     serviceName,
   };
 
+  // Consent is required before confirm, so skip portal.invite — that email asks
+  // patients to complete forms they have already signed.
   await admin.from("notification_outbox").insert([
     {
       channel: "email",
       template_key: "booking.confirmed",
-      recipient: input.email.toLowerCase(),
-      payload: emailPayload,
-    },
-    {
-      channel: "email",
-      template_key: "portal.invite",
       recipient: input.email.toLowerCase(),
       payload: emailPayload,
     },

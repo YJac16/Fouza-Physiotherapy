@@ -315,6 +315,49 @@ export function renderEmailTemplate(
     };
   }
 
+  if (templateKey === "invoice.practitioner_alert" || templateKey === "invoice.payment_alert") {
+    const invoiceNumber =
+      typeof payload.invoiceNumber === "string" ? payload.invoiceNumber : "an invoice";
+    const description =
+      typeof payload.description === "string" ? payload.description : "Physiotherapy services";
+    const totalCents = typeof payload.totalCents === "number" ? payload.totalCents : null;
+    const amountLabel =
+      totalCents != null
+        ? new Intl.NumberFormat("en-ZA", { style: "currency", currency: "ZAR" }).format(
+            totalCents / 100,
+          )
+        : null;
+    const invoiceId = typeof payload.invoiceId === "string" ? payload.invoiceId : null;
+    const adminHref = invoiceId
+      ? `${appUrl}/admin/billing/${invoiceId}`
+      : `${appUrl}/admin/billing`;
+    const isPayment = templateKey === "invoice.payment_alert";
+
+    return {
+      subject: isPayment
+        ? `Payment received — ${patientName} (${invoiceNumber})`
+        : `Invoice sent — ${patientName} (${invoiceNumber})`,
+      html: wrap(`
+        <h1 style="margin:0 0 12px;font-size:22px;color:#3a3a3c;">${
+          isPayment ? "Payment received" : "Invoice sent to patient"
+        }</h1>
+        <p style="margin:0;font-size:15px;line-height:1.6;">
+          ${
+            isPayment
+              ? `A payment was recorded for <strong>${escapeHtml(patientName)}</strong>.`
+              : `An invoice was emailed to <strong>${escapeHtml(patientName)}</strong>.`
+          }
+        </p>
+        <p style="margin:16px 0 0;font-size:15px;line-height:1.6;">
+          <strong>Invoice:</strong> ${escapeHtml(invoiceNumber)}<br/>
+          <strong>For:</strong> ${escapeHtml(description)}
+          ${amountLabel ? `<br/><strong>Total:</strong> ${escapeHtml(amountLabel)}` : ""}
+        </p>
+        ${cta(adminHref, "Open invoice")}
+      `),
+    };
+  }
+
   return {
     subject: `Fouza Physiotherapy — ${templateKey}`,
     html: wrap(
@@ -323,3 +366,4 @@ export function renderEmailTemplate(
     ),
   };
 }
+

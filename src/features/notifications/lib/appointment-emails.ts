@@ -29,6 +29,22 @@ export async function resolvePracticeAlertRecipients(practitionerId: string) {
   return Array.from(new Set([practitionerEmail, practiceEmail].filter(Boolean)));
 }
 
+/** Practice inboxes for billing alerts (appointment practitioner when known). */
+export async function resolveBillingAlertRecipients(appointmentId?: string | null) {
+  if (appointmentId) {
+    const admin = createServiceClient();
+    const { data } = await admin
+      .from("appointments")
+      .select("practitioner_id")
+      .eq("id", appointmentId)
+      .maybeSingle();
+    if (data?.practitioner_id) {
+      return resolvePracticeAlertRecipients(data.practitioner_id);
+    }
+  }
+  return [siteConfig.email.toLowerCase()].filter(Boolean);
+}
+
 /** Mark pending outbox emails for an appointment as cancelled (cancel / reschedule). */
 export async function cancelPendingAppointmentEmails(appointmentId: string) {
   const admin = createServiceClient();

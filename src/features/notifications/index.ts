@@ -4,6 +4,7 @@ export { enqueueAppointmentReminders } from "./lib/appointment-reminders";
 export {
   cancelPendingAppointmentEmails,
   loadAppointmentEmailContext,
+  resolveBillingAlertRecipients,
   resolvePracticeAlertRecipients,
   resolvePractitionerEmail,
 } from "./lib/appointment-emails";

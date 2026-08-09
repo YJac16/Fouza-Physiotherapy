@@ -8,6 +8,7 @@ import { requireStaff, requireUser } from "@/lib/auth/guards";
 import { createClient } from "@/lib/supabase/server";
 import { createServiceClient } from "@/lib/supabase/admin";
 import { drainEmailOutbox } from "@/features/notifications/lib/outbox";
+import { resolveBillingAlertRecipients } from "@/features/notifications/lib/appointment-emails";
 import { getInvoiceBankingSettings } from "@/features/billing/lib/invoice-data";
 import { EDITABLE_INVOICE_STATUSES } from "@/features/billing/lib/addons";
 
@@ -99,28 +100,48 @@ export async function createInvoiceAction(
     .maybeSingle();
 
   const recipientEmail = patientRow?.email?.trim().toLowerCase();
-  if (recipientEmail) {
-    const banking = await getInvoiceBankingSettings();
-    await admin.from("notification_outbox").insert({
-      channel: "email",
-      template_key: "invoice.sent",
-      recipient: recipientEmail,
-      payload: {
-        invoiceId: data.id,
-        patientId: parsed.data.patientId,
-        invoiceNumber: numberData as string,
-        firstName: patientRow?.first_name ?? "there",
-        description: parsed.data.description,
-        totalCents: total,
-        currency: "ZAR",
-        bankName: banking.bankName,
-        accountName: banking.accountName,
-        accountNumber: banking.accountNumber,
-        branchCode: banking.branchCode,
-        proofEmail: banking.proofEmail,
-      },
-    });
-    await drainEmailOutbox(5);
+  const patientName =
+    `${patientRow?.first_name ?? ""} ${patientRow?.last_name ?? ""}`.trim() || "a patient";
+  const banking = await getInvoiceBankingSettings();
+  const sharedPayload = {
+    invoiceId: data.id,
+    patientId: parsed.data.patientId,
+    invoiceNumber: numberData as string,
+    firstName: patientRow?.first_name ?? "there",
+    patientName,
+    description: parsed.data.description,
+    totalCents: total,
+    currency: "ZAR",
+    bankName: banking.bankName,
+    accountName: banking.accountName,
+    accountNumber: banking.accountNumber,
+    branchCode: banking.branchCode,
+    proofEmail: banking.proofEmail,
+  };
+
+  const practiceRecipients = await resolveBillingAlertRecipients(parsed.data.appointmentId);
+  const outboxRows = [
+    ...(recipientEmail
+      ? [
+          {
+            channel: "email" as const,
+            template_key: "invoice.sent",
+            recipient: recipientEmail,
+            payload: sharedPayload,
+          },
+        ]
+      : []),
+    ...practiceRecipients.map((recipient) => ({
+      channel: "email" as const,
+      template_key: "invoice.practitioner_alert",
+      recipient,
+      payload: sharedPayload,
+    })),
+  ];
+
+  if (outboxRows.length) {
+    await admin.from("notification_outbox").insert(outboxRows);
+    await drainEmailOutbox(Math.max(5, outboxRows.length));
   }
 
   revalidatePath("/admin/billing");
@@ -209,7 +230,9 @@ export async function sendInvoiceEmailAction(invoiceId: string): Promise<SendInv
 
   const { data: invoice, error } = await admin
     .from("invoices")
-    .select("id, invoice_number, status, total_cents, notes, patients(email, first_name, last_name)")
+    .select(
+      "id, invoice_number, status, total_cents, notes, appointment_id, patients(email, first_name, last_name)",
+    )
     .eq("id", invoiceId)
     .maybeSingle();
 
@@ -226,29 +249,43 @@ export async function sendInvoiceEmailAction(invoiceId: string): Promise<SendInv
   const banking = await getInvoiceBankingSettings();
   const isReceipt = invoice.status === "paid";
   const templateKey = isReceipt ? "invoice.receipt" : "invoice.sent";
+  const practiceTemplateKey = isReceipt ? "invoice.payment_alert" : "invoice.practitioner_alert";
+  const patientName =
+    `${patient?.first_name ?? ""} ${patient?.last_name ?? ""}`.trim() || "a patient";
+  const sharedPayload = {
+    invoiceId: invoice.id,
+    invoiceNumber: invoice.invoice_number,
+    firstName: patient?.first_name ?? "there",
+    patientName,
+    description: invoice.notes ?? "Physiotherapy services",
+    totalCents: invoice.total_cents,
+    currency: "ZAR",
+    bankName: banking.bankName,
+    accountName: banking.accountName,
+    accountNumber: banking.accountNumber,
+    branchCode: banking.branchCode,
+    proofEmail: banking.proofEmail,
+  };
 
-  const { error: outboxError } = await admin.from("notification_outbox").insert({
-    channel: "email",
-    template_key: templateKey,
-    recipient: recipientEmail,
-    payload: {
-      invoiceId: invoice.id,
-      invoiceNumber: invoice.invoice_number,
-      firstName: patient?.first_name ?? "there",
-      description: invoice.notes ?? "Physiotherapy services",
-      totalCents: invoice.total_cents,
-      currency: "ZAR",
-      bankName: banking.bankName,
-      accountName: banking.accountName,
-      accountNumber: banking.accountNumber,
-      branchCode: banking.branchCode,
-      proofEmail: banking.proofEmail,
+  const practiceRecipients = await resolveBillingAlertRecipients(invoice.appointment_id);
+  const { error: outboxError } = await admin.from("notification_outbox").insert([
+    {
+      channel: "email",
+      template_key: templateKey,
+      recipient: recipientEmail,
+      payload: sharedPayload,
     },
-  });
+    ...practiceRecipients.map((recipient) => ({
+      channel: "email" as const,
+      template_key: practiceTemplateKey,
+      recipient,
+      payload: sharedPayload,
+    })),
+  ]);
 
   if (outboxError) return { error: outboxError.message };
 
-  await drainEmailOutbox(5);
+  await drainEmailOutbox(Math.max(5, 1 + practiceRecipients.length));
   revalidatePath(`/admin/billing/${invoiceId}`);
   return {
     success: isReceipt
@@ -296,36 +333,55 @@ export async function recordPaymentAction(
     const admin = createServiceClient();
     const { data: invoice } = await admin
       .from("invoices")
-      .select("id, invoice_number, total_cents, notes, patients(email, first_name)")
+      .select(
+        "id, invoice_number, total_cents, notes, appointment_id, patients(email, first_name, last_name)",
+      )
       .eq("id", parsed.data.invoiceId)
       .maybeSingle();
 
     const patient = (Array.isArray(invoice?.patients) ? invoice?.patients[0] : invoice?.patients) as
-      | { email?: string | null; first_name?: string | null }
+      | { email?: string | null; first_name?: string | null; last_name?: string | null }
       | null
       | undefined;
     const recipientEmail = patient?.email?.trim().toLowerCase();
-    if (invoice && recipientEmail) {
+    if (invoice) {
       const banking = await getInvoiceBankingSettings();
-      await admin.from("notification_outbox").insert({
-        channel: "email",
-        template_key: "invoice.receipt",
-        recipient: recipientEmail,
-        payload: {
-          invoiceId: invoice.id,
-          invoiceNumber: invoice.invoice_number,
-          firstName: patient?.first_name ?? "there",
-          description: invoice.notes ?? "Physiotherapy services",
-          totalCents: invoice.total_cents,
-          currency: "ZAR",
-          bankName: banking.bankName,
-          accountName: banking.accountName,
-          accountNumber: banking.accountNumber,
-          branchCode: banking.branchCode,
-          proofEmail: banking.proofEmail,
-        },
-      });
-      await drainEmailOutbox(5);
+      const patientName =
+        `${patient?.first_name ?? ""} ${patient?.last_name ?? ""}`.trim() || "a patient";
+      const sharedPayload = {
+        invoiceId: invoice.id,
+        invoiceNumber: invoice.invoice_number,
+        firstName: patient?.first_name ?? "there",
+        patientName,
+        description: invoice.notes ?? "Physiotherapy services",
+        totalCents: invoice.total_cents,
+        currency: "ZAR",
+        bankName: banking.bankName,
+        accountName: banking.accountName,
+        accountNumber: banking.accountNumber,
+        branchCode: banking.branchCode,
+        proofEmail: banking.proofEmail,
+      };
+      const practiceRecipients = await resolveBillingAlertRecipients(invoice.appointment_id);
+      await admin.from("notification_outbox").insert([
+        ...(recipientEmail
+          ? [
+              {
+                channel: "email" as const,
+                template_key: "invoice.receipt",
+                recipient: recipientEmail,
+                payload: sharedPayload,
+              },
+            ]
+          : []),
+        ...practiceRecipients.map((recipient) => ({
+          channel: "email" as const,
+          template_key: "invoice.payment_alert",
+          recipient,
+          payload: sharedPayload,
+        })),
+      ]);
+      await drainEmailOutbox(Math.max(5, (recipientEmail ? 1 : 0) + practiceRecipients.length));
     }
 
     revalidatePath(`/admin/billing/${parsed.data.invoiceId}`);

@@ -1,6 +1,7 @@
 import { NextResponse } from "next/server";
 
 import { drainEmailOutbox } from "@/features/notifications";
+import { purgeExpiredHolds } from "@/features/booking/api/bookings";
 
 function authorize(request: Request) {
   const secret = process.env.CRON_SECRET;
@@ -14,8 +15,11 @@ async function handle(request: Request) {
     return NextResponse.json({ error: "Unauthorized" }, { status: 401 });
   }
 
-  const result = await drainEmailOutbox(25);
-  return NextResponse.json(result);
+  const [holds, outbox] = await Promise.all([
+    purgeExpiredHolds(),
+    drainEmailOutbox(25),
+  ]);
+  return NextResponse.json({ holds, outbox });
 }
 
 /** Vercel Cron invokes GET with `Authorization: Bearer $CRON_SECRET`. */

@@ -12,6 +12,7 @@ import { Button } from "@/components/ui/button";
 import { FormMessage } from "@/components/ui/form-message";
 import { Input } from "@/components/ui/input";
 import { Label } from "@/components/ui/label";
+import { toDateKey } from "@/features/booking/lib/timezone";
 import { cn } from "@/lib/utils";
 
 export interface AppointmentActionsProps {
@@ -48,6 +49,7 @@ export function AppointmentActions({
         practitionerId,
         serviceId,
         date: nextDate,
+        excludeAppointmentId: appointmentId,
       });
       if (result.error) {
         setMessage({ tone: "error", text: result.error });
@@ -161,7 +163,7 @@ export function AppointmentActions({
               id={`reschedule-date-${appointmentId}`}
               type="date"
               value={date}
-              min={new Date().toISOString().slice(0, 10)}
+              min={toDateKey(new Date())}
               onChange={(e) => loadSlots(e.target.value)}
             />
           </div>

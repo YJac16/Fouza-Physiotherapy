@@ -4,6 +4,7 @@ export const slotQuerySchema = z.object({
   practitionerId: z.string().uuid(),
   serviceId: z.string().uuid(),
   date: z.string().regex(/^\d{4}-\d{2}-\d{2}$/),
+  excludeAppointmentId: z.string().uuid().optional(),
 });
 
 export const holdSchema = z.object({
@@ -28,7 +29,18 @@ export const rescheduleSchema = z.object({
   endsAt: z.string().datetime(),
 });
 
+export const staffCreateAppointmentSchema = z.object({
+  patientId: z.string().uuid(),
+  practitionerId: z.string().uuid(),
+  serviceId: z.string().uuid(),
+  startsAt: z.string().datetime(),
+  endsAt: z.string().datetime(),
+  source: z.enum(["admin", "phone"]).default("admin"),
+  notes: z.string().max(2000).optional().nullable(),
+});
+
 export type SlotQuery = z.infer<typeof slotQuerySchema>;
 export type HoldInput = z.infer<typeof holdSchema>;
 export type ConfirmBookingInput = z.infer<typeof confirmBookingSchema>;
 export type RescheduleInput = z.infer<typeof rescheduleSchema>;
+export type StaffCreateAppointmentInput = z.infer<typeof staffCreateAppointmentSchema>;

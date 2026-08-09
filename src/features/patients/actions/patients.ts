@@ -2,7 +2,7 @@
 
 import { revalidatePath } from "next/cache";
 
-import { createPatient, updatePatient } from "@/features/patients/api/patients";
+import { createPatient, searchPatients, updatePatient } from "@/features/patients/api/patients";
 import {
   createPatientSchema,
   updatePatientSchema,
@@ -10,6 +10,24 @@ import {
 import { routes } from "@/config/routes";
 
 export type PatientActionState = { error?: string; success?: string; id?: string };
+
+export async function searchPatientsAction(query?: string) {
+  const { data, error } = await searchPatients(query);
+  if (error) return { patients: [], error: error.message };
+  return {
+    patients: (data ?? []).map((p) => ({
+      id: p.id,
+      firstName: p.first_name,
+      lastName: p.last_name,
+      email: p.email,
+      phone: p.phone,
+      verifiedAccount: Boolean(p.verified_account),
+      informedConsentSigned: Boolean(p.informed_consent_signed),
+      label: `${p.first_name} ${p.last_name}`.trim(),
+      description: [p.email, p.phone].filter(Boolean).join(" · ") || undefined,
+    })),
+  };
+}
 
 export async function createPatientAction(
   _prev: PatientActionState,

@@ -27,7 +27,6 @@ import { createServiceClient } from "@/lib/supabase/admin";
 import { createClient } from "@/lib/supabase/server";
 import { ensureMyPatientRecord } from "@/features/patients/api/patients";
 import { syncPatientConsentFlagsIfComplete } from "@/features/consent-forms/lib/completion";
-import { toDateKey } from "@/features/booking/lib/timezone";
 
 export type BookingActionState = {
   error?: string;
@@ -354,9 +353,4 @@ export async function listBookableCatalog(): Promise<BookableCatalog> {
     patientContext,
     isAuthenticated: Boolean(profile),
   };
-}
-
-/** SAST "today" for admin UIs — avoid UTC date-slice bugs. */
-export function staffTodayDateKey() {
-  return toDateKey(new Date());
 }

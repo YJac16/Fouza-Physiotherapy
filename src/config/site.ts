@@ -72,8 +72,8 @@ export const siteConfig = {
     favicon: "/favicon-32x32.png",
     appleTouchIcon: "/apple-touch-icon.png",
     hpcsa: "/hpcsa-logo.png",
-    /** Clinic waiting area — primary marketing hero */
-    hero: "/facilities-08.jpg",
+    /** Practice exterior — primary marketing hero */
+    hero: "/practice-1.jpg",
     portrait: "/fouza-portrait-1.jpg",
     /** Rehab gym corner with equipment */
     clinic: "/facilities-04.jpg",
@@ -85,11 +85,11 @@ export const siteConfig = {
     dryNeedling: "/dry-needling.png",
     backRehab: "/rehab-05.jpg",
     posture: "/rehab-06.jpg",
-    shoulderRehab: "/rehab-05.jpg",
+    shoulderRehab: "/shoulder-pain.jpg",
     kneeAnkle: "/rehab-04.jpg",
     postOp: "/rehab-10.jpg",
     assessment: "/rehab-09.jpg",
-    og: "/facilities-08.jpg",
+    og: "/practice-1.jpg",
   },
 } as const;
 

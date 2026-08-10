@@ -73,7 +73,7 @@ export const siteConfig = {
     appleTouchIcon: "/apple-touch-icon.png",
     hpcsa: "/hpcsa-logo.png",
     /** Practice exterior — primary marketing hero */
-    hero: "/practice-1.jpg",
+    hero: "/practice-2.jpg",
     portrait: "/fouza-portrait-1.jpg",
     /** Rehab gym corner with equipment */
     clinic: "/facilities-04.jpg",
@@ -89,7 +89,7 @@ export const siteConfig = {
     kneeAnkle: "/rehab-04.jpg",
     postOp: "/rehab-10.jpg",
     assessment: "/rehab-09.jpg",
-    og: "/practice-1.jpg",
+    og: "/practice-2.jpg",
   },
 } as const;
 

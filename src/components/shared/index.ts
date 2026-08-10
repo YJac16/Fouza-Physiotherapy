@@ -3,7 +3,6 @@ export * from "./feature-card";
 export * from "./logo";
 export * from "./newsletter";
 export * from "./pricing-card";
-export * from "./skip-to-content";
 export * from "./states";
 export * from "./theme-toggle";
 export * from "./timeline";

@@ -41,8 +41,8 @@ export const metadata: Metadata = {
     title: siteConfig.pwa.shortName,
     statusBarStyle: "default",
   },
-  formatDetection: {
-    telephone: true,
+  other: {
+    "apple-mobile-web-app-capable": "yes",
   },
   icons: {
     icon: [

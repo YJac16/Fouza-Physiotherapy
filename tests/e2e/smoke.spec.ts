@@ -40,13 +40,16 @@ test.describe("marketing smoke", () => {
   });
 
   test("home page advertises web app install metadata", async ({ page }) => {
-    await page.goto("/");
+    // Root layout metadata is shared across routes. Use a static auth page so this
+    // check does not depend on Supabase for the marketing homepage.
+    await page.goto("/forgot-password");
     const manifestHref = await page.locator('link[rel="manifest"]').getAttribute("href");
     expect(manifestHref).toMatch(/manifest\.webmanifest/);
-    await expect(page.locator('meta[name="apple-mobile-web-app-capable"]')).toHaveAttribute(
-      "content",
-      "yes",
-    );
+    await expect(
+      page.locator(
+        'meta[name="apple-mobile-web-app-capable"], meta[name="mobile-web-app-capable"]',
+      ).first(),
+    ).toHaveAttribute("content", "yes");
     await expect(page.locator('link[rel="apple-touch-icon"]')).toHaveAttribute(
       "href",
       /apple-touch-icon/,

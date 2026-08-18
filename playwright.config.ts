@@ -14,7 +14,7 @@ export default defineConfig({
   projects: [{ name: "chromium", use: { ...devices["Desktop Chrome"] } }],
   webServer: {
     command: isCI ? "npx next start --port 3000" : "npm run dev",
-    url: "http://localhost:3000",
+    url: "http://localhost:3000/api/health",
     reuseExistingServer: !isCI,
     timeout: 120000,
   },

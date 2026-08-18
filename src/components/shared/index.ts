@@ -1,4 +1,5 @@
 export * from "./faq-accordion";
+export * from "./install-app-prompt";
 export * from "./feature-card";
 export * from "./logo";
 export * from "./newsletter";

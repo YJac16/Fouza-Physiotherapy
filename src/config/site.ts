@@ -71,6 +71,9 @@ export const siteConfig = {
     logoWordmarkDark: "/fouza-physiotherapy-logo-wordmark-dark.png",
     favicon: "/favicon-32x32.png",
     appleTouchIcon: "/apple-touch-icon.png",
+    icon192: "/icon-192.png",
+    icon512: "/icon-512.png",
+    icon512Maskable: "/icon-512-maskable.png",
     hpcsa: "/hpcsa-logo.png",
     /** Practice exterior — primary marketing hero */
     hero: "/practice-2.jpg",
@@ -90,6 +93,12 @@ export const siteConfig = {
     postOp: "/rehab-10.jpg",
     assessment: "/rehab-09.jpg",
     og: "/practice-2.jpg",
+  },
+  pwa: {
+    shortName: "Fouza",
+    themeColor: "#59C9D5",
+    backgroundColor: "#F7FCFD",
+    themeColorDark: "#111718",
   },
 } as const;
 

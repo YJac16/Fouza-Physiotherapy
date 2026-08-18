@@ -12,6 +12,7 @@ import {
   TimeSlotCard,
   TreatmentCard,
 } from "@/components/booking";
+import { TrackBookingStarted } from "@/components/analytics/marketing-tracker";
 import { Button } from "@/components/ui/button";
 import { FormMessage } from "@/components/ui/form-message";
 import { Input } from "@/components/ui/input";
@@ -26,6 +27,7 @@ import {
   fetchSlotsAction,
 } from "@/features/booking/actions/booking";
 import type { BookingPatientContext } from "@/features/booking/lib/eligibility";
+import { filterBookableServices } from "@/features/booking/lib/eligibility";
 import { BOOKING_TIMEZONE } from "@/features/booking/lib/timezone";
 import { cn } from "@/lib/utils";
 
@@ -49,6 +51,7 @@ export interface BookingWizardProps {
   services: BookableService[];
   practitioners: BookablePractitioner[];
   patientContext?: BookingPatientContext | null;
+  bookablePatients?: BookingPatientContext[];
   isAuthenticated?: boolean;
   className?: string;
 }
@@ -125,10 +128,19 @@ export function BookingWizard({
   services,
   practitioners,
   patientContext = null,
+  bookablePatients = [],
   isAuthenticated = false,
   className,
 }: BookingWizardProps) {
   const router = useRouter();
+  const patients = bookablePatients.length ? bookablePatients : patientContext ? [patientContext] : [];
+  const [selectedPatientId, setSelectedPatientId] = useState(patients[0]?.patientId ?? "");
+  const selectedPatient =
+    patients.find((patient) => patient.patientId === selectedPatientId) ?? patients[0] ?? null;
+  const visibleServices = filterBookableServices(
+    services.filter((service): service is BookableService & { slug: string } => Boolean(service.slug)),
+    Boolean(selectedPatient?.canBookFollowUps),
+  );
   const [step, setStep] = useState(1);
   const [serviceId, setServiceId] = useState<string | null>(null);
   const [practitionerId, setPractitionerId] = useState<string | null>(null);
@@ -156,26 +168,32 @@ export function BookingWizard({
   );
 
   const needsAuth = !isAuthenticated;
-  const needsConsentForms = Boolean(patientContext?.needsConsent);
-  const bookingBlocked = needsAuth || needsConsentForms;
+  const needsConsentForms = Boolean(selectedPatient?.access !== "contact" && selectedPatient?.needsConsent);
+  const familyConsentMissing = Boolean(
+    selectedPatient?.access === "contact" && !selectedPatient.informedConsentSigned,
+  );
+  const bookingBlocked = needsAuth || needsConsentForms || familyConsentMissing;
   const consentReturnTo = `${routes.booking.root}`;
   const consentHref = `${routes.portal.forms}?returnTo=${encodeURIComponent(consentReturnTo)}`;
   const loginHref = `${routes.auth.login}?redirectTo=${encodeURIComponent(consentHref)}`;
   const registerHref = `${routes.auth.register}?redirectTo=${encodeURIComponent(consentHref)}`;
 
   const minDate = useMemo(() => getDateKeyInTimezone(), []);
-  const selectedService = services.find((s) => s.id === serviceId) ?? null;
+  const selectedService = visibleServices.find((s) => s.id === serviceId) ?? null;
   const selectedPractitioner = practitioners.find((p) => p.id === practitionerId) ?? null;
 
   useEffect(() => {
-    if (!patientContext) return;
-    setDetails((current) => ({
-      firstName: current.firstName || patientContext.firstName,
-      lastName: current.lastName || patientContext.lastName,
-      email: current.email || patientContext.email,
-      phone: current.phone || patientContext.phone,
-    }));
-  }, [patientContext]);
+    if (!selectedPatient) return;
+    setDetails({
+      firstName: selectedPatient.firstName,
+      lastName: selectedPatient.lastName,
+      email: selectedPatient.email,
+      phone: selectedPatient.phone,
+    });
+    if (serviceId && !visibleServices.some((service) => service.id === serviceId)) {
+      setServiceId(null);
+    }
+  }, [selectedPatient?.patientId]);
 
   const loadSlots = useCallback(
     async (nextDate: string) => {
@@ -276,7 +294,7 @@ export function BookingWizard({
           { label: "Date", value: formatBookingDate(selectedSlot.startsAt) },
           { label: "Time", value: selectedSlot.label },
           { label: "Duration", value: formatDuration(selectedService.duration_minutes) },
-          { label: "Name", value: `${details.firstName} ${details.lastName}`.trim() },
+          { label: "Patient", value: `${details.firstName} ${details.lastName}`.trim() },
           { label: "Email", value: details.email },
           { label: "Phone", value: details.phone },
         ]
@@ -284,13 +302,34 @@ export function BookingWizard({
 
   return (
     <div className={cn("min-w-0 space-y-8", className)}>
+      <TrackBookingStarted />
       <BookingProgressIndicator steps={[...STEPS]} currentStep={step} />
 
-      {!patientContext?.canBookFollowUps ? (
+      {!selectedPatient?.canBookFollowUps ? (
         <FormMessage tone="info">
-          New patients can book an Initial Consultation or Injury Prevention Assessment. Follow-up
-          appointments unlock after verified account status and informed consent.
+          {selectedPatient?.access === "contact"
+            ? "Follow-up bookings for this patient unlock once the practice has verified informed consent on file."
+            : "New patients can book an Initial Consultation or Injury Prevention Assessment. Follow-up appointments unlock after verified account status and informed consent."}
         </FormMessage>
+      ) : null}
+
+      {patients.length > 1 ? (
+        <div className="space-y-2">
+          <Label htmlFor="booking-patient">Who is this appointment for?</Label>
+          <select
+            id="booking-patient"
+            className="h-11 w-full max-w-lg rounded-xl border border-border bg-background px-3 text-sm"
+            value={selectedPatientId}
+            onChange={(event) => setSelectedPatientId(event.target.value)}
+          >
+            {patients.map((patient) => (
+              <option key={patient.patientId} value={patient.patientId}>
+                {patient.firstName} {patient.lastName}
+                {patient.access === "contact" ? " (family)" : ""}
+              </option>
+            ))}
+          </select>
+        </div>
       ) : null}
 
       {step === 1 ? (
@@ -302,7 +341,7 @@ export function BookingWizard({
             Choose the treatment you&apos;d like to book.
           </Typography>
           <div className="grid gap-4 md:grid-cols-2">
-            {services.map((service) => (
+            {visibleServices.map((service) => (
               <TreatmentCard
                 key={service.id}
                 name={service.name}
@@ -422,8 +461,10 @@ export function BookingWizard({
             Your details
           </Typography>
           <Typography variant="small" className="mb-6 text-muted-foreground">
-            {patientContext
-              ? "We’ve filled these from your profile — edit if anything needs updating."
+            {selectedPatient
+              ? selectedPatient.access === "contact"
+                ? "We’ll book this visit against the selected patient’s record."
+                : "We’ve filled these from your profile — edit if anything needs updating."
               : "We’ll use this to confirm your appointment and send reminders."}
           </Typography>
           <div className="grid max-w-lg gap-4 sm:grid-cols-2">
@@ -500,7 +541,9 @@ export function BookingWizard({
                 <FormMessage tone="info">
                   {needsAuth
                     ? "Sign in or create an account to confirm this booking. New patients complete informed consent next."
-                    : "Informed consent must be completed before you can confirm this booking."}
+                    : familyConsentMissing
+                      ? "Informed consent for this patient must be captured by the practice before you can book online."
+                      : "Informed consent must be completed before you can confirm this booking."}
                 </FormMessage>
                 {needsAuth ? (
                   <div className="flex flex-col gap-2 sm:flex-row">
@@ -511,6 +554,11 @@ export function BookingWizard({
                       <Link href={registerHref}>Create account</Link>
                     </Button>
                   </div>
+                ) : familyConsentMissing ? (
+                  <p className="text-sm text-muted-foreground">
+                    Ask the practice to complete consent at the visit, then follow-ups can be booked
+                    here.
+                  </p>
                 ) : (
                   <Button asChild size="lg" className="w-full sm:w-auto">
                     <Link href={consentHref}>Complete informed consent</Link>
@@ -535,6 +583,7 @@ export function BookingWizard({
                 }}
               >
                 <input type="hidden" name="holdToken" value={holdToken ?? ""} />
+                <input type="hidden" name="patientId" value={selectedPatient?.patientId ?? ""} />
                 <input type="hidden" name="firstName" value={details.firstName} />
                 <input type="hidden" name="lastName" value={details.lastName} />
                 <input type="hidden" name="email" value={details.email} />

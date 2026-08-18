@@ -1,6 +1,9 @@
 import { requireStaff } from "@/lib/auth/guards";
 import { createClient } from "@/lib/supabase/server";
-import { toDateKey } from "@/features/booking/lib/timezone";
+import {
+  getCurrentMonthFinanceSummary,
+  getTodayAppointmentCount,
+} from "@/features/analytics/api/finance";
 
 /**
  * Read a single practice_settings value by key. Public — used on marketing
@@ -35,28 +38,22 @@ export async function setPracticeSetting(key: string, value: unknown) {
 export async function getDashboardMetrics() {
   await requireStaff();
   const supabase = await createClient();
-  const today = toDateKey(new Date());
-  const dayStart = `${today}T00:00:00+02:00`;
 
-  const [patients, appointments, invoices, notes] = await Promise.all([
+  const [patients, todayAppointments, notes, monthFinance] = await Promise.all([
     supabase.from("patients").select("id", { count: "exact", head: true }),
-    supabase
-      .from("appointments")
-      .select("id", { count: "exact", head: true })
-      .gte("starts_at", dayStart),
-    supabase
-      .from("invoices")
-      .select("total_cents")
-      .eq("status", "paid"),
+    getTodayAppointmentCount(),
     supabase.from("clinical_notes").select("id", { count: "exact", head: true }),
+    getCurrentMonthFinanceSummary(),
   ]);
-
-  const revenue = (invoices.data ?? []).reduce((s, i) => s + (i.total_cents ?? 0), 0);
 
   return {
     patientCount: patients.count ?? 0,
-    todayAppointments: appointments.count ?? 0,
-    revenueCents: revenue,
+    todayAppointments,
+    cashCollectedCents: monthFinance.cashCollectedCents,
+    outstandingCents: monthFinance.outstandingCents,
+    invoicedCents: monthFinance.invoicedCents,
     notesCount: notes.count ?? 0,
+    monthFrom: monthFinance.fromDate,
+    monthTo: monthFinance.toDate,
   };
 }

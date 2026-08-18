@@ -12,6 +12,7 @@ import {
 import { SignedConsentView } from "@/features/consent-forms/components/signed-consent-view";
 import type { SignedConsentPackage } from "@/features/consent-forms/lib/signed-package-types";
 import { pricingPlans } from "@/content/pricing";
+import { routes } from "@/config/routes";
 import { siteConfig } from "@/config/site";
 import { Button } from "@/components/ui/button";
 import { FormMessage } from "@/components/ui/form-message";
@@ -27,7 +28,7 @@ const RELEASE_OPTIONS = ["Medical Team", "Guardian", "Partner", "Other"] as cons
 const SOURCE_OPTIONS = ["Instagram", "Facebook", "Google", "Other"] as const;
 
 export interface PortalFormsClientProps {
-  patientId: string;
+  patientId?: string;
   appointmentId?: string | null;
   alreadyComplete?: boolean;
   signedPackage?: SignedConsentPackage | null;
@@ -35,6 +36,11 @@ export interface PortalFormsClientProps {
   treatmentConsent: { id: string; title: string; body_md: string };
   accountConsent: { id: string; title: string; body_md: string };
   returnTo?: string | null;
+  mode?: "portal" | "staff";
+  submitAction?: (
+    prev: ConsentActionState,
+    formData: FormData,
+  ) => Promise<ConsentActionState>;
   defaults?: {
     fullName?: string;
     email?: string;
@@ -46,6 +52,10 @@ export interface PortalFormsClientProps {
     medicalAid?: string;
     medicalAidNumber?: string;
     dependantCode?: string;
+    accountHolderName?: string;
+    accountHolderEmail?: string;
+    accountHolderPhone?: string;
+    accountHolderAddress?: string;
   };
 }
 
@@ -147,22 +157,25 @@ export function PortalFormsClient({
   accountConsent,
   defaults,
   returnTo,
+  mode = "portal",
+  submitAction = submitFouzaConsentPackageAction,
 }: PortalFormsClientProps) {
   const router = useRouter();
-  const [state, action, pending] = useActionState(
-    submitFouzaConsentPackageAction,
-    initial,
-  );
+  const [state, action, pending] = useActionState(submitAction, initial);
 
   useEffect(() => {
     if (!state.success) return;
+    if (state.id) {
+      router.push(routes.admin.patient(state.id));
+      return;
+    }
     if (returnTo?.startsWith("/")) {
       router.push(returnTo);
     }
     router.refresh();
-  }, [state.success, returnTo, router]);
+  }, [state.success, state.id, returnTo, router]);
 
-  const [sameAsPatient, setSameAsPatient] = useState(false);
+  const [sameAsPatient, setSameAsPatient] = useState(!defaults?.accountHolderName);
   const [fullName, setFullName] = useState(defaults?.fullName ?? "");
   const [idNumber, setIdNumber] = useState(defaults?.idNumber ?? "");
   const [contactNumber, setContactNumber] = useState(defaults?.phone ?? "");
@@ -171,11 +184,11 @@ export function PortalFormsClient({
   const [suburb, setSuburb] = useState(defaults?.suburb ?? "");
   const [areaCode, setAreaCode] = useState(defaults?.areaCode ?? "");
 
-  const [respName, setRespName] = useState("");
+  const [respName, setRespName] = useState(defaults?.accountHolderName ?? "");
   const [respId, setRespId] = useState("");
-  const [respContact, setRespContact] = useState("");
-  const [respEmail, setRespEmail] = useState("");
-  const [respPostal, setRespPostal] = useState("");
+  const [respContact, setRespContact] = useState(defaults?.accountHolderPhone ?? "");
+  const [respEmail, setRespEmail] = useState(defaults?.accountHolderEmail ?? "");
+  const [respPostal, setRespPostal] = useState(defaults?.accountHolderAddress ?? "");
 
   const [medicalAid, setMedicalAid] = useState(defaults?.medicalAid ?? "");
   const [medicalAidNumber, setMedicalAidNumber] = useState(defaults?.medicalAidNumber ?? "");
@@ -189,8 +202,11 @@ export function PortalFormsClient({
   const [undertaking, setUndertaking] = useState<"yes" | "no" | "">("");
   const [pleaseNote, setPleaseNote] = useState<"agree" | "disagree" | "">("");
   const [typedFullName, setTypedFullName] = useState("");
+  const [accountTypedName, setAccountTypedName] = useState(defaults?.accountHolderName ?? "");
+  const [treatmentSignerRole, setTreatmentSignerRole] = useState<"patient" | "proxy">("patient");
   const [treatmentSignature, setTreatmentSignature] = useState("");
   const [accountSignature, setAccountSignature] = useState("");
+  const isStaff = mode === "staff";
 
   const answersJson = useMemo(
     () =>
@@ -300,7 +316,7 @@ export function PortalFormsClient({
   return (
     <form action={action} className="min-w-0 space-y-6 overflow-x-hidden">
       <input type="hidden" name="intakeFormId" value={intakeForm.id} />
-      <input type="hidden" name="patientId" value={patientId} />
+      {patientId ? <input type="hidden" name="patientId" value={patientId} /> : null}
       {appointmentId ? (
         <input type="hidden" name="appointmentId" value={appointmentId} />
       ) : null}
@@ -309,6 +325,13 @@ export function PortalFormsClient({
       <input type="hidden" name="answersJson" value={answersJson} />
       <input type="hidden" name="treatmentSignature" value={treatmentSignature} />
       <input type="hidden" name="accountSignature" value={accountSignature} />
+      {isStaff ? (
+        <>
+          <input type="hidden" name="treatmentSignerRole" value={treatmentSignerRole} />
+          <input type="hidden" name="accountSignerRole" value="account_holder" />
+          <input type="hidden" name="accountTypedName" value={accountTypedName || respName} />
+        </>
+      ) : null}
 
       <Card className="border-primary/20 bg-accent-soft/40">
         <CardHeader>
@@ -328,8 +351,8 @@ export function PortalFormsClient({
       </Card>
 
       <Section title="Patient details">
-        <div className="grid gap-4 sm:grid-cols-2">
-          <div className="space-y-2 sm:col-span-2">
+        <div className="grid gap-4">
+          <div className="space-y-2">
             <Label htmlFor="fullName">Name and Surname *</Label>
             <Input
               id="fullName"
@@ -356,7 +379,7 @@ export function PortalFormsClient({
               onChange={(e) => setContactNumber(e.target.value)}
             />
           </div>
-          <div className="space-y-2 sm:col-span-2">
+          <div className="space-y-2">
             <Label htmlFor="email">Email address *</Label>
             <Input
               id="email"
@@ -366,9 +389,9 @@ export function PortalFormsClient({
               onChange={(e) => setEmail(e.target.value)}
             />
           </div>
-          <div className="space-y-2 sm:col-span-2">
+          <div className="space-y-2">
             <Label>Postal Address *</Label>
-            <div className="grid gap-3 md:grid-cols-3">
+            <div className="grid gap-3">
               <Input
                 placeholder="Street name and number"
                 required
@@ -406,8 +429,8 @@ export function PortalFormsClient({
           Same as above
         </label>
         {!sameAsPatient ? (
-          <div className="grid gap-4 sm:grid-cols-2">
-            <div className="space-y-2 sm:col-span-2">
+          <div className="grid gap-4">
+            <div className="space-y-2">
               <Label>Name and Surname *</Label>
               <Input required value={respName} onChange={(e) => setRespName(e.target.value)} />
             </div>
@@ -423,7 +446,7 @@ export function PortalFormsClient({
                 onChange={(e) => setRespContact(e.target.value)}
               />
             </div>
-            <div className="space-y-2 sm:col-span-2">
+            <div className="space-y-2">
               <Label>Email address *</Label>
               <Input
                 type="email"
@@ -432,7 +455,7 @@ export function PortalFormsClient({
                 onChange={(e) => setRespEmail(e.target.value)}
               />
             </div>
-            <div className="space-y-2 sm:col-span-2">
+            <div className="space-y-2">
               <Label>Postal Address *</Label>
               <Textarea
                 required
@@ -449,7 +472,7 @@ export function PortalFormsClient({
         title="Medical Aid Details"
         description="If no Medical Aid, fill N/A."
       >
-        <div className="grid gap-4 md:grid-cols-3">
+        <div className="grid gap-4">
           <div className="space-y-2">
             <Label>Medical Aid *</Label>
             <Input
@@ -481,7 +504,7 @@ export function PortalFormsClient({
       </Section>
 
       <Section title="Consent to release information *">
-        <div className="grid gap-2 sm:grid-cols-2">
+        <div className="grid gap-2">
           {RELEASE_OPTIONS.map((opt) => (
             <label key={opt} className="flex min-h-11 items-center gap-3 text-sm">
               <input
@@ -504,7 +527,7 @@ export function PortalFormsClient({
       </Section>
 
       <Section title="How did you find out about this practice? *">
-        <div className="grid gap-2 sm:grid-cols-2">
+        <div className="grid gap-2">
           {SOURCE_OPTIONS.map((opt) => (
             <label key={opt} className="flex min-h-11 items-center gap-3 text-sm">
               <input
@@ -528,9 +551,40 @@ export function PortalFormsClient({
 
       <Section title={treatmentConsent.title}>
         <ConsentBody markdown={treatmentConsent.body_md} />
+        {isStaff ? (
+          <div className="space-y-2">
+            <Label>Who is signing treatment consent?</Label>
+            <div className="flex flex-col gap-2 sm:flex-row sm:gap-6">
+              <label className="flex min-h-11 items-center gap-3 text-sm">
+                <input
+                  type="radio"
+                  className="size-4 shrink-0"
+                  checked={treatmentSignerRole === "patient"}
+                  onChange={() => setTreatmentSignerRole("patient")}
+                />
+                Patient
+              </label>
+              <label className="flex min-h-11 items-center gap-3 text-sm">
+                <input
+                  type="radio"
+                  className="size-4 shrink-0"
+                  checked={treatmentSignerRole === "proxy"}
+                  onChange={() => setTreatmentSignerRole("proxy")}
+                />
+                Proxy / next of kin
+              </label>
+            </div>
+          </div>
+        ) : null}
         <SignaturePad
           name="treatmentSignaturePad"
-          label="Sign treatment consent"
+          label={
+            isStaff
+              ? treatmentSignerRole === "proxy"
+                ? "Patient / proxy signature"
+                : "Patient signature"
+              : "Sign treatment consent"
+          }
           onChange={setTreatmentSignature}
         />
       </Section>
@@ -546,9 +600,19 @@ export function PortalFormsClient({
             </p>
           ))}
         </div>
+        {isStaff ? (
+          <div className="space-y-2">
+            <Label>Account holder full name (if different)</Label>
+            <Input
+              value={accountTypedName}
+              onChange={(e) => setAccountTypedName(e.target.value)}
+              placeholder="Name of the person paying the account"
+            />
+          </div>
+        ) : null}
         <SignaturePad
           name="accountSignaturePad"
-          label="Sign account responsibility"
+          label={isStaff ? "Account holder signature" : "Sign account responsibility"}
           onChange={setAccountSignature}
         />
       </Section>
@@ -635,7 +699,7 @@ export function PortalFormsClient({
           required
           value={typedFullName}
           onChange={(e) => setTypedFullName(e.target.value)}
-          placeholder="Your full legal name"
+          placeholder={isStaff ? "Patient or proxy full legal name" : "Your full legal name"}
         />
       </Section>
 
@@ -649,7 +713,11 @@ export function PortalFormsClient({
         loading={pending}
         disabled={!treatmentSignature || !accountSignature}
       >
-        Submit informed consent
+        {isStaff
+          ? patientId
+            ? "Save consent on file"
+            : "Create patient"
+          : "Submit informed consent"}
       </Button>
     </form>
   );

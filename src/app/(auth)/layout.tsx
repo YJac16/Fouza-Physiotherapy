@@ -1,7 +1,12 @@
 import Link from "next/link";
+import type { Metadata } from "next";
 
 import { routes } from "@/config/routes";
 import { siteConfig } from "@/config/site";
+
+export const metadata: Metadata = {
+  robots: { index: false, follow: false },
+};
 
 /**
  * Auth route group — login, register, password reset.

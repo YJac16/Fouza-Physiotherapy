@@ -36,7 +36,7 @@ export default async function StatementsPage({
         <div>
           <h1 className="font-display text-2xl font-semibold">Statements</h1>
           <p className="text-sm text-muted-foreground">
-            Period summaries for patient medical-aid submission (cash practice).
+            Period invoiced versus cash collected (last day included). Void invoices are excluded.
           </p>
         </div>
         <Button asChild variant="outline">

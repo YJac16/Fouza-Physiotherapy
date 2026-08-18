@@ -9,7 +9,8 @@ export type InvoiceDocumentLine = {
   unitPriceCents: number;
   amountCents: number;
   treatmentCode?: string | null;
-  discountPercent?: number;
+  discountPercent?: number | null;
+  discountCents?: number;
   vatPercent?: number;
 };
 
@@ -33,11 +34,14 @@ export type InvoiceDocumentProps = {
   practiceAddress?: string;
   patientName: string;
   patientAddress?: string | null;
+  accountHolderName?: string | null;
+  accountHolderEmail?: string | null;
   lines: InvoiceDocumentLine[];
   subtotalCents: number;
   taxCents: number;
   totalCents: number;
   discountCents?: number;
+  discountNote?: string | null;
   balanceDueCents?: number;
   amountPaidCents?: number;
   paymentMethod?: string | null;
@@ -79,11 +83,14 @@ export function InvoiceReceiptDocument({
   practiceAddress = `${siteConfig.address}, ${siteConfig.region}`,
   patientName,
   patientAddress,
+  accountHolderName,
+  accountHolderEmail,
   lines,
   subtotalCents,
   taxCents,
   totalCents,
   discountCents = 0,
+  discountNote,
   balanceDueCents,
   amountPaidCents,
   paymentMethod,
@@ -96,6 +103,7 @@ export function InvoiceReceiptDocument({
   const grandTotal = totalCents;
   const balance =
     balanceDueCents ?? (isReceipt ? 0 : Math.max(grandTotal - (amountPaidCents ?? 0), 0));
+  const showLineDiscounts = lines.some((line) => (line.discountCents ?? 0) > 0);
 
   return (
     <article
@@ -174,6 +182,13 @@ export function InvoiceReceiptDocument({
           <section>
             <h2 className="text-xs font-semibold uppercase tracking-wider text-[#666]">To</h2>
             <p className="mt-1 text-base font-semibold uppercase">{patientName}</p>
+            {accountHolderName || accountHolderEmail ? (
+              <p className="mt-2 text-sm text-[#444]">
+                <span className="font-medium text-[#666]">Account:</span>
+                <br />
+                {[accountHolderName, accountHolderEmail].filter(Boolean).join(" · ")}
+              </p>
+            ) : null}
             <p className="mt-2 text-sm text-[#444]">
               <span className="font-medium text-[#666]">Customer VAT NO:</span>
             </p>
@@ -197,10 +212,10 @@ export function InvoiceReceiptDocument({
                 <th className="px-3 py-2 font-medium">Description</th>
                 <th className="px-3 py-2 font-medium">Quantity</th>
                 <th className="px-3 py-2 font-medium">Unit Price</th>
-                <th className="px-3 py-2 font-medium">Disc %</th>
-                <th className="px-3 py-2 font-medium">VAT %</th>
-                <th className="px-3 py-2 font-medium">Excl. Total</th>
-                <th className="px-3 py-2 font-medium">Incl. Total</th>
+                {showLineDiscounts ? <th className="px-3 py-2 font-medium">Discount</th> : null}
+                {taxCents > 0 ? <th className="px-3 py-2 font-medium">VAT %</th> : null}
+                <th className="px-3 py-2 font-medium">{taxCents > 0 ? "Excl. Total" : "Amount"}</th>
+                {taxCents > 0 ? <th className="px-3 py-2 font-medium">Incl. Total</th> : null}
               </tr>
             </thead>
             <tbody>
@@ -210,16 +225,26 @@ export function InvoiceReceiptDocument({
                   : line.description;
                 const excl = line.amountCents;
                 const vatPct = line.vatPercent ?? 0;
-                const discPct = line.discountPercent ?? 0;
+                const lineDiscount = line.discountCents ?? 0;
                 return (
                   <tr key={`${label}-${index}`} className="border-b border-[#eee]">
                     <td className="px-3 py-2.5">{label}</td>
                     <td className="px-3 py-2.5">{line.quantity.toFixed(1)}</td>
                     <td className="px-3 py-2.5">{money(line.unitPriceCents)}</td>
-                    <td className="px-3 py-2.5">{discPct.toFixed(2)}%</td>
-                    <td className="px-3 py-2.5">{vatPct.toFixed(2)}%</td>
+                    {showLineDiscounts ? (
+                      <td className="px-3 py-2.5">
+                        {lineDiscount > 0
+                          ? `${money(lineDiscount)}${
+                              line.discountPercent ? ` (${line.discountPercent}%)` : ""
+                            }`
+                          : "—"}
+                      </td>
+                    ) : null}
+                    {taxCents > 0 ? <td className="px-3 py-2.5">{vatPct.toFixed(2)}%</td> : null}
                     <td className="px-3 py-2.5">{money(excl)}</td>
-                    <td className="px-3 py-2.5 font-medium">{money(excl)}</td>
+                    {taxCents > 0 ? (
+                      <td className="px-3 py-2.5 font-medium">{money(excl)}</td>
+                    ) : null}
                   </tr>
                 );
               })}
@@ -261,18 +286,25 @@ export function InvoiceReceiptDocument({
               <span className="text-[#666]">Total Discount</span>
               <span>{money(discountCents)}</span>
             </div>
-            <div className="flex justify-between gap-6 sm:justify-end">
-              <span className="text-[#666]">Total Exclusive</span>
-              <span>{money(exclusive)}</span>
-            </div>
-            <div className="flex justify-between gap-6 sm:justify-end">
-              <span className="text-[#666]">Total VAT</span>
-              <span>{money(taxCents)}</span>
-            </div>
-            <div className="flex justify-between gap-6 sm:justify-end">
-              <span className="text-[#666]">Sub Total</span>
-              <span>{money(exclusive + taxCents)}</span>
-            </div>
+            {discountNote ? (
+              <p className="text-xs text-[#666] sm:text-right">{discountNote}</p>
+            ) : null}
+            {taxCents > 0 ? (
+              <>
+                <div className="flex justify-between gap-6 sm:justify-end">
+                  <span className="text-[#666]">Total Exclusive</span>
+                  <span>{money(exclusive)}</span>
+                </div>
+                <div className="flex justify-between gap-6 sm:justify-end">
+                  <span className="text-[#666]">Total VAT</span>
+                  <span>{money(taxCents)}</span>
+                </div>
+                <div className="flex justify-between gap-6 sm:justify-end">
+                  <span className="text-[#666]">Sub Total</span>
+                  <span>{money(exclusive + taxCents)}</span>
+                </div>
+              </>
+            ) : null}
             <div className="flex justify-between gap-6 border-t border-[#ddd] pt-2 text-base font-semibold sm:justify-end">
               <span>Grand Total</span>
               <span>{money(grandTotal)}</span>

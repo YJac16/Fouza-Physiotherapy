@@ -138,7 +138,11 @@ export default async function ConsentFormsAdminPage() {
                         <Button asChild variant="outline" size="sm">
                           <Link href={routes.admin.consentFormPatient(p.id)}>View signed</Link>
                         </Button>
-                      ) : null}
+                      ) : (
+                        <Button asChild size="sm">
+                          <Link href={routes.admin.captureConsent(p.id)}>Capture consent</Link>
+                        </Button>
+                      )}
                     </div>
                   </CardContent>
                 </Card>

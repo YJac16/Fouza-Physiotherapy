@@ -3,9 +3,10 @@
 import { revalidatePath } from "next/cache";
 import { z } from "zod";
 
-import { requireStaff, requireUser } from "@/lib/auth/guards";
+import { requireStaff } from "@/lib/auth/guards";
 import { createClient } from "@/lib/supabase/server";
 import { patientDocPath } from "@/lib/supabase/storage";
+import { listAccessiblePatients } from "@/features/patients/api/patients";
 
 const docSchema = z.object({
   patientId: z.string().uuid(),
@@ -52,19 +53,17 @@ export async function registerDocumentAction(
   return { success: "Document registered", path };
 }
 
-export async function listPatientDocuments() {
-  const profile = await requireUser();
+export async function listPatientDocuments(patientId?: string | null) {
+  const { data: accessible } = await listAccessiblePatients();
+  const ids = accessible
+    .filter((patient) => (patientId ? patient.id === patientId : true))
+    .map((patient) => patient.id);
+  if (!ids.length) return { data: [], error: null };
   const supabase = await createClient();
-  const { data: patient } = await supabase
-    .from("patients")
-    .select("id")
-    .eq("profile_id", profile.id)
-    .maybeSingle();
-  if (!patient) return { data: [], error: null };
   return supabase
     .from("documents")
-    .select("*")
-    .eq("patient_id", patient.id)
+    .select("*, patients(first_name, last_name)")
+    .in("patient_id", ids)
     .eq("is_patient_visible", true)
     .order("created_at", { ascending: false });
 }

@@ -60,6 +60,8 @@ export const routes = {
     consentForms: "/admin/consent-forms",
     consentFormPatient: (patientId: string) =>
       `/admin/consent-forms/${patientId}` as const,
+    captureConsent: (patientId: string) =>
+      `/admin/consent-forms/${patientId}/capture` as const,
     billing: "/admin/billing",
     newInvoice: "/admin/billing/new",
     invoices: "/admin/billing",

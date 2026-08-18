@@ -21,6 +21,7 @@ export const confirmBookingSchema = z.object({
   lastName: z.string().min(1),
   email: z.string().email(),
   phone: z.string().min(7),
+  patientId: z.string().uuid().optional(),
 });
 
 export const rescheduleSchema = z.object({

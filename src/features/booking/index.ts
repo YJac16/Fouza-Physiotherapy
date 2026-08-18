@@ -7,6 +7,7 @@ export {
   adminCancelAppointmentAction,
   adminCreateAppointmentAction,
   adminRescheduleAppointmentAction,
+  adminUpdateAttendanceAction,
   confirmBookingAction,
   createHoldAction,
   fetchSlotsAction,
@@ -50,6 +51,7 @@ export {
   createStaffAppointment,
   purgeExpiredHolds,
   rescheduleBooking,
+  updateAppointmentAttendance,
 } from "@/features/booking/api/bookings";
 export { listAvailableSlots, isSlotStillAvailable } from "@/features/booking/api/slots";
 export type { Slot } from "@/features/booking/api/slots";
@@ -61,6 +63,9 @@ export {
 } from "@/features/booking/lib/timezone";
 export {
   canCancelAppointmentStatus,
+  canCompleteAppointmentStatus,
+  canCorrectAttendanceStatus,
+  canMarkNoShowAppointmentStatus,
   canRescheduleAppointmentStatus,
   canTransitionAppointmentStatus,
   ACTIVE_BOOKING_STATUSES,

@@ -14,6 +14,7 @@ import { routes } from "@/config/routes";
 import { conditionHref, conditions, getCondition } from "@/content/conditions";
 import { JsonLd, breadcrumbJsonLd, faqJsonLd } from "@/lib/seo/json-ld";
 import { buildMetadata } from "@/lib/seo/metadata";
+import { TrackViewItem } from "@/components/analytics/marketing-tracker";
 
 interface ConditionPageProps {
   params: Promise<{ slug: string }>;
@@ -64,6 +65,7 @@ export default async function ConditionDetailPage({ params }: ConditionPageProps
         ])}
       />
       {condition.faqs.length > 0 ? <JsonLd data={faqJsonLd(condition.faqs)} /> : null}
+      <TrackViewItem itemId={condition.slug} itemName={condition.name} />
 
       <PageHero
         title={`${condition.name} Treatment`}

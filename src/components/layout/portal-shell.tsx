@@ -23,6 +23,8 @@ import { Button } from "@/components/ui/button";
 import { Separator } from "@/components/ui/separator";
 import { routes } from "@/config/routes";
 import { signOutAction } from "@/features/auth";
+import { PortalPatientSwitcher } from "@/features/patients/components/portal-patient-switcher";
+import type { AccessiblePatient } from "@/features/patients/lib/access";
 import { cn } from "@/lib/utils";
 
 const portalNav = [
@@ -88,6 +90,8 @@ export interface PortalHeaderProps {
   userName?: string;
   className?: string;
   onMenuClick?: () => void;
+  patients?: AccessiblePatient[];
+  selectedPatientId?: string | null;
 }
 
 export function PortalHeader({
@@ -95,6 +99,8 @@ export function PortalHeader({
   userName = "Patient",
   className,
   onMenuClick,
+  patients = [],
+  selectedPatientId = null,
 }: PortalHeaderProps) {
   return (
     <header
@@ -119,6 +125,7 @@ export function PortalHeader({
         <h1 className="truncate font-display text-h5 tracking-tight">{title}</h1>
       </div>
       <div className="flex shrink-0 items-center gap-2">
+        <PortalPatientSwitcher patients={patients} selectedPatientId={selectedPatientId} />
         <ThemeToggle />
         <div className="flex max-w-[40vw] items-center gap-2 rounded-xl border border-border/70 px-2 py-1.5 sm:max-w-none">
           <Avatar className="size-8 shrink-0">
@@ -153,9 +160,17 @@ export interface PortalShellProps {
   children: React.ReactNode;
   title?: string;
   userName?: string;
+  patients?: AccessiblePatient[];
+  selectedPatientId?: string | null;
 }
 
-export function PortalShell({ children, title, userName }: PortalShellProps) {
+export function PortalShell({
+  children,
+  title,
+  userName,
+  patients = [],
+  selectedPatientId = null,
+}: PortalShellProps) {
   const pathname = usePathname();
   const [mobileOpen, setMobileOpen] = React.useState(false);
 
@@ -199,6 +214,8 @@ export function PortalShell({ children, title, userName }: PortalShellProps) {
           title={title}
           userName={userName}
           onMenuClick={() => setMobileOpen(true)}
+          patients={patients}
+          selectedPatientId={selectedPatientId}
         />
         <main className="min-w-0 flex-1 overflow-x-hidden p-4 md:p-6">{children}</main>
       </div>

@@ -10,10 +10,15 @@ import {
 } from "@/features/booking/lib/eligibility";
 import {
   canCancelAppointmentStatus,
+  canCompleteAppointmentStatus,
+  canCorrectAttendanceStatus,
+  canMarkNoShowAppointmentStatus,
   canRescheduleAppointmentStatus,
+  canTransitionAppointmentStatus,
   type AppointmentStatus,
 } from "@/features/booking/lib/status";
 import { ensurePatientPortalInvite } from "@/features/auth/lib/portal-invite";
+import { resolveBookingPatient } from "@/features/booking/lib/booking-on-behalf";
 import { drainEmailOutbox } from "@/features/notifications/lib/outbox";
 import {
   cancelPendingAppointmentEmails,
@@ -218,20 +223,46 @@ export async function createAppointmentFromSlot(input: CreateAppointmentCoreInpu
     }
   }
 
-  const { data: appointment, error } = await admin
+  const { data: service, error: serviceError } = await admin
+    .from("services")
+    .select("id, price_cents, currency")
+    .eq("id", input.serviceId)
+    .maybeSingle();
+
+  if (serviceError || !service) {
+    return { error: "Service not found", appointmentId: null as string | null };
+  }
+  if (service.price_cents == null || service.price_cents < 0) {
+    return { error: "Service is missing a price", appointmentId: null as string | null };
+  }
+
+  const appointmentRow = {
+    patient_id: input.patientId,
+    practitioner_id: input.practitionerId,
+    service_id: input.serviceId,
+    starts_at: input.startsAt,
+    ends_at: input.endsAt,
+    status: input.status ?? "confirmed",
+    source: input.source,
+    notes: input.notes ?? null,
+    price_cents: service.price_cents,
+    currency: service.currency || "ZAR",
+  };
+
+  let { data: appointment, error } = await admin
     .from("appointments")
-    .insert({
-      patient_id: input.patientId,
-      practitioner_id: input.practitionerId,
-      service_id: input.serviceId,
-      starts_at: input.startsAt,
-      ends_at: input.endsAt,
-      status: input.status ?? "confirmed",
-      source: input.source,
-      notes: input.notes ?? null,
-    })
+    .insert(appointmentRow)
     .select("id")
     .single();
+
+  if (error && /price_cents|appointments\.currency/i.test(error.message)) {
+    const { price_cents: _price, currency: _currency, ...withoutPrice } = appointmentRow;
+    ({ data: appointment, error } = await admin
+      .from("appointments")
+      .insert(withoutPrice)
+      .select("id")
+      .single());
+  }
 
   if (error || !appointment) {
     if (isConflictError(error?.message)) {
@@ -338,26 +369,59 @@ export async function confirmBooking(input: ConfirmBookingInput) {
 
   const session = await getSessionProfile();
   let patientId: string | null = null;
+  let attachProfile = true;
 
-  const { data: existingByEmail } = await admin
-    .from("patients")
-    .select(
-      "id, profile_id, verified_account, informed_consent_signed, first_name, last_name, email, phone",
-    )
-    .eq("email", input.email.toLowerCase())
-    .maybeSingle();
+  const { data: owned } = session
+    ? await admin
+        .from("patients")
+        .select(
+          "id, profile_id, verified_account, informed_consent_signed, first_name, last_name, email, phone",
+        )
+        .eq("profile_id", session.id)
+        .maybeSingle()
+    : { data: null };
 
-  let patientRow = existingByEmail;
+  const { data: contactRows } = session
+    ? await admin
+        .from("patient_contacts")
+        .select("patient_id, can_book")
+        .eq("profile_id", session.id)
+    : { data: [] };
 
-  if (session) {
-    const { data: linked } = await admin
+  const resolved = resolveBookingPatient({
+    requestedPatientId: input.patientId,
+    sessionProfileId: session?.id ?? null,
+    ownedPatientId: owned?.id ?? null,
+    linkedContacts: (contactRows ?? []).map((row) => ({
+      patientId: row.patient_id,
+      canBook: Boolean(row.can_book),
+    })),
+  });
+
+  if (input.patientId && resolved.error) {
+    return { error: resolved.error, appointmentId: null };
+  }
+
+  let patientRow = owned;
+  if (resolved.patientId) {
+    attachProfile = resolved.attachProfile;
+    const { data: selected } = await admin
       .from("patients")
       .select(
         "id, profile_id, verified_account, informed_consent_signed, first_name, last_name, email, phone",
       )
-      .eq("profile_id", session.id)
+      .eq("id", resolved.patientId)
       .maybeSingle();
-    if (linked) patientRow = linked;
+    patientRow = selected;
+  } else {
+    const { data: existingByEmail } = await admin
+      .from("patients")
+      .select(
+        "id, profile_id, verified_account, informed_consent_signed, first_name, last_name, email, phone",
+      )
+      .eq("email", input.email.toLowerCase())
+      .maybeSingle();
+    patientRow = existingByEmail ?? owned;
   }
 
   let flags = {
@@ -391,25 +455,27 @@ export async function confirmBooking(input: ConfirmBookingInput) {
 
   if (patientRow) {
     patientId = patientRow.id;
-    await admin
-      .from("patients")
-      .update({
-        first_name: input.firstName,
-        last_name: input.lastName,
-        phone: input.phone,
-        email: input.email.toLowerCase(),
-        ...(session && !patientRow.profile_id ? { profile_id: session.id } : {}),
-      })
-      .eq("id", patientRow.id);
-
-    if (session) {
+    if (attachProfile) {
       await admin
-        .from("profiles")
+        .from("patients")
         .update({
-          full_name: `${input.firstName} ${input.lastName}`.trim(),
+          first_name: input.firstName,
+          last_name: input.lastName,
           phone: input.phone,
+          email: input.email.toLowerCase(),
+          ...(session && !patientRow.profile_id ? { profile_id: session.id } : {}),
         })
-        .eq("id", session.id);
+        .eq("id", patientRow.id);
+
+      if (session) {
+        await admin
+          .from("profiles")
+          .update({
+            full_name: `${input.firstName} ${input.lastName}`.trim(),
+            phone: input.phone,
+          })
+          .eq("id", session.id);
+      }
     }
   } else {
     const { data: created, error: patientError } = await admin
@@ -496,23 +562,33 @@ export async function confirmBooking(input: ConfirmBookingInput) {
 
   await admin.from("appointment_holds").delete().eq("id", freshHold.id);
 
-  const invite = await ensurePatientPortalInvite({
-    email: input.email,
-    fullName: `${input.firstName} ${input.lastName}`.trim(),
-    patientId,
-  });
+  const patientName = attachProfile
+    ? `${input.firstName} ${input.lastName}`.trim()
+    : `${patientRow?.first_name ?? input.firstName} ${patientRow?.last_name ?? input.lastName}`.trim();
+  const notifyEmail = attachProfile
+    ? input.email.toLowerCase()
+    : (session?.email ?? input.email).toLowerCase();
 
-  const patientName = `${input.firstName} ${input.lastName}`.trim();
+  let magicLink: string | null = null;
+  if (attachProfile) {
+    const invite = await ensurePatientPortalInvite({
+      email: input.email,
+      fullName: patientName,
+      patientId,
+    });
+    magicLink = invite.magicLink;
+  }
+
   await enqueueBookingEmails({
     appointmentId: created.appointmentId,
     patientId,
-    patientEmail: input.email.toLowerCase(),
+    patientEmail: notifyEmail,
     patientName,
-    firstName: input.firstName,
+    firstName: attachProfile ? input.firstName : (patientRow?.first_name ?? input.firstName),
     startsAt: freshHold.starts_at,
     serviceName: service.name ?? "Physiotherapy",
     practitionerId: freshHold.practitioner_id,
-    magicLink: invite.magicLink,
+    magicLink,
   });
 
   await admin.from("patient_timeline_events").insert({
@@ -523,7 +599,7 @@ export async function confirmBooking(input: ConfirmBookingInput) {
     entity_id: created.appointmentId,
   });
 
-  return { error: null, appointmentId: created.appointmentId, magicLink: invite.magicLink };
+  return { error: null, appointmentId: created.appointmentId, magicLink };
 }
 
 /**
@@ -687,6 +763,53 @@ export async function cancelBooking(appointmentId: string, actorId?: string) {
       meta: { previousStatus: status },
     });
   }
+  return { error: null };
+}
+
+export async function updateAppointmentAttendance(
+  appointmentId: string,
+  nextStatus: Extract<AppointmentStatus, "completed" | "no_show" | "confirmed">,
+  actorId?: string,
+) {
+  const admin = createServiceClient();
+  const { data: existing } = await admin
+    .from("appointments")
+    .select("id, status")
+    .eq("id", appointmentId)
+    .maybeSingle();
+
+  if (!existing) return { error: "Appointment not found" };
+
+  const current = existing.status as AppointmentStatus;
+  if (nextStatus === "completed" && !canCompleteAppointmentStatus(current)) {
+    return { error: "This appointment cannot be marked completed" };
+  }
+  if (nextStatus === "no_show" && !canMarkNoShowAppointmentStatus(current)) {
+    return { error: "This appointment cannot be marked as a no-show" };
+  }
+  if (nextStatus === "confirmed" && !canCorrectAttendanceStatus(current)) {
+    return { error: "This appointment cannot be returned to booked" };
+  }
+  if (!canTransitionAppointmentStatus(current, nextStatus)) {
+    return { error: "Invalid appointment status change" };
+  }
+
+  const { error } = await admin
+    .from("appointments")
+    .update({ status: nextStatus })
+    .eq("id", appointmentId);
+  if (error) return { error: error.message };
+
+  if (actorId) {
+    await admin.from("audit_logs").insert({
+      actor_id: actorId,
+      action: "appointment.attendance",
+      entity_type: "appointment",
+      entity_id: appointmentId,
+      meta: { previousStatus: current, status: nextStatus },
+    });
+  }
+
   return { error: null };
 }
 

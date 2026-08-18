@@ -12,7 +12,8 @@ import { getPatientConsentCompletionAdmin } from "@/features/consent-forms/lib/c
 import { listStaffDocuments } from "@/features/documents/actions/documents";
 import { PatientClinicalRecords } from "@/features/patients/components/patient-clinical-records";
 import { PatientVerificationControls } from "@/features/patients/components/patient-verification-controls";
-import { getPatient, getPatientTimeline } from "@/features/patients/api/patients";
+import { EditPatientForm } from "@/features/patients/components/create-patient-form";
+import { getPatient, getPatientTimeline, listPatientContacts } from "@/features/patients/api/patients";
 import { routes } from "@/config/routes";
 import { createSignedDownloadUrl } from "@/lib/supabase/storage";
 
@@ -25,11 +26,13 @@ export default async function PatientDetailPage({
   const { data: patient } = await getPatient(id);
   if (!patient) notFound();
 
-  const [timeline, consent, documentsResult] = await Promise.all([
+  const [timeline, consent, documentsResult, contactsResult] = await Promise.all([
     getPatientTimeline(id),
     getPatientConsentCompletionAdmin(id),
     listStaffDocuments(id),
+    listPatientContacts(id),
   ]);
+  const accountHolder = (contactsResult.data ?? []).find((contact) => contact.is_account_holder);
 
   const documents = await Promise.all(
     (documentsResult.data ?? []).map(async (doc) => {
@@ -164,7 +167,11 @@ export default async function PatientDetailPage({
             <Button asChild variant="outline" size="sm" className="w-full sm:w-auto">
               <Link href={routes.admin.consentFormPatient(id)}>View signed consent</Link>
             </Button>
-          ) : null}
+          ) : (
+            <Button asChild size="sm" className="w-full sm:w-auto">
+              <Link href={routes.admin.captureConsent(id)}>Capture consent at visit</Link>
+            </Button>
+          )}
         </CardContent>
       </Card>
 
@@ -221,6 +228,62 @@ export default async function PatientDetailPage({
           ) : null}
         </CardContent>
       </Card>
+
+      <Card>
+        <CardHeader>
+          <CardTitle className="text-h5">Account holder</CardTitle>
+        </CardHeader>
+        <CardContent className="grid gap-3 text-sm sm:grid-cols-2">
+          <div>
+            <span className="text-muted-foreground">Name</span>
+            <p className="font-medium">{patient.billing_name || accountHolder?.full_name || "—"}</p>
+          </div>
+          <div>
+            <span className="text-muted-foreground">Relationship</span>
+            <p className="font-medium">{accountHolder?.relationship ?? "—"}</p>
+          </div>
+          <div>
+            <span className="text-muted-foreground">Email (invoices)</span>
+            <p className="font-medium">
+              {patient.billing_email || accountHolder?.email || "—"}
+            </p>
+          </div>
+          <div>
+            <span className="text-muted-foreground">Phone</span>
+            <p className="font-medium">
+              {patient.billing_phone || accountHolder?.phone || "—"}
+            </p>
+          </div>
+          <div className="sm:col-span-2">
+            <span className="text-muted-foreground">Portal</span>
+            <p className="font-medium">
+              {accountHolder?.profile_id ? "Invited / linked" : "Not invited"}
+            </p>
+          </div>
+        </CardContent>
+      </Card>
+
+      <EditPatientForm
+        values={{
+          id: patient.id,
+          firstName: patient.first_name,
+          lastName: patient.last_name,
+          email: patient.email,
+          phone: patient.phone,
+          dateOfBirth: patient.date_of_birth,
+          idNumber: patient.id_number,
+          postalAddress: patient.postal_address,
+          medicalAidName: patient.medical_aid_name,
+          medicalAidNumber: patient.medical_aid_number,
+          medicalAidDependantCode: patient.medical_aid_dependant_code,
+          notes: patient.notes,
+          billingName: patient.billing_name ?? accountHolder?.full_name,
+          billingEmail: patient.billing_email ?? accountHolder?.email,
+          billingPhone: patient.billing_phone ?? accountHolder?.phone,
+          billingAddress: patient.billing_address,
+          accountHolderRelationship: accountHolder?.relationship,
+        }}
+      />
 
       <PatientClinicalRecords
         patientId={patient.id}

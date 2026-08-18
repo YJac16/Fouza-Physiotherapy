@@ -4,7 +4,6 @@ import { Calendar, ClipboardList, Receipt, Users } from "lucide-react";
 import {
   ActivityFeed,
   AdminAppointmentCard,
-  ChartsPlaceholder,
   DashboardStatCard,
   type ActivityItem,
 } from "@/components/admin/cards";
@@ -12,24 +11,34 @@ import { Button } from "@/components/ui/button";
 import { Card, CardContent, CardHeader, CardTitle } from "@/components/ui/card";
 import { EmptyState } from "@/components/shared/states";
 import { AppointmentActions } from "@/features/booking";
+import {
+  endOfSastDayExclusive,
+  startOfSastDay,
+  toDateKey,
+} from "@/features/booking/lib/timezone";
 import { getDashboardMetrics } from "@/features/practice";
 import { requireStaff } from "@/lib/auth/guards";
 import { createClient } from "@/lib/supabase/server";
 import { routes } from "@/config/routes";
 
-const apptStatusMap: Record<string, "scheduled" | "in-progress" | "completed" | "no-show"> = {
+const apptStatusMap: Record<
+  string,
+  "scheduled" | "in-progress" | "completed" | "no-show" | "cancelled"
+> = {
   pending: "scheduled",
   confirmed: "scheduled",
   completed: "completed",
   no_show: "no-show",
-  cancelled: "no-show",
+  cancelled: "cancelled",
 };
 
 export default async function AdminDashboardPage() {
   await requireStaff();
   const metrics = await getDashboardMetrics();
   const supabase = await createClient();
-  const today = new Date().toISOString().slice(0, 10);
+  const today = toDateKey(new Date());
+  const dayStart = startOfSastDay(today).toISOString();
+  const dayEndExclusive = endOfSastDayExclusive(today).toISOString();
 
   const [{ data: upcoming }, { data: recentPatients }, { data: recentInvoices }] =
     await Promise.all([
@@ -38,7 +47,8 @@ export default async function AdminDashboardPage() {
         .select(
           "id, starts_at, status, practitioner_id, service_id, patients(first_name, last_name), services(name)",
         )
-        .gte("starts_at", `${today}T00:00:00+02:00`)
+        .gte("starts_at", dayStart)
+        .lt("starts_at", dayEndExclusive)
         .neq("status", "cancelled")
         .order("starts_at", { ascending: true })
         .limit(6),
@@ -105,9 +115,16 @@ export default async function AdminDashboardPage() {
         </Link>
         <Link href={routes.admin.billing}>
           <DashboardStatCard
-            label="Paid revenue"
-            value={`R ${(metrics.revenueCents / 100).toFixed(0)}`}
+            label="Cash collected (this month)"
+            value={`R ${(metrics.cashCollectedCents / 100).toFixed(0)}`}
             icon={<Receipt className="size-4" />}
+          />
+        </Link>
+        <Link href={routes.admin.billing}>
+          <DashboardStatCard
+            label="Outstanding"
+            value={`R ${(metrics.outstandingCents / 100).toFixed(0)}`}
+            icon={<ClipboardList className="size-4" />}
           />
         </Link>
         <Link href={routes.admin.clinicalNotes}>
@@ -122,15 +139,15 @@ export default async function AdminDashboardPage() {
       <div className="grid gap-6 lg:grid-cols-3">
         <section className="space-y-4 lg:col-span-2">
           <div className="flex items-center justify-between">
-            <h2 className="font-display text-lg font-semibold">Upcoming appointments</h2>
+            <h2 className="font-display text-lg font-semibold">Today&apos;s appointments</h2>
             <Button asChild variant="outline" size="sm">
               <Link href={routes.admin.appointments}>View all</Link>
             </Button>
           </div>
           {!upcoming?.length ? (
             <EmptyState
-              title="No upcoming appointments"
-              description="New bookings will appear here."
+              title="No appointments today"
+              description="Bookings for today will appear here."
             />
           ) : (
             <div className="flex flex-col gap-3">
@@ -158,13 +175,12 @@ export default async function AdminDashboardPage() {
                     })}
                     status={apptStatusMap[appt.status] ?? "scheduled"}
                     actions={
-                      appt.practitioner_id && appt.service_id ? (
-                        <AppointmentActions
-                          appointmentId={appt.id}
-                          practitionerId={appt.practitioner_id}
-                          serviceId={appt.service_id}
-                        />
-                      ) : null
+                      <AppointmentActions
+                        appointmentId={appt.id}
+                        practitionerId={appt.practitioner_id}
+                        serviceId={appt.service_id}
+                        currentStatus={appt.status}
+                      />
                     }
                   />
                 );
@@ -174,10 +190,16 @@ export default async function AdminDashboardPage() {
 
           <Card>
             <CardHeader>
-              <CardTitle className="text-h5">Revenue trend</CardTitle>
+              <CardTitle className="text-h5">Cash collected</CardTitle>
             </CardHeader>
             <CardContent>
-              <ChartsPlaceholder title="Revenue chart — connect analytics to populate" height="h-40" />
+              <p className="text-sm text-muted-foreground">
+                Daily cash, invoiced, and outstanding totals are on Analytics. Charts come in a
+                later phase — these cards are the source of truth for now.
+              </p>
+              <Button asChild variant="outline" size="sm" className="mt-4">
+                <Link href={routes.admin.analytics}>Open analytics</Link>
+              </Button>
             </CardContent>
           </Card>
         </section>

@@ -20,6 +20,8 @@ export type BookingPatientContext = {
   informedConsentSigned: boolean;
   needsConsent: boolean;
   canBookFollowUps: boolean;
+  access: "self" | "contact";
+  canBook: boolean;
 };
 
 export function canBookFollowUpServices(patient: {

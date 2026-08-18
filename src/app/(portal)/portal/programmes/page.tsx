@@ -2,17 +2,22 @@ import { EmptyState } from "@/components/shared/states";
 import { ExerciseCard } from "@/components/patient/cards";
 import { Card, CardContent, CardHeader, CardTitle } from "@/components/ui/card";
 import { listPatientProgrammes } from "@/features/exercise-programmes/actions/programmes";
+import { getPortalView } from "@/features/patients/api/patients";
+import { patientDisplayName } from "@/features/patients/lib/access";
 import { resolveExerciseMediaUrl } from "@/lib/supabase/storage";
 
 export default async function PortalProgrammesPage() {
-  const { data: programmes } = await listPatientProgrammes();
+  const { selected: patient } = await getPortalView();
+  const { data: programmes } = await listPatientProgrammes(patient?.id);
 
   return (
     <div className="space-y-8">
       <div>
         <h1 className="font-display text-2xl font-semibold">Programmes</h1>
         <p className="text-sm text-muted-foreground">
-          Home exercise programmes assigned by your practitioner.
+          {patient
+            ? `Home exercise programmes for ${patientDisplayName(patient)}.`
+            : "Home exercise programmes assigned by your practitioner."}
         </p>
       </div>
 

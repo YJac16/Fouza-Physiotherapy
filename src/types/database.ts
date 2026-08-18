@@ -72,6 +72,12 @@ export type Database = {
           informed_consent_signed: boolean;
           informed_consent_signed_at: string | null;
           informed_consent_version: string | null;
+          billing_name: string | null;
+          billing_email: string | null;
+          billing_phone: string | null;
+          billing_address: string | null;
+          consent_capture_method: "portal" | "staff_assisted" | null;
+          consent_captured_by: string | null;
           created_at: string;
           updated_at: string;
         };
@@ -93,6 +99,12 @@ export type Database = {
           informed_consent_signed?: boolean;
           informed_consent_signed_at?: string | null;
           informed_consent_version?: string | null;
+          billing_name?: string | null;
+          billing_email?: string | null;
+          billing_phone?: string | null;
+          billing_address?: string | null;
+          consent_capture_method?: "portal" | "staff_assisted" | null;
+          consent_captured_by?: string | null;
           created_at?: string;
           updated_at?: string;
         };
@@ -114,12 +126,85 @@ export type Database = {
           informed_consent_signed?: boolean;
           informed_consent_signed_at?: string | null;
           informed_consent_version?: string | null;
+          billing_name?: string | null;
+          billing_email?: string | null;
+          billing_phone?: string | null;
+          billing_address?: string | null;
+          consent_capture_method?: "portal" | "staff_assisted" | null;
+          consent_captured_by?: string | null;
           created_at?: string;
           updated_at?: string;
         };
         Relationships: [
           {
             foreignKeyName: "patients_profile_id_fkey";
+            columns: ["profile_id"];
+            isOneToOne: false;
+            referencedRelation: "profiles";
+            referencedColumns: ["id"];
+          },
+          {
+            foreignKeyName: "patients_consent_captured_by_fkey";
+            columns: ["consent_captured_by"];
+            isOneToOne: false;
+            referencedRelation: "profiles";
+            referencedColumns: ["id"];
+          },
+        ];
+      };
+      patient_contacts: {
+        Row: {
+          id: string;
+          patient_id: string;
+          profile_id: string | null;
+          full_name: string;
+          email: string;
+          phone: string | null;
+          relationship: string | null;
+          is_account_holder: boolean;
+          can_view_portal: boolean;
+          can_book: boolean;
+          created_at: string;
+          updated_at: string;
+        };
+        Insert: {
+          id?: string;
+          patient_id: string;
+          profile_id?: string | null;
+          full_name: string;
+          email: string;
+          phone?: string | null;
+          relationship?: string | null;
+          is_account_holder?: boolean;
+          can_view_portal?: boolean;
+          can_book?: boolean;
+          created_at?: string;
+          updated_at?: string;
+        };
+        Update: {
+          id?: string;
+          patient_id?: string;
+          profile_id?: string | null;
+          full_name?: string;
+          email?: string;
+          phone?: string | null;
+          relationship?: string | null;
+          is_account_holder?: boolean;
+          can_view_portal?: boolean;
+          can_book?: boolean;
+          created_at?: string;
+          updated_at?: string;
+        };
+        Relationships: [
+          {
+            foreignKeyName: "patient_contacts_patient_id_fkey";
+            columns: ["patient_id"];
+            isOneToOne: false;
+            referencedRelation: "patients";
+            referencedColumns: ["id"];
+          },
+          {
+            foreignKeyName: "patient_contacts_profile_id_fkey";
             columns: ["profile_id"];
             isOneToOne: false;
             referencedRelation: "profiles";
@@ -221,6 +306,8 @@ export type Database = {
           status: "pending" | "confirmed" | "cancelled" | "completed" | "no_show";
           source: "online" | "admin" | "phone";
           notes: string | null;
+          price_cents: number | null;
+          currency: string;
           created_at: string;
           updated_at: string;
         };
@@ -234,6 +321,8 @@ export type Database = {
           status?: "pending" | "confirmed" | "cancelled" | "completed" | "no_show";
           source?: "online" | "admin" | "phone";
           notes?: string | null;
+          price_cents?: number | null;
+          currency?: string;
           created_at?: string;
           updated_at?: string;
         };
@@ -247,6 +336,8 @@ export type Database = {
           status?: "pending" | "confirmed" | "cancelled" | "completed" | "no_show";
           source?: "online" | "admin" | "phone";
           notes?: string | null;
+          price_cents?: number | null;
+          currency?: string;
           created_at?: string;
           updated_at?: string;
         };
@@ -627,6 +718,9 @@ export type Database = {
           subtotal_cents: number;
           tax_cents: number;
           total_cents: number;
+          discount_percent: number | null;
+          discount_cents: number;
+          discount_note: string | null;
           currency: string;
           notes: string | null;
           created_at: string;
@@ -643,6 +737,9 @@ export type Database = {
           subtotal_cents: number;
           tax_cents?: number;
           total_cents: number;
+          discount_percent?: number | null;
+          discount_cents?: number;
+          discount_note?: string | null;
           currency?: string;
           notes?: string | null;
           created_at?: string;
@@ -659,6 +756,9 @@ export type Database = {
           subtotal_cents?: number;
           tax_cents?: number;
           total_cents?: number;
+          discount_percent?: number | null;
+          discount_cents?: number;
+          discount_note?: string | null;
           currency?: string;
           notes?: string | null;
           created_at?: string;
@@ -674,8 +774,11 @@ export type Database = {
           quantity: number;
           unit_price_cents: number;
           amount_cents: number;
+          discount_percent: number | null;
+          discount_cents: number;
           treatment_code: string | null;
           icd10_code: string | null;
+          service_id: string | null;
           created_at: string;
         };
         Insert: {
@@ -685,8 +788,11 @@ export type Database = {
           quantity?: number;
           unit_price_cents: number;
           amount_cents: number;
+          discount_percent?: number | null;
+          discount_cents?: number;
           treatment_code?: string | null;
           icd10_code?: string | null;
+          service_id?: string | null;
           created_at?: string;
         };
         Update: {
@@ -696,8 +802,11 @@ export type Database = {
           quantity?: number;
           unit_price_cents?: number;
           amount_cents?: number;
+          discount_percent?: number | null;
+          discount_cents?: number;
           treatment_code?: string | null;
           icd10_code?: string | null;
+          service_id?: string | null;
           created_at?: string;
         };
         Relationships: [];
@@ -1168,9 +1277,30 @@ export type Database = {
       [_ in never]: never;
     };
     Functions: {
+      is_portal_contact: {
+        Args: { p_patient_id: string };
+        Returns: boolean;
+      };
       next_invoice_number: {
         Args: Record<string, never> | never;
         Returns: string;
+      };
+      refresh_invoice_payment_status: {
+        Args: { p_invoice_id: string };
+        Returns: string;
+      };
+      practice_finance_snapshot: {
+        Args: {
+          p_paid_from: string;
+          p_paid_to_exclusive: string;
+          p_issue_from: string;
+          p_issue_to: string;
+        };
+        Returns: {
+          cash_collected_cents: number;
+          invoiced_cents: number;
+          outstanding_cents: number;
+        }[];
       };
     };
     Enums: {

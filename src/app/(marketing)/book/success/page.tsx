@@ -2,6 +2,7 @@ import Link from "next/link";
 import type { Metadata } from "next";
 
 import { ConfirmationCard } from "@/components/booking";
+import { TrackBookingCompleted } from "@/components/analytics/marketing-tracker";
 import { PageHero } from "@/components/marketing";
 import { Button } from "@/components/ui/button";
 import { Container, Section } from "@/components/layout/container";
@@ -11,6 +12,7 @@ import { siteConfig } from "@/config/site";
 import { getSessionProfile } from "@/lib/auth/guards";
 import { JsonLd, breadcrumbJsonLd } from "@/lib/seo/json-ld";
 import { buildMetadata } from "@/lib/seo/metadata";
+import { createHash } from "crypto";
 
 export const metadata: Metadata = buildMetadata({
   title: "Booking Confirmed | Fouza Physiotherapy",
@@ -28,9 +30,13 @@ export default async function BookSuccessPage({ searchParams }: BookSuccessPageP
   const { id } = await searchParams;
   const profile = await getSessionProfile();
   const isSignedInPatient = profile?.role === "patient";
+  const hashedBookingId = id
+    ? createHash("sha256").update(id).digest("hex").slice(0, 16)
+    : undefined;
 
   return (
     <>
+      <TrackBookingCompleted transactionId={hashedBookingId} />
       <JsonLd
         data={breadcrumbJsonLd([
           { name: "Home", path: routes.marketing.home },

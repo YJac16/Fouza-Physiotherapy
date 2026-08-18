@@ -6,6 +6,7 @@ import { useState, useTransition } from "react";
 import {
   adminCancelAppointmentAction,
   adminRescheduleAppointmentAction,
+  adminUpdateAttendanceAction,
   fetchSlotsAction,
 } from "@/features/booking/actions/booking";
 import { Button } from "@/components/ui/button";
@@ -13,12 +14,21 @@ import { FormMessage } from "@/components/ui/form-message";
 import { Input } from "@/components/ui/input";
 import { Label } from "@/components/ui/label";
 import { toDateKey } from "@/features/booking/lib/timezone";
+import {
+  canCancelAppointmentStatus,
+  canCompleteAppointmentStatus,
+  canCorrectAttendanceStatus,
+  canMarkNoShowAppointmentStatus,
+  canRescheduleAppointmentStatus,
+  type AppointmentStatus,
+} from "@/features/booking/lib/status";
 import { cn } from "@/lib/utils";
 
 export interface AppointmentActionsProps {
   appointmentId: string;
-  practitionerId: string;
-  serviceId: string;
+  practitionerId?: string | null;
+  serviceId?: string | null;
+  currentStatus: AppointmentStatus | string;
   className?: string;
 }
 
@@ -28,9 +38,11 @@ export function AppointmentActions({
   appointmentId,
   practitionerId,
   serviceId,
+  currentStatus,
   className,
 }: AppointmentActionsProps) {
   const router = useRouter();
+  const status = currentStatus as AppointmentStatus;
   const [pending, startTransition] = useTransition();
   const [mode, setMode] = useState<"idle" | "reschedule" | "confirm-cancel">("idle");
   const [date, setDate] = useState("");
@@ -39,11 +51,18 @@ export function AppointmentActions({
     null,
   );
 
+  const canReschedule =
+    Boolean(practitionerId && serviceId) && canRescheduleAppointmentStatus(status);
+  const canCancel = canCancelAppointmentStatus(status);
+  const canComplete = canCompleteAppointmentStatus(status);
+  const canNoShow = canMarkNoShowAppointmentStatus(status);
+  const canCorrect = canCorrectAttendanceStatus(status);
+
   function loadSlots(nextDate: string) {
     setDate(nextDate);
     setSlots([]);
     setMessage(null);
-    if (!nextDate) return;
+    if (!nextDate || !practitionerId || !serviceId) return;
     startTransition(async () => {
       const result = await fetchSlotsAction({
         practitionerId,
@@ -76,6 +95,24 @@ export function AppointmentActions({
     });
   }
 
+  function handleAttendance(nextStatus: "completed" | "no_show" | "confirmed") {
+    startTransition(async () => {
+      const result = await adminUpdateAttendanceAction(appointmentId, nextStatus);
+      if (result.error) {
+        setMessage({ tone: "error", text: result.error });
+        return;
+      }
+      const label =
+        nextStatus === "completed"
+          ? "Appointment marked completed."
+          : nextStatus === "no_show"
+            ? "Appointment marked as no-show."
+            : "Appointment returned to booked.";
+      setMessage({ tone: "success", text: label });
+      router.refresh();
+    });
+  }
+
   function handleReschedule(slot: SlotOption) {
     startTransition(async () => {
       const result = await adminRescheduleAppointmentAction({
@@ -94,36 +131,79 @@ export function AppointmentActions({
     });
   }
 
+  if (!canReschedule && !canCancel && !canComplete && !canNoShow && !canCorrect) {
+    return null;
+  }
+
   return (
     <div className={cn("w-full space-y-2", className)}>
       {mode === "idle" ? (
         <div className="flex w-full flex-col gap-2 sm:flex-row sm:flex-wrap">
-          <Button
-            type="button"
-            size="sm"
-            variant="outline"
-            disabled={pending}
-            className="w-full sm:w-auto"
-            onClick={() => {
-              setMessage(null);
-              setMode("reschedule");
-            }}
-          >
-            Reschedule
-          </Button>
-          <Button
-            type="button"
-            size="sm"
-            variant="ghost"
-            className="w-full text-destructive hover:text-destructive sm:w-auto"
-            disabled={pending}
-            onClick={() => {
-              setMessage(null);
-              setMode("confirm-cancel");
-            }}
-          >
-            Cancel
-          </Button>
+          {canComplete ? (
+            <Button
+              type="button"
+              size="sm"
+              disabled={pending}
+              className="w-full sm:w-auto"
+              onClick={() => handleAttendance("completed")}
+            >
+              Complete
+            </Button>
+          ) : null}
+          {canNoShow ? (
+            <Button
+              type="button"
+              size="sm"
+              variant="outline"
+              disabled={pending}
+              className="w-full sm:w-auto"
+              onClick={() => handleAttendance("no_show")}
+            >
+              No-show
+            </Button>
+          ) : null}
+          {canCorrect ? (
+            <Button
+              type="button"
+              size="sm"
+              variant="outline"
+              disabled={pending}
+              className="w-full sm:w-auto"
+              onClick={() => handleAttendance("confirmed")}
+            >
+              Mark as booked
+            </Button>
+          ) : null}
+          {canReschedule ? (
+            <Button
+              type="button"
+              size="sm"
+              variant="outline"
+              disabled={pending}
+              className="w-full sm:w-auto"
+              onClick={() => {
+                setMessage(null);
+                setMode("reschedule");
+              }}
+            >
+              Reschedule
+            </Button>
+          ) : null}
+          {canCancel ? (
+            <Button
+              type="button"
+              size="sm"
+              variant="ghost"
+              className="w-full text-destructive hover:text-destructive sm:w-auto"
+              disabled={pending}
+              onClick={() => {
+                setMessage(null);
+                setMode("confirm-cancel");
+              }}
+            >
+              Cancel
+            </Button>
+          ) : null}
         </div>
       ) : null}
 

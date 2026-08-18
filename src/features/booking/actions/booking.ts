@@ -16,16 +16,16 @@ import {
   createHold,
   createStaffAppointment,
   rescheduleBooking,
+  updateAppointmentAttendance,
 } from "@/features/booking/api/bookings";
 import {
   canBookFollowUpServices,
-  filterBookableServices,
   type BookingPatientContext,
 } from "@/features/booking/lib/eligibility";
 import { requireStaff, getSessionProfile } from "@/lib/auth/guards";
 import { createServiceClient } from "@/lib/supabase/admin";
 import { createClient } from "@/lib/supabase/server";
-import { ensureMyPatientRecord } from "@/features/patients/api/patients";
+import { listAccessiblePatients } from "@/features/patients/api/patients";
 import { syncPatientConsentFlagsIfComplete } from "@/features/consent-forms/lib/completion";
 
 export type BookingActionState = {
@@ -74,6 +74,7 @@ export async function confirmBookingAction(
     lastName: formData.get("lastName"),
     email: formData.get("email"),
     phone: formData.get("phone"),
+    patientId: formData.get("patientId") || undefined,
   });
   if (!parsed.success) return { error: "Please complete all fields" };
 
@@ -94,6 +95,7 @@ export async function adminCancelAppointmentAction(appointmentId: string) {
   if (!result.error) {
     revalidatePath("/admin");
     revalidatePath("/admin/appointments");
+    revalidatePath("/admin/analytics");
   }
   return result;
 }
@@ -106,6 +108,21 @@ export async function adminRescheduleAppointmentAction(input: unknown) {
   if (!result.error) {
     revalidatePath("/admin");
     revalidatePath("/admin/appointments");
+    revalidatePath("/admin/analytics");
+  }
+  return result;
+}
+
+export async function adminUpdateAttendanceAction(
+  appointmentId: string,
+  nextStatus: "completed" | "no_show" | "confirmed",
+) {
+  const profile = await requireStaff();
+  const result = await updateAppointmentAttendance(appointmentId, nextStatus, profile.id);
+  if (!result.error) {
+    revalidatePath("/admin");
+    revalidatePath("/admin/appointments");
+    revalidatePath("/admin/analytics");
   }
   return result;
 }
@@ -124,6 +141,7 @@ export async function adminCreateAppointmentAction(
 
   revalidatePath("/admin");
   revalidatePath("/admin/appointments");
+  revalidatePath("/admin/analytics");
   return {
     success: "Appointment created",
     appointmentId: result.appointmentId,
@@ -241,7 +259,7 @@ export async function getAppointmentDetailAction(appointmentId: string) {
   const { data, error } = await supabase
     .from("appointments")
     .select(
-      "id, patient_id, practitioner_id, service_id, starts_at, ends_at, status, source, notes, patients(id, first_name, last_name, email, phone, verified_account, informed_consent_signed), services(name, duration_minutes), practitioners(id, title, profiles(full_name))",
+      "id, patient_id, practitioner_id, service_id, starts_at, ends_at, status, source, notes, price_cents, currency, patients(id, first_name, last_name, email, phone, verified_account, informed_consent_signed), services(name, duration_minutes), practitioners(id, title, profiles(full_name))",
     )
     .eq("id", appointmentId)
     .maybeSingle();
@@ -292,6 +310,7 @@ export type BookableCatalog = {
     profiles: { full_name: string } | { full_name: string }[] | null;
   }>;
   patientContext: BookingPatientContext | null;
+  bookablePatients: BookingPatientContext[];
   isAuthenticated: boolean;
 };
 
@@ -311,46 +330,48 @@ export async function listBookableCatalog(): Promise<BookableCatalog> {
   ]);
 
   const profile = await getSessionProfile();
-  let patientContext: BookingPatientContext | null = null;
+  let bookablePatients: BookingPatientContext[] = [];
 
   if (profile && profile.role === "patient") {
-    const { data: patient } = await ensureMyPatientRecord();
-    if (patient) {
-      let verifiedAccount = patient.verified_account;
-      let informedConsentSigned = patient.informed_consent_signed;
-      if (!informedConsentSigned) {
-        const synced = await syncPatientConsentFlagsIfComplete(patient.id);
-        informedConsentSigned = synced.informed_consent_signed;
-        verifiedAccount = synced.verified_account;
-      }
-      const canFollowUps = canBookFollowUpServices({
-        verified_account: verifiedAccount,
-        informed_consent_signed: informedConsentSigned,
-      });
-      patientContext = {
-        patientId: patient.id,
-        firstName: patient.first_name,
-        lastName: patient.last_name,
-        email: patient.email ?? profile.email,
-        phone: patient.phone ?? profile.phone ?? "",
-        verifiedAccount,
-        informedConsentSigned,
-        needsConsent: !informedConsentSigned,
-        canBookFollowUps: canFollowUps,
-      };
-    }
+    const { data: accessible } = await listAccessiblePatients();
+    bookablePatients = await Promise.all(
+      accessible
+        .filter((patient) => patient.canBook)
+        .map(async (patient) => {
+          let verifiedAccount = patient.verifiedAccount;
+          let informedConsentSigned = patient.informedConsentSigned;
+          if (!informedConsentSigned) {
+            const synced = await syncPatientConsentFlagsIfComplete(patient.id);
+            informedConsentSigned = synced.informed_consent_signed;
+            verifiedAccount = synced.verified_account;
+          }
+          return {
+            patientId: patient.id,
+            firstName: patient.firstName,
+            lastName: patient.lastName,
+            email: patient.email ?? profile.email,
+            phone: patient.phone ?? profile.phone ?? "",
+            verifiedAccount,
+            informedConsentSigned,
+            needsConsent: patient.access === "self" && !informedConsentSigned,
+            canBookFollowUps: canBookFollowUpServices({
+              verified_account: verifiedAccount,
+              informed_consent_signed: informedConsentSigned,
+            }),
+            access: patient.access,
+            canBook: patient.canBook,
+          };
+        }),
+    );
   }
 
-  const allServices = services ?? [];
-  const filtered = filterBookableServices(
-    allServices,
-    Boolean(patientContext?.canBookFollowUps),
-  );
+  const patientContext = bookablePatients[0] ?? null;
 
   return {
-    services: filtered,
+    services: services ?? [],
     practitioners: practitioners ?? [],
     patientContext,
+    bookablePatients,
     isAuthenticated: Boolean(profile),
   };
 }

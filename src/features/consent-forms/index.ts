@@ -1,9 +1,11 @@
 export {
   createConsentFormAction,
+  createPatientWithStaffConsentAction,
   listConsentForms,
   signConsentAction,
   submitIntakeAction,
   submitFouzaConsentPackageAction,
+  submitStaffConsentPackageAction,
   setPatientVerifiedAction,
 } from "./actions/consent";
 export {
@@ -25,5 +27,14 @@ export {
   INTAKE_ANSWER_LABELS,
   formatIntakeAnswerValue,
 } from "./lib/signed-package-types";
+export {
+  buildSignaturePayload,
+  portalConsentPatientUpdate,
+  portalInviteFromAccountPayer,
+  portalInviteFromConsentAnswers,
+  portalInviteLinksPatientProfile,
+  splitFullName,
+  staffConsentPatientUpdate,
+} from "./lib/staff-capture";
 export { SignedConsentView } from "./components/signed-consent-view";
 export const CONSENT_FORMS_FEATURE = "consent-forms" as const;

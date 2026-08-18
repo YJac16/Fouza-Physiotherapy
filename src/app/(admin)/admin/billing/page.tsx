@@ -1,6 +1,11 @@
 import { EmptyState } from "@/components/shared/states";
 import { InvoiceCard } from "@/components/patient/cards";
 import { Button } from "@/components/ui/button";
+import {
+  invoiceCardStatus,
+  invoiceDisplayStatus,
+  invoicePaidCents,
+} from "@/features/analytics/lib/finance";
 import { requireStaff } from "@/lib/auth/guards";
 import { createClient } from "@/lib/supabase/server";
 import Link from "next/link";
@@ -11,7 +16,7 @@ export default async function BillingAdminPage() {
   const supabase = await createClient();
   const { data: invoices } = await supabase
     .from("invoices")
-    .select("*")
+    .select("*, payments(amount_cents)")
     .order("issue_date", { ascending: false })
     .limit(40);
 
@@ -41,22 +46,24 @@ export default async function BillingAdminPage() {
         <EmptyState title="No invoices yet" description="Create an invoice after a consultation." />
       ) : (
         <div className="grid gap-4 md:grid-cols-2">
-          {invoices.map((invoice) => (
-            <Link key={invoice.id} href={routes.admin.invoice(invoice.id)} className="block">
-              <InvoiceCard
-                invoiceNumber={invoice.invoice_number}
-                date={invoice.issue_date}
-                amount={`R ${(invoice.total_cents / 100).toFixed(2)}`}
-                status={
-                  invoice.status === "paid"
-                    ? "paid"
-                    : invoice.status === "overdue"
-                      ? "overdue"
-                      : "pending"
-                }
-              />
-            </Link>
-          ))}
+          {invoices.map((invoice) => {
+            const paidCents = invoicePaidCents(invoice.payments ?? []);
+            const display = invoiceDisplayStatus({
+              status: invoice.status,
+              totalCents: invoice.total_cents,
+              paidCents,
+            });
+            return (
+              <Link key={invoice.id} href={routes.admin.invoice(invoice.id)} className="block">
+                <InvoiceCard
+                  invoiceNumber={invoice.invoice_number}
+                  date={invoice.issue_date}
+                  amount={`R ${(invoice.total_cents / 100).toFixed(2)}`}
+                  status={invoiceCardStatus(display)}
+                />
+              </Link>
+            );
+          })}
         </div>
       )}
     </div>

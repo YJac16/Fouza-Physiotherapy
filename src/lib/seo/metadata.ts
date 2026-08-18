@@ -16,6 +16,13 @@ export function absoluteUrl(path = "/") {
   return `${base}${normalised === "/" ? "" : normalised}`;
 }
 
+/** Strip a duplicated brand suffix so the root title template does not double it. */
+export function shortPageTitle(title: string) {
+  const suffix = ` | ${siteConfig.name}`;
+  if (title === siteConfig.name) return title;
+  return title.endsWith(suffix) ? title.slice(0, -suffix.length) : title;
+}
+
 export function buildMetadata({
   title,
   description,
@@ -25,9 +32,12 @@ export function buildMetadata({
 }: BuildMetadataInput): Metadata {
   const url = absoluteUrl(path);
   const imageUrl = image.startsWith("http") ? image : absoluteUrl(image);
+  const titleText = shortPageTitle(title);
+  const fullTitle =
+    titleText === siteConfig.name ? siteConfig.name : `${titleText} | ${siteConfig.name}`;
 
   return {
-    title,
+    title: titleText,
     description,
     alternates: {
       canonical: url,
@@ -37,20 +47,20 @@ export function buildMetadata({
       locale: "en_ZA",
       url,
       siteName: siteConfig.name,
-      title,
+      title: fullTitle,
       description,
       images: [
         {
           url: imageUrl,
           width: 1200,
           height: 630,
-          alt: title,
+          alt: titleText,
         },
       ],
     },
     twitter: {
       card: "summary_large_image",
-      title,
+      title: fullTitle,
       description,
       images: [imageUrl],
     },

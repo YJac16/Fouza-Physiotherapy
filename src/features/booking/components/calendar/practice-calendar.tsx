@@ -25,6 +25,7 @@ import {
   startOfSastDay,
   toDateKey,
 } from "@/features/booking/lib/timezone";
+import { appointmentBookedLabel } from "@/features/booking/lib/status";
 import { cn } from "@/lib/utils";
 
 export type CalendarView = "month" | "week" | "day";
@@ -613,7 +614,7 @@ function AppointmentDetailCard({
 
       <div className="flex flex-wrap gap-2">
         <Badge variant={statusTone(appt.status)} className="capitalize">
-          {appt.status}
+          {appointmentBookedLabel(appt.status)}
         </Badge>
         <Badge variant="outline" className="capitalize">
           {appt.source}
@@ -650,21 +651,43 @@ function AppointmentDetailCard({
           <dt className="text-muted-foreground">End</dt>
           <dd className="font-medium">{formatSastTime(appt.ends_at)}</dd>
         </div>
+        <div>
+          <dt className="text-muted-foreground">Booked price</dt>
+          <dd className="font-medium">
+            {typeof appt.price_cents === "number"
+              ? `R ${(appt.price_cents / 100).toFixed(2)}`
+              : "Not snapshotted"}
+          </dd>
+        </div>
       </dl>
 
       {patient ? (
-        <Button asChild variant="outline" size="sm">
-          <Link href={routes.admin.patient(patient.id)}>Open patient profile</Link>
-        </Button>
+        <div className="flex flex-wrap gap-2">
+          <Button asChild variant="outline" size="sm">
+            <Link href={routes.admin.patient(patient.id)}>Open patient profile</Link>
+          </Button>
+          {detail.invoice ? (
+            <Button asChild variant="outline" size="sm">
+              <Link href={routes.admin.invoice(detail.invoice.id)}>Open invoice</Link>
+            </Button>
+          ) : (
+            <Button asChild size="sm">
+              <Link
+                href={`${routes.admin.newInvoice}?patientId=${patient.id}&appointmentId=${appt.id}`}
+              >
+                Create invoice
+              </Link>
+            </Button>
+          )}
+        </div>
       ) : null}
 
-      {appt.practitioner_id && appt.service_id && appt.status !== "cancelled" ? (
         <AppointmentActions
           appointmentId={appt.id}
           practitionerId={appt.practitioner_id}
           serviceId={appt.service_id}
+          currentStatus={appt.status}
         />
-      ) : null}
 
       <Button type="button" size="sm" variant="secondary" onClick={onChanged}>
         Refresh after changes

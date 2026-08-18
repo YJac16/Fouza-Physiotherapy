@@ -1,16 +1,21 @@
 import { EmptyState } from "@/components/shared/states";
 import { DocumentCard } from "@/components/patient/cards";
 import { listPatientDocuments } from "@/features/documents/actions/documents";
+import { getPortalView } from "@/features/patients/api/patients";
+import { patientDisplayName } from "@/features/patients/lib/access";
 
 export default async function PortalDocumentsPage() {
-  const { data: documents } = await listPatientDocuments();
+  const { selected: patient } = await getPortalView();
+  const { data: documents } = await listPatientDocuments(patient?.id);
 
   return (
     <div className="space-y-8">
       <div>
         <h1 className="font-display text-2xl font-semibold">Documents</h1>
         <p className="text-sm text-muted-foreground">
-          Reports and documents shared by your practitioner.
+          {patient
+            ? `Reports and documents shared for ${patientDisplayName(patient)}.`
+            : "Reports and documents shared by your practitioner."}
         </p>
       </div>
 

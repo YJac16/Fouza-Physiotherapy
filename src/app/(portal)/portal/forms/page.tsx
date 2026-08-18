@@ -6,7 +6,9 @@ import {
   syncPatientConsentFlagsIfComplete,
 } from "@/features/consent-forms/lib/completion";
 import { getSignedConsentPackage } from "@/features/consent-forms/lib/signed-package";
-import { ensureMyPatientRecord } from "@/features/patients/api/patients";
+import { SignedConsentView } from "@/features/consent-forms/components/signed-consent-view";
+import { getPortalView } from "@/features/patients/api/patients";
+import { patientDisplayName } from "@/features/patients/lib/access";
 import { createClient } from "@/lib/supabase/server";
 import { requireUser } from "@/lib/auth/guards";
 import { PortalFormsClient } from "./portal-forms-client";
@@ -34,10 +36,14 @@ export default async function PortalFormsPage({
 }) {
   const { returnTo } = await searchParams;
   const profile = await requireUser();
-  const { data: patient } = await ensureMyPatientRecord();
+  const { selected } = await getPortalView();
   const { data: consentForms } = await listConsentForms();
-
   const supabase = await createClient();
+
+  const { data: patient } = selected
+    ? await supabase.from("patients").select("*").eq("id", selected.id).maybeSingle()
+    : { data: null };
+
   const { data: intakeForms } = await supabase
     .from("intake_forms")
     .select("id, title, slug")
@@ -47,6 +53,7 @@ export default async function PortalFormsPage({
     intakeForms?.find((f) => f.slug === INTAKE_SLUG) ?? intakeForms?.[0] ?? null;
   const treatmentConsent = consentForms?.find((f) => f.slug === "treatment-consent");
   const accountConsent = consentForms?.find((f) => f.slug === "account-responsibility");
+  const isFamilyView = selected?.access === "contact";
 
   let alreadyComplete = false;
   let appointmentId: string | null = null;
@@ -80,6 +87,7 @@ export default async function PortalFormsPage({
   const postalParts = splitPostalAddress(patient?.postal_address);
   const safeReturnTo =
     returnTo && returnTo.startsWith("/") && !returnTo.startsWith("//") ? returnTo : null;
+  const patientName = selected ? patientDisplayName(selected) : "this patient";
 
   return (
     <div className="min-w-0 space-y-6 overflow-x-hidden sm:space-y-8">
@@ -89,8 +97,10 @@ export default async function PortalFormsPage({
         </h1>
         <p className="mt-1 text-sm leading-relaxed text-muted-foreground">
           {viewingSigned
-            ? "Your intake and consent forms are on file for the practice."
-            : "Complete intake and consent forms before confirming your booking."}
+            ? `Intake and consent forms are on file for ${patientName}.`
+            : isFamilyView
+              ? `Treatment consent for ${patientName} is captured by the practice. You cannot sign as the patient.`
+              : "Complete intake and consent forms before confirming your booking."}
         </p>
       </div>
 
@@ -99,6 +109,13 @@ export default async function PortalFormsPage({
           title="No patient record linked"
           description="Contact the practice to link your account before completing forms."
         />
+      ) : isFamilyView && !viewingSigned ? (
+        <EmptyState
+          title="Consent is captured at the visit"
+          description={`Ask the practice to complete informed consent for ${patientName} on the admin tablet. You will then be able to view the signed forms here.`}
+        />
+      ) : isFamilyView && signedPackage ? (
+        <SignedConsentView package={signedPackage} showTitle={false} />
       ) : !intakeForm || !treatmentConsent || !accountConsent ? (
         <EmptyState
           title="Consent package unavailable"

@@ -91,11 +91,11 @@ export interface RevenueCardProps extends HTMLAttributes<HTMLDivElement> {
 }
 
 export function RevenueCard({
-  title = "Revenue",
+  title = "Cash collected",
   amount,
   period,
   change,
-  trend = "up",
+  trend,
   chart,
   className,
   ...props
@@ -116,7 +116,7 @@ export function RevenueCard({
           <Typography variant="h2" className="text-primary">
             {amount}
           </Typography>
-          {change ? (
+          {change && trend ? (
             <p
               className={cn(
                 "mt-1 flex items-center gap-1 text-sm font-medium",
@@ -140,7 +140,7 @@ export interface AdminAppointmentCardProps extends HTMLAttributes<HTMLDivElement
   patientName: string;
   treatment: string;
   time: string;
-  status?: "scheduled" | "in-progress" | "completed" | "no-show";
+  status?: "scheduled" | "in-progress" | "completed" | "no-show" | "cancelled";
   avatarSrc?: string;
   actions?: ReactNode;
 }
@@ -150,6 +150,7 @@ const adminApptStatus = {
   "in-progress": "warning",
   completed: "success",
   "no-show": "destructive",
+  cancelled: "secondary",
 } as const;
 
 export function AdminAppointmentCard({

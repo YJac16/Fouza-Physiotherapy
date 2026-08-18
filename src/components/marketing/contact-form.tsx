@@ -7,12 +7,20 @@ import { FormMessage } from "@/components/ui/form-message";
 import { Input } from "@/components/ui/input";
 import { Label } from "@/components/ui/label";
 import { Textarea } from "@/components/ui/textarea";
+import { trackEvent } from "@/lib/analytics/gtag";
 
 export function ContactForm() {
   const [status, setStatus] = React.useState<"idle" | "loading" | "success" | "error">(
     "idle",
   );
   const [error, setError] = React.useState<string | null>(null);
+  const started = React.useRef(false);
+
+  function handleStart() {
+    if (started.current) return;
+    started.current = true;
+    trackEvent("form_start", { form_id: "contact" });
+  }
 
   async function handleSubmit(event: React.FormEvent<HTMLFormElement>) {
     event.preventDefault();
@@ -40,6 +48,8 @@ export function ContactForm() {
         return;
       }
       setStatus("success");
+      trackEvent("contact_submit");
+      trackEvent("generate_lead", { method: "contact_form" });
       form.reset();
     } catch {
       setStatus("error");
@@ -48,7 +58,7 @@ export function ContactForm() {
   }
 
   return (
-    <form onSubmit={handleSubmit} className="space-y-4" noValidate>
+    <form onSubmit={handleSubmit} className="space-y-4" noValidate onFocusCapture={handleStart}>
       <div className="hidden" aria-hidden>
         <Label htmlFor="contact-website">Website</Label>
         <Input id="contact-website" name="website" tabIndex={-1} autoComplete="off" />

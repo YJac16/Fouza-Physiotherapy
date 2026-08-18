@@ -3,19 +3,24 @@ import Link from "next/link";
 import { EmptyState } from "@/components/shared/states";
 import { AppointmentHistoryCard } from "@/components/patient/cards";
 import { Button } from "@/components/ui/button";
-import { getMyPatientRecord, listMyAppointments } from "@/features/patients/api/patients";
+import { getPortalView, listMyAppointments } from "@/features/patients/api/patients";
+import { patientDisplayName } from "@/features/patients/lib/access";
 import { routes } from "@/config/routes";
 
 export default async function PortalAppointmentsPage() {
-  const { data: patient } = await getMyPatientRecord();
-  const { data: appointments } = await listMyAppointments(false);
+  const { selected: patient } = await getPortalView();
+  const { data: appointments } = await listMyAppointments(false, patient?.id);
 
   return (
     <div className="space-y-8">
       <div className="flex flex-wrap items-center justify-between gap-4">
         <div>
           <h1 className="font-display text-2xl font-semibold">Appointments</h1>
-          <p className="text-sm text-muted-foreground">Your visit history and upcoming bookings.</p>
+          <p className="text-sm text-muted-foreground">
+            {patient
+              ? `Visit history for ${patientDisplayName(patient)}.`
+              : "Your visit history and upcoming bookings."}
+          </p>
         </div>
         <Button asChild>
           <Link href={routes.booking.root}>Book appointment</Link>
@@ -30,7 +35,7 @@ export default async function PortalAppointmentsPage() {
       ) : !appointments?.length ? (
         <EmptyState
           title="No appointments yet"
-          description="Book your first appointment online."
+          description="Book the first appointment online."
           action={
             <Button asChild>
               <Link href={routes.booking.root}>Book now</Link>
@@ -40,9 +45,10 @@ export default async function PortalAppointmentsPage() {
       ) : (
         <div className="grid gap-4 md:grid-cols-2">
           {appointments.map((appt) => {
-            const service = (Array.isArray(appt.services)
-              ? appt.services[0]
-              : appt.services) as { name: string } | null | undefined;
+            const service = (Array.isArray(appt.services) ? appt.services[0] : appt.services) as
+              | { name: string }
+              | null
+              | undefined;
             return (
               <AppointmentHistoryCard
                 key={appt.id}

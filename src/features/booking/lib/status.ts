@@ -5,8 +5,8 @@
  *   pending   → confirmed | cancelled
  *   confirmed → cancelled | completed | no_show
  *   cancelled → (terminal)
- *   completed → (terminal)
- *   no_show   → (terminal)
+ *   completed → confirmed (staff correction only)
+ *   no_show   → confirmed (staff correction only)
  */
 
 export const APPOINTMENT_STATUSES = [
@@ -23,8 +23,8 @@ const ALLOWED_TRANSITIONS: Record<AppointmentStatus, AppointmentStatus[]> = {
   pending: ["confirmed", "cancelled"],
   confirmed: ["cancelled", "completed", "no_show"],
   cancelled: [],
-  completed: [],
-  no_show: [],
+  completed: ["confirmed"],
+  no_show: ["confirmed"],
 };
 
 export function canTransitionAppointmentStatus(
@@ -36,7 +36,7 @@ export function canTransitionAppointmentStatus(
 }
 
 export function isTerminalAppointmentStatus(status: AppointmentStatus) {
-  return ALLOWED_TRANSITIONS[status]?.length === 0;
+  return status === "cancelled";
 }
 
 export function canRescheduleAppointmentStatus(status: AppointmentStatus) {
@@ -45,6 +45,26 @@ export function canRescheduleAppointmentStatus(status: AppointmentStatus) {
 
 export function canCancelAppointmentStatus(status: AppointmentStatus) {
   return canTransitionAppointmentStatus(status, "cancelled") && status !== "cancelled";
+}
+
+export function canCompleteAppointmentStatus(status: AppointmentStatus) {
+  return canTransitionAppointmentStatus(status, "completed") && status !== "completed";
+}
+
+export function canMarkNoShowAppointmentStatus(status: AppointmentStatus) {
+  return canTransitionAppointmentStatus(status, "no_show") && status !== "no_show";
+}
+
+export function canCorrectAttendanceStatus(status: AppointmentStatus) {
+  return status === "completed" || status === "no_show";
+}
+
+export function appointmentBookedLabel(status: AppointmentStatus | string) {
+  if (status === "pending" || status === "confirmed") return "Booked";
+  if (status === "no_show") return "No-show";
+  if (status === "completed") return "Completed";
+  if (status === "cancelled") return "Cancelled";
+  return status;
 }
 
 /** Statuses that occupy the practitioner calendar / block availability. */

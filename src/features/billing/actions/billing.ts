@@ -4,17 +4,29 @@ import { revalidatePath } from "next/cache";
 import { redirect } from "next/navigation";
 import { z } from "zod";
 
-import { requireStaff, requireUser } from "@/lib/auth/guards";
+import { requireStaff } from "@/lib/auth/guards";
 import { createClient } from "@/lib/supabase/server";
 import { createServiceClient } from "@/lib/supabase/admin";
 import { drainEmailOutbox } from "@/features/notifications/lib/outbox";
 import { resolveBillingAlertRecipients } from "@/features/notifications/lib/appointment-emails";
-import { getInvoiceBankingSettings } from "@/features/billing/lib/invoice-data";
+import { getInvoiceBankingSettings, resolvePatientInvoiceRecipient } from "@/features/billing/lib/invoice-data";
+import { listAccessiblePatients } from "@/features/patients/api/patients";
 import { EDITABLE_INVOICE_STATUSES } from "@/features/billing/lib/addons";
+import { invoiceTotalsFromLines } from "@/features/billing/lib/discounts";
+import {
+  invoiceOutstandingCents,
+  invoicePaidCents,
+  invoicedCents,
+  statementPeriodBounds,
+  storedInvoiceStatusAfterPayments,
+  type InvoiceStoredStatus,
+} from "@/features/analytics/lib/finance";
+import { formatSastDateTime } from "@/features/booking/lib/timezone";
 
 const invoiceSchema = z.object({
   patientId: z.string().uuid(),
   appointmentId: z.string().uuid().optional().nullable(),
+  serviceId: z.string().uuid().optional().nullable(),
   subtotalCents: z.coerce.number().int().nonnegative(),
   taxCents: z.coerce.number().int().nonnegative().default(0),
   description: z.string().min(2),
@@ -28,14 +40,126 @@ const paymentSchema = z.object({
   notes: z.string().optional(),
 });
 
+const discountModeSchema = z.enum(["none", "percent", "amount"]);
+
 const lineItemSchema = z.object({
   description: z.string().min(1),
   quantity: z.coerce.number().positive(),
   unitPriceCents: z.coerce.number().int().nonnegative(),
+  serviceId: z.string().uuid().optional().nullable(),
+  treatmentCode: z.string().optional().nullable(),
+  icd10Code: z.string().optional().nullable(),
+  discountMode: discountModeSchema.optional().default("none"),
+  discountPercent: z.coerce.number().min(0).max(100).optional().nullable(),
+  discountAmountCents: z.coerce.number().int().nonnegative().optional().nullable(),
+});
+
+const invoiceDiscountSchema = z.object({
+  mode: discountModeSchema.optional().default("none"),
+  percent: z.coerce.number().min(0).max(100).optional().nullable(),
+  amountCents: z.coerce.number().int().nonnegative().optional().nullable(),
+  note: z.string().max(200).optional().nullable(),
 });
 
 export type BillingActionState = { error?: string; success?: string; id?: string };
 export type SendInvoiceState = { error?: string; success?: string };
+
+export type BillableAppointmentOption = {
+  id: string;
+  patientId: string;
+  label: string;
+  description: string;
+  amountCents: number;
+  serviceId: string | null;
+};
+
+async function applyInvoicePaymentStatus(invoiceId: string) {
+  const admin = createServiceClient();
+  const { data: rpcStatus } = await admin.rpc("refresh_invoice_payment_status", {
+    p_invoice_id: invoiceId,
+  });
+
+  const [{ data: invoice }, { data: payments }] = await Promise.all([
+    admin
+      .from("invoices")
+      .select(
+        "id, status, total_cents, invoice_number, notes, appointment_id, patient_id, patients(email, first_name, last_name)",
+      )
+      .eq("id", invoiceId)
+      .maybeSingle(),
+    admin.from("payments").select("amount_cents").eq("invoice_id", invoiceId),
+  ]);
+
+  const paidCents = invoicePaidCents(payments ?? []);
+  const totalCents = invoice?.total_cents ?? 0;
+  const stored = (invoice?.status ?? "sent") as InvoiceStoredStatus;
+  const fallbackStatus = storedInvoiceStatusAfterPayments({
+    status: stored,
+    totalCents,
+    paidCents,
+  });
+  const status = (typeof rpcStatus === "string" && rpcStatus ? rpcStatus : fallbackStatus) as InvoiceStoredStatus;
+
+  if (!rpcStatus && invoice && status !== stored) {
+    await admin.from("invoices").update({ status }).eq("id", invoiceId);
+  }
+
+  return {
+    invoice,
+    status,
+    totalCents,
+    paidCents,
+    outstandingCents: invoiceOutstandingCents(totalCents, paidCents),
+  };
+}
+
+export async function listBillableAppointmentsForInvoice(input?: {
+  includeAppointmentId?: string | null;
+}): Promise<BillableAppointmentOption[]> {
+  await requireStaff();
+  const supabase = await createClient();
+  const [{ data, error }, { data: invoicedRows, error: invoicedError }] = await Promise.all([
+    supabase
+      .from("appointments")
+      .select("id, patient_id, starts_at, price_cents, service_id, services(name, price_cents)")
+      .neq("status", "cancelled")
+      .order("starts_at", { ascending: false })
+      .limit(200),
+    supabase.from("invoices").select("appointment_id").not("appointment_id", "is", null),
+  ]);
+
+  if (error) throw new Error(error.message);
+  if (invoicedError) throw new Error(invoicedError.message);
+
+  const invoicedIds = new Set(
+    (invoicedRows ?? [])
+      .map((row) => row.appointment_id)
+      .filter((id): id is string => Boolean(id)),
+  );
+
+  return (data ?? []).flatMap((row) => {
+    const service = (Array.isArray(row.services) ? row.services[0] : row.services) as
+      | { name?: string; price_cents?: number }
+      | null
+      | undefined;
+    const amountCents =
+      typeof row.price_cents === "number" ? row.price_cents : (service?.price_cents ?? 0);
+    const serviceName = service?.name ?? "Appointment";
+    const alreadyInvoiced = invoicedIds.has(row.id);
+    return [
+      {
+        id: row.id,
+        patientId: row.patient_id,
+        label: `${formatSastDateTime(row.starts_at)} · ${serviceName} · R ${(amountCents / 100).toFixed(2)}${
+          alreadyInvoiced ? " · already invoiced" : ""
+        }`,
+        description: serviceName,
+        amountCents,
+        serviceId: row.service_id,
+      },
+    ];
+  });
+}
 
 export async function createInvoiceAction(
   _prev: BillingActionState,
@@ -45,6 +169,7 @@ export async function createInvoiceAction(
   const parsed = invoiceSchema.safeParse({
     patientId: formData.get("patientId"),
     appointmentId: formData.get("appointmentId") || null,
+    serviceId: formData.get("serviceId") || null,
     subtotalCents: formData.get("subtotalCents"),
     taxCents: formData.get("taxCents") || 0,
     description: formData.get("description"),
@@ -52,6 +177,19 @@ export async function createInvoiceAction(
   if (!parsed.success) return { error: "Invalid invoice" };
 
   const admin = createServiceClient();
+  let serviceId = parsed.data.serviceId ?? null;
+  if (parsed.data.appointmentId) {
+    const { data: appointment } = await admin
+      .from("appointments")
+      .select("id, patient_id, service_id")
+      .eq("id", parsed.data.appointmentId)
+      .maybeSingle();
+    if (!appointment || appointment.patient_id !== parsed.data.patientId) {
+      return { error: "Appointment does not belong to this patient" };
+    }
+    serviceId = serviceId ?? appointment.service_id;
+  }
+
   const { data: numberData, error: numError } = await admin.rpc("next_invoice_number");
   if (numError) return { error: numError.message };
 
@@ -76,7 +214,7 @@ export async function createInvoiceAction(
 
   if (error || !data) return { error: error?.message ?? "Failed" };
 
-  await supabase.from("invoice_line_items").insert({
+  const lineItem = {
     invoice_id: data.id,
     description: parsed.data.description,
     quantity: 1,
@@ -84,7 +222,15 @@ export async function createInvoiceAction(
     amount_cents: parsed.data.subtotalCents,
     treatment_code: formData.get("treatmentCode")?.toString() || null,
     icd10_code: formData.get("icd10Code")?.toString() || null,
-  });
+    service_id: serviceId,
+  };
+  const { error: lineError } = await supabase.from("invoice_line_items").insert(lineItem);
+  if (lineError && /service_id/i.test(lineError.message)) {
+    const { service_id: _serviceId, ...withoutService } = lineItem;
+    await supabase.from("invoice_line_items").insert(withoutService);
+  } else if (lineError) {
+    return { error: lineError.message };
+  }
 
   await supabase.from("audit_logs").insert({
     actor_id: profile.id,
@@ -144,6 +290,8 @@ export async function createInvoiceAction(
     await drainEmailOutbox(Math.max(5, outboxRows.length));
   }
 
+  revalidatePath("/admin");
+  revalidatePath("/admin/analytics");
   revalidatePath("/admin/billing");
   revalidatePath(`/admin/billing/${data.id}`);
   redirect(`/admin/billing/${data.id}`);
@@ -158,14 +306,18 @@ export async function updateInvoiceLineItemsAction(
   if (!invoiceId) return { error: "Missing invoice" };
 
   let linesRaw: unknown;
+  let discountRaw: unknown;
   try {
     linesRaw = JSON.parse(formData.get("linesJson")?.toString() ?? "[]");
+    discountRaw = JSON.parse(formData.get("invoiceDiscountJson")?.toString() || "{}");
   } catch {
     return { error: "Invalid line items" };
   }
 
   const linesParsed = z.array(lineItemSchema).min(1).safeParse(linesRaw);
   if (!linesParsed.success) return { error: "Add at least one valid line item" };
+  const discountParsed = invoiceDiscountSchema.safeParse(discountRaw);
+  if (!discountParsed.success) return { error: "Invalid invoice discount" };
 
   const supabase = await createClient();
   const { data: invoice, error: invoiceError } = await supabase
@@ -179,17 +331,37 @@ export async function updateInvoiceLineItemsAction(
     return { error: "Paid or void invoices cannot be edited. Create a new invoice for extras." };
   }
 
-  const lines = linesParsed.data.map((line) => ({
+  const invoiceDiscount = discountParsed.data;
+  const totals = invoiceTotalsFromLines({
+    lines: linesParsed.data.map((line) => ({
+      quantity: line.quantity,
+      unitPriceCents: line.unitPriceCents,
+      discount: {
+        mode: line.discountMode ?? "none",
+        percent: line.discountPercent,
+        amountCents: line.discountAmountCents,
+      },
+    })),
+    invoiceDiscount: {
+      mode: invoiceDiscount.mode,
+      percent: invoiceDiscount.percent,
+      amountCents: invoiceDiscount.amountCents,
+    },
+    taxCents: invoice.tax_cents ?? 0,
+  });
+
+  const lines = linesParsed.data.map((line, index) => ({
     invoice_id: invoiceId,
     description: line.description.trim(),
     quantity: line.quantity,
     unit_price_cents: line.unitPriceCents,
-    amount_cents: Math.round(line.quantity * line.unitPriceCents),
+    amount_cents: totals.lines[index]?.amountCents ?? 0,
+    discount_percent: totals.lines[index]?.discountPercent ?? null,
+    discount_cents: totals.lines[index]?.discountCents ?? 0,
+    service_id: line.serviceId ?? null,
+    treatment_code: line.treatmentCode || null,
+    icd10_code: line.icd10Code || null,
   }));
-
-  const subtotal = lines.reduce((sum, line) => sum + line.amount_cents, 0);
-  const taxCents = invoice.tax_cents ?? 0;
-  const total = subtotal + taxCents;
 
   const { error: deleteError } = await supabase
     .from("invoice_line_items")
@@ -203,8 +375,11 @@ export async function updateInvoiceLineItemsAction(
   const { error: updateError } = await supabase
     .from("invoices")
     .update({
-      subtotal_cents: subtotal,
-      total_cents: total,
+      subtotal_cents: totals.subtotalCents,
+      discount_cents: totals.invoiceDiscountCents,
+      discount_percent: totals.invoiceDiscountPercent,
+      discount_note: invoiceDiscount.note?.trim() || null,
+      total_cents: totals.totalCents,
       notes: lines[0]?.description ?? null,
     })
     .eq("id", invoiceId);
@@ -217,6 +392,10 @@ export async function updateInvoiceLineItemsAction(
     entity_id: invoiceId,
   });
 
+  await applyInvoicePaymentStatus(invoiceId);
+
+  revalidatePath("/admin");
+  revalidatePath("/admin/analytics");
   revalidatePath("/admin/billing");
   revalidatePath(`/admin/billing/${invoiceId}`);
   revalidatePath("/portal/invoices");
@@ -231,7 +410,7 @@ export async function sendInvoiceEmailAction(invoiceId: string): Promise<SendInv
   const { data: invoice, error } = await admin
     .from("invoices")
     .select(
-      "id, invoice_number, status, total_cents, notes, appointment_id, patients(email, first_name, last_name)",
+      "id, invoice_number, status, total_cents, notes, appointment_id, patient_id, patients(email, first_name, last_name, billing_email, billing_name)",
     )
     .eq("id", invoiceId)
     .maybeSingle();
@@ -239,12 +418,19 @@ export async function sendInvoiceEmailAction(invoiceId: string): Promise<SendInv
   if (error || !invoice) return { error: error?.message ?? "Invoice not found" };
 
   const patient = (Array.isArray(invoice.patients) ? invoice.patients[0] : invoice.patients) as
-    | { email?: string | null; first_name?: string | null; last_name?: string | null }
+    | {
+        email?: string | null;
+        first_name?: string | null;
+        last_name?: string | null;
+        billing_email?: string | null;
+        billing_name?: string | null;
+      }
     | null
     | undefined;
 
-  const recipientEmail = patient?.email?.trim().toLowerCase();
-  if (!recipientEmail) return { error: "Patient has no email address" };
+  const recipient = await resolvePatientInvoiceRecipient(invoice.patient_id);
+  const recipientEmail = recipient.email;
+  if (!recipientEmail) return { error: "No billing or patient email address on file" };
 
   const banking = await getInvoiceBankingSettings();
   const isReceipt = invoice.status === "paid";
@@ -255,7 +441,7 @@ export async function sendInvoiceEmailAction(invoiceId: string): Promise<SendInv
   const sharedPayload = {
     invoiceId: invoice.id,
     invoiceNumber: invoice.invoice_number,
-    firstName: patient?.first_name ?? "there",
+    firstName: recipient.firstName,
     patientName,
     description: invoice.notes ?? "Physiotherapy services",
     totalCents: invoice.total_cents,
@@ -324,34 +510,34 @@ export async function recordPaymentAction(
 
   if (error) return { error: error.message };
 
-  if (parsed.data.invoiceId) {
-    await supabase
-      .from("invoices")
-      .update({ status: "paid" })
-      .eq("id", parsed.data.invoiceId);
+  let success = "Payment recorded";
 
-    const admin = createServiceClient();
-    const { data: invoice } = await admin
-      .from("invoices")
-      .select(
-        "id, invoice_number, total_cents, notes, appointment_id, patients(email, first_name, last_name)",
-      )
-      .eq("id", parsed.data.invoiceId)
-      .maybeSingle();
+  if (parsed.data.invoiceId) {
+    const refreshed = await applyInvoicePaymentStatus(parsed.data.invoiceId);
+    const invoice = refreshed.invoice;
+    const fullyPaid = refreshed.status === "paid";
+    success = fullyPaid
+      ? "Payment recorded — invoice paid in full"
+      : `Partial payment recorded. Outstanding R ${(refreshed.outstandingCents / 100).toFixed(2)}`;
 
     const patient = (Array.isArray(invoice?.patients) ? invoice?.patients[0] : invoice?.patients) as
       | { email?: string | null; first_name?: string | null; last_name?: string | null }
       | null
       | undefined;
-    const recipientEmail = patient?.email?.trim().toLowerCase();
-    if (invoice) {
+    const recipient = invoice?.patient_id
+      ? await resolvePatientInvoiceRecipient(invoice.patient_id)
+      : { email: patient?.email?.trim().toLowerCase() ?? null, firstName: patient?.first_name ?? "there" };
+    const recipientEmail = recipient.email;
+
+    if (fullyPaid && invoice) {
+      const admin = createServiceClient();
       const banking = await getInvoiceBankingSettings();
       const patientName =
         `${patient?.first_name ?? ""} ${patient?.last_name ?? ""}`.trim() || "a patient";
       const sharedPayload = {
         invoiceId: invoice.id,
         invoiceNumber: invoice.invoice_number,
-        firstName: patient?.first_name ?? "there",
+        firstName: recipient.firstName,
         patientName,
         description: invoice.notes ?? "Physiotherapy services",
         totalCents: invoice.total_cents,
@@ -387,50 +573,52 @@ export async function recordPaymentAction(
     revalidatePath(`/admin/billing/${parsed.data.invoiceId}`);
   }
 
+  revalidatePath("/admin");
+  revalidatePath("/admin/analytics");
   revalidatePath("/admin/billing");
-  return { success: "Payment recorded", id: data?.id };
+  return { success, id: data?.id };
 }
 
-export async function listPatientInvoices() {
-  const profile = await requireUser();
+export async function listPatientInvoices(patientId?: string | null) {
+  const { data: accessible } = await listAccessiblePatients();
+  const ids = accessible
+    .filter((patient) => (patientId ? patient.id === patientId : true))
+    .map((patient) => patient.id);
+  if (!ids.length) return { data: [], error: null };
   const supabase = await createClient();
-  const { data: patient } = await supabase
-    .from("patients")
-    .select("id")
-    .eq("profile_id", profile.id)
-    .maybeSingle();
-  if (!patient) return { data: [], error: null };
   return supabase
     .from("invoices")
-    .select("*")
-    .eq("patient_id", patient.id)
+    .select("*, payments(amount_cents), patients(first_name, last_name)")
+    .in("patient_id", ids)
     .order("issue_date", { ascending: false });
 }
 
 export async function generateStatementSummary(patientId: string, from: string, to: string) {
   await requireStaff();
   const supabase = await createClient();
+  const bounds = statementPeriodBounds(from, to);
   const { data: invoices } = await supabase
     .from("invoices")
     .select("*")
     .eq("patient_id", patientId)
-    .gte("issue_date", from)
-    .lte("issue_date", to);
+    .gte("issue_date", bounds.issueFrom)
+    .lte("issue_date", bounds.issueTo);
   const { data: payments } = await supabase
     .from("payments")
     .select("*")
     .eq("patient_id", patientId)
-    .gte("paid_at", from)
-    .lte("paid_at", to);
+    .gte("paid_at", bounds.paidFromIso)
+    .lt("paid_at", bounds.paidToExclusiveIso);
 
-  const invoiced = (invoices ?? []).reduce((s, i) => s + i.total_cents, 0);
+  const visibleInvoices = (invoices ?? []).filter((invoice) => invoice.status !== "void");
+  const invoiced = invoicedCents(visibleInvoices);
   const paid = (payments ?? []).reduce((s, p) => s + p.amount_cents, 0);
   return {
     period: { from, to },
     invoicedCents: invoiced,
     paidCents: paid,
     balanceCents: invoiced - paid,
-    invoices: invoices ?? [],
+    invoices: visibleInvoices,
     payments: payments ?? [],
   };
 }

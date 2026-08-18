@@ -3,6 +3,9 @@ import { describe, expect, it } from "vitest";
 import { expandBusyWithBuffer } from "@/features/booking/api/slots";
 import {
   canCancelAppointmentStatus,
+  canCompleteAppointmentStatus,
+  canCorrectAttendanceStatus,
+  canMarkNoShowAppointmentStatus,
   canRescheduleAppointmentStatus,
   canTransitionAppointmentStatus,
 } from "@/features/booking/lib/status";
@@ -31,11 +34,26 @@ describe("appointment status transitions", () => {
     expect(canCancelAppointmentStatus("confirmed")).toBe(true);
   });
 
-  it("treats cancelled/completed/no_show as terminal", () => {
+  it("treats cancelled/completed/no_show as terminal for reschedule", () => {
     expect(canRescheduleAppointmentStatus("cancelled")).toBe(false);
     expect(canRescheduleAppointmentStatus("completed")).toBe(false);
     expect(canCancelAppointmentStatus("cancelled")).toBe(false);
     expect(canCancelAppointmentStatus("completed")).toBe(false);
+  });
+
+  it("allows complete and no-show from confirmed only", () => {
+    expect(canCompleteAppointmentStatus("confirmed")).toBe(true);
+    expect(canMarkNoShowAppointmentStatus("confirmed")).toBe(true);
+    expect(canCompleteAppointmentStatus("pending")).toBe(false);
+    expect(canMarkNoShowAppointmentStatus("cancelled")).toBe(false);
+  });
+
+  it("allows staff correction from completed or no-show back to confirmed", () => {
+    expect(canCorrectAttendanceStatus("completed")).toBe(true);
+    expect(canCorrectAttendanceStatus("no_show")).toBe(true);
+    expect(canTransitionAppointmentStatus("completed", "confirmed")).toBe(true);
+    expect(canTransitionAppointmentStatus("no_show", "confirmed")).toBe(true);
+    expect(canCorrectAttendanceStatus("confirmed")).toBe(false);
   });
 });
 

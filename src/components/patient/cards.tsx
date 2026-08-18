@@ -251,7 +251,7 @@ export interface InvoiceCardProps extends HTMLAttributes<HTMLDivElement> {
   invoiceNumber: string;
   date: string;
   amount: string;
-  status?: "paid" | "pending" | "overdue";
+  status?: "paid" | "pending" | "overdue" | "partially_paid" | "void";
   actions?: ReactNode;
 }
 
@@ -259,6 +259,16 @@ const invoiceStatus = {
   paid: "success",
   pending: "warning",
   overdue: "destructive",
+  partially_paid: "warning",
+  void: "secondary",
+} as const;
+
+const invoiceStatusLabel = {
+  paid: "Paid",
+  pending: "Pending",
+  overdue: "Overdue",
+  partially_paid: "Partially paid",
+  void: "Void",
 } as const;
 
 export function InvoiceCard({
@@ -285,8 +295,8 @@ export function InvoiceCard({
             <CardDescription className="truncate">{date}</CardDescription>
           </div>
         </div>
-        <Badge variant={invoiceStatus[status]} className="shrink-0 capitalize">
-          {status}
+        <Badge variant={invoiceStatus[status]} className="shrink-0">
+          {invoiceStatusLabel[status]}
         </Badge>
       </CardHeader>
       <CardContent className="pt-0">

@@ -3,9 +3,10 @@
 import { revalidatePath } from "next/cache";
 import { z } from "zod";
 
-import { requireStaff, requireUser } from "@/lib/auth/guards";
+import { requireStaff } from "@/lib/auth/guards";
 import { createServiceClient } from "@/lib/supabase/admin";
 import { createClient } from "@/lib/supabase/server";
+import { listAccessiblePatients } from "@/features/patients/api/patients";
 
 const exerciseSchema = z.object({
   name: z.string().min(2),
@@ -178,19 +179,17 @@ export async function createProgrammeAction(
   return { success: "Programme assigned" };
 }
 
-export async function listPatientProgrammes() {
-  const profile = await requireUser();
+export async function listPatientProgrammes(patientId?: string | null) {
+  const { data: accessible } = await listAccessiblePatients();
+  const ids = accessible
+    .filter((patient) => (patientId ? patient.id === patientId : true))
+    .map((patient) => patient.id);
+  if (!ids.length) return { data: [], error: null };
   const supabase = await createClient();
-  const { data: patient } = await supabase
-    .from("patients")
-    .select("id")
-    .eq("profile_id", profile.id)
-    .maybeSingle();
-  if (!patient) return { data: [], error: null };
   return supabase
     .from("exercise_programmes")
-    .select("*, programme_exercises(*)")
-    .eq("patient_id", patient.id)
+    .select("*, programme_exercises(*), patients(first_name, last_name)")
+    .in("patient_id", ids)
     .order("created_at", { ascending: false });
 }
 

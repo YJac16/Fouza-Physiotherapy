@@ -2,38 +2,44 @@
 
 import { requireStaff } from "@/lib/auth/guards";
 import { createClient } from "@/lib/supabase/server";
+import { getLastNDaysFinanceSummary } from "@/features/analytics/api/finance";
+import { lastNSastDaysRange } from "@/features/analytics/lib/finance";
 
 export async function getAnalyticsSummary(days = 30) {
   await requireStaff();
   const supabase = await createClient();
-  const since = new Date(Date.now() - days * 24 * 60 * 60 * 1000).toISOString();
+  const range = lastNSastDaysRange(days);
 
-  const [appointments, payments, patients, noShows] = await Promise.all([
+  const [appointments, patients, finance] = await Promise.all([
     supabase
       .from("appointments")
       .select("id, status, starts_at")
-      .gte("starts_at", since),
-    supabase.from("payments").select("amount_cents, paid_at").gte("paid_at", since),
-    supabase.from("patients").select("id", { count: "exact", head: true }).gte("created_at", since),
+      .gte("starts_at", range.fromIso)
+      .lt("starts_at", range.toExclusiveIso),
     supabase
-      .from("appointments")
+      .from("patients")
       .select("id", { count: "exact", head: true })
-      .eq("status", "no_show")
-      .gte("starts_at", since),
+      .gte("created_at", range.fromIso)
+      .lt("created_at", range.toExclusiveIso),
+    getLastNDaysFinanceSummary(days),
   ]);
 
-  const completed =
-    appointments.data?.filter((a) => a.status === "completed").length ?? 0;
-  const revenue = (payments.data ?? []).reduce((s, p) => s + p.amount_cents, 0);
-  const totalAppts = appointments.data?.length ?? 0;
+  const rows = appointments.data ?? [];
+  const completed = rows.filter((a) => a.status === "completed").length;
+  const cancelled = rows.filter((a) => a.status === "cancelled").length;
+  const noShows = rows.filter((a) => a.status === "no_show").length;
 
   return {
     days,
-    appointments: totalAppts,
+    fromDate: range.fromDate,
+    toDate: range.toDate,
+    appointments: rows.length,
     completed,
-    utilization: totalAppts ? Math.round((completed / totalAppts) * 100) : 0,
-    revenueCents: revenue,
+    cancelled,
+    noShows,
+    cashCollectedCents: finance.cashCollectedCents,
+    invoicedCents: finance.invoicedCents,
+    outstandingCents: finance.outstandingCents,
     newPatients: patients.count ?? 0,
-    noShows: noShows.count ?? 0,
   };
 }

@@ -10,6 +10,11 @@ import {
   getInvoiceBankingSettings,
   getInvoiceForPatient,
 } from "@/features/billing/lib/invoice-data";
+import {
+  invoiceDisplayStatus,
+  invoiceOutstandingCents,
+  invoicePaidCents,
+} from "@/features/analytics/lib/finance";
 import { Button } from "@/components/ui/button";
 import { routes } from "@/config/routes";
 import { siteConfig } from "@/config/site";
@@ -30,6 +35,9 @@ export default async function PortalInvoiceDetailPage({ params }: PageProps) {
         first_name?: string;
         last_name?: string;
         postal_address?: string | null;
+        billing_name?: string | null;
+        billing_email?: string | null;
+        billing_address?: string | null;
       }
     | null
     | undefined;
@@ -45,12 +53,16 @@ export default async function PortalInvoiceDetailPage({ params }: PageProps) {
       unit_price_cents: number;
       amount_cents: number;
       treatment_code: string | null;
+      discount_percent?: number | string | null;
+      discount_cents?: number | null;
     }) => ({
       description: line.description,
       quantity: Number(line.quantity) || 1,
       unitPriceCents: line.unit_price_cents,
       amountCents: line.amount_cents,
       treatmentCode: line.treatment_code,
+      discountPercent: line.discount_percent == null ? null : Number(line.discount_percent),
+      discountCents: line.discount_cents ?? 0,
     }),
   );
 
@@ -64,14 +76,17 @@ export default async function PortalInvoiceDetailPage({ params }: PageProps) {
   }
 
   const payments = invoice.payments ?? [];
-  const amountPaidCents = payments.reduce(
-    (sum: number, p: { amount_cents: number }) => sum + p.amount_cents,
-    0,
-  );
+  const amountPaidCents = invoicePaidCents(payments);
+  const outstandingCents = invoiceOutstandingCents(invoice.total_cents, amountPaidCents);
+  const displayStatus = invoiceDisplayStatus({
+    status: invoice.status,
+    totalCents: invoice.total_cents,
+    paidCents: amountPaidCents,
+  });
   const latestPayment = payments[0] as
     | { method?: string; paid_at?: string }
     | undefined;
-  const isReceipt = invoice.status === "paid";
+  const isReceipt = displayStatus === "paid";
 
   return (
     <div className="space-y-6">
@@ -95,12 +110,20 @@ export default async function PortalInvoiceDetailPage({ params }: PageProps) {
         practiceName={siteConfig.practiceName}
         practiceAddress={`${siteConfig.address}, ${siteConfig.region}`}
         patientName={patientName}
-        patientAddress={patient?.postal_address}
+        patientAddress={patient?.billing_address || patient?.postal_address}
+        accountHolderName={patient?.billing_name}
+        accountHolderEmail={patient?.billing_email}
         lines={lines}
         subtotalCents={invoice.subtotal_cents}
         taxCents={invoice.tax_cents}
         totalCents={invoice.total_cents}
-        amountPaidCents={amountPaidCents || (isReceipt ? invoice.total_cents : 0)}
+        discountCents={
+          (invoice.discount_cents ?? 0) +
+          lines.reduce((sum, line) => sum + (line.discountCents ?? 0), 0)
+        }
+        discountNote={invoice.discount_note}
+        amountPaidCents={amountPaidCents}
+        balanceDueCents={outstandingCents}
         paymentMethod={latestPayment?.method}
         paidAt={latestPayment?.paid_at}
         banking={banking}

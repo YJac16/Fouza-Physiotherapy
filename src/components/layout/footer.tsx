@@ -1,11 +1,11 @@
-import { Clock, Mail, MapPin, MessageCircle } from "lucide-react";
+import { Clock, Mail, MapPin, MessageCircle, Phone } from "lucide-react";
 import Link from "next/link";
 
 import { Logo } from "@/components/shared/logo";
 import { Newsletter } from "@/components/shared/newsletter";
 import { Separator } from "@/components/ui/separator";
 import { routes } from "@/config/routes";
-import { mapsQueryUrl, siteConfig } from "@/config/site";
+import { mapsQueryUrl, siteConfig, telHref } from "@/config/site";
 import { cn } from "@/lib/utils";
 import type { AppRole } from "@/types/auth";
 
@@ -88,6 +88,12 @@ export function Footer({ className, showNewsletter = true, auth = null }: Footer
                 </a>
               </li>
               <li className="flex items-center gap-2">
+                <Phone className="size-4 text-primary" aria-hidden />
+                <a href={telHref()} className="hover:text-foreground">
+                  {siteConfig.phoneDisplay}
+                </a>
+              </li>
+              <li className="flex items-center gap-2">
                 <Clock className="size-4 text-primary" aria-hidden />
                 <span>{siteConfig.hoursSummary}</span>
               </li>
@@ -155,7 +161,10 @@ export function Footer({ className, showNewsletter = true, auth = null }: Footer
           <p>
             © {year} {siteConfig.practiceName}. All rights reserved.
           </p>
-          <p>Evidence-based physiotherapy · Walmer Estate, Cape Town</p>
+          <p>
+            Add to Home Screen: iPhone Share → Add to Home Screen · Android/Chrome menu → Install
+            app
+          </p>
         </div>
       </div>
     </footer>

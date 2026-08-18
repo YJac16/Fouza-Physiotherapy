@@ -12,6 +12,12 @@ import {
   getInvoiceBankingSettings,
   getInvoiceForStaff,
 } from "@/features/billing/lib/invoice-data";
+import {
+  invoiceDisplayLabel,
+  invoiceDisplayStatus,
+  invoiceOutstandingCents,
+  invoicePaidCents,
+} from "@/features/analytics/lib/finance";
 import { Button } from "@/components/ui/button";
 import { routes } from "@/config/routes";
 import { siteConfig } from "@/config/site";
@@ -33,6 +39,9 @@ export default async function AdminInvoiceDetailPage({ params }: PageProps) {
         last_name?: string;
         email?: string | null;
         postal_address?: string | null;
+        billing_name?: string | null;
+        billing_email?: string | null;
+        billing_address?: string | null;
       }
     | null
     | undefined;
@@ -47,6 +56,9 @@ export default async function AdminInvoiceDetailPage({ params }: PageProps) {
     unit_price_cents: number;
     amount_cents: number;
     treatment_code: string | null;
+    service_id?: string | null;
+    discount_percent?: number | string | null;
+    discount_cents?: number | null;
   }>;
 
   const lines: InvoiceDocumentLine[] = rawLines.map((line) => ({
@@ -55,6 +67,8 @@ export default async function AdminInvoiceDetailPage({ params }: PageProps) {
     unitPriceCents: line.unit_price_cents,
     amountCents: line.amount_cents,
     treatmentCode: line.treatment_code,
+    discountPercent: line.discount_percent == null ? null : Number(line.discount_percent),
+    discountCents: line.discount_cents ?? 0,
   }));
 
   if (!lines.length && invoice.notes) {
@@ -67,14 +81,17 @@ export default async function AdminInvoiceDetailPage({ params }: PageProps) {
   }
 
   const payments = invoice.payments ?? [];
-  const amountPaidCents = payments.reduce(
-    (sum: number, p: { amount_cents: number }) => sum + p.amount_cents,
-    0,
-  );
-  const latestPayment = payments[0] as
-    | { method?: string; paid_at?: string; amount_cents?: number }
-    | undefined;
-  const isReceipt = invoice.status === "paid";
+  const amountPaidCents = invoicePaidCents(payments);
+  const outstandingCents = invoiceOutstandingCents(invoice.total_cents, amountPaidCents);
+  const displayStatus = invoiceDisplayStatus({
+    status: invoice.status,
+    totalCents: invoice.total_cents,
+    paidCents: amountPaidCents,
+  });
+  const latestPayment = [...payments].sort((a, b) =>
+    String(b.paid_at ?? "").localeCompare(String(a.paid_at ?? "")),
+  )[0] as { method?: string; paid_at?: string; amount_cents?: number } | undefined;
+  const isReceipt = displayStatus === "paid";
   const canEdit = EDITABLE_INVOICE_STATUSES.has(invoice.status);
   const initials = patientName
     .split(" ")
@@ -95,6 +112,12 @@ export default async function AdminInvoiceDetailPage({ params }: PageProps) {
           <h1 className="mt-3 font-display text-2xl font-semibold">
             {isReceipt ? "Receipt" : "Invoice"} {invoice.invoice_number}
           </h1>
+          <p className="text-sm text-muted-foreground">
+            {invoiceDisplayLabel(displayStatus)}
+            {displayStatus === "partially_paid"
+              ? ` · outstanding R ${(outstandingCents / 100).toFixed(2)}`
+              : ""}
+          </p>
         </div>
         <InvoiceDocumentToolbar invoiceId={invoice.id} canSend />
       </div>
@@ -102,12 +125,21 @@ export default async function AdminInvoiceDetailPage({ params }: PageProps) {
       {canEdit ? (
         <InvoiceLineEditor
           invoiceId={invoice.id}
+          taxCents={invoice.tax_cents}
+          initialInvoiceDiscount={{
+            percent: invoice.discount_percent,
+            cents: invoice.discount_cents,
+            note: invoice.discount_note,
+          }}
           initialLines={
             lines.length
-              ? lines.map((line) => ({
+              ? lines.map((line, index) => ({
                   description: line.description,
                   quantity: line.quantity,
                   unitPriceCents: line.unitPriceCents,
+                  serviceId: rawLines[index]?.service_id ?? null,
+                  discountPercent: line.discountPercent,
+                  discountCents: line.discountCents,
                 }))
               : [
                   {
@@ -134,12 +166,20 @@ export default async function AdminInvoiceDetailPage({ params }: PageProps) {
         practiceName={siteConfig.practiceName}
         practiceAddress={`${siteConfig.address}, ${siteConfig.region}`}
         patientName={patientName}
-        patientAddress={patient?.postal_address}
+        patientAddress={patient?.billing_address || patient?.postal_address}
+        accountHolderName={patient?.billing_name}
+        accountHolderEmail={patient?.billing_email}
         lines={lines}
         subtotalCents={invoice.subtotal_cents}
         taxCents={invoice.tax_cents}
         totalCents={invoice.total_cents}
-        amountPaidCents={amountPaidCents || (isReceipt ? invoice.total_cents : 0)}
+        discountCents={
+          (invoice.discount_cents ?? 0) +
+          lines.reduce((sum, line) => sum + (line.discountCents ?? 0), 0)
+        }
+        discountNote={invoice.discount_note}
+        amountPaidCents={amountPaidCents}
+        balanceDueCents={outstandingCents}
         paymentMethod={latestPayment?.method}
         paidAt={latestPayment?.paid_at}
         banking={banking}

@@ -13,7 +13,8 @@ describe("seo metadata", () => {
       description: "About the practice",
       path: "/about",
     });
-    expect(meta.openGraph?.title).toBe("About");
+    expect(meta.openGraph?.title).toBe("About | Fouza Physiotherapy");
+    expect(meta.title).toBe("About");
     expect(meta.alternates?.canonical).toBeTruthy();
   });
 });

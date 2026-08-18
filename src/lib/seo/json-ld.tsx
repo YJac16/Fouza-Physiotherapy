@@ -11,7 +11,14 @@ export function medicalBusinessJsonLd() {
     url: absoluteUrl("/"),
     image: absoluteUrl(siteConfig.images.og),
     email: siteConfig.email,
+    telephone: siteConfig.phone,
     priceRange: "R600–R900",
+    aggregateRating: {
+      "@type": "AggregateRating",
+      ratingValue: siteConfig.googleBusiness.rating,
+      reviewCount: siteConfig.googleBusiness.reviewCount,
+      bestRating: 5,
+    },
     address: {
       "@type": "PostalAddress",
       streetAddress: "47 Upper Duke Street",

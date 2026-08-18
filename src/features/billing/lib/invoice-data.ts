@@ -3,9 +3,12 @@ import {
   DEFAULT_BANKING,
   type InvoiceDocumentBanking,
 } from "@/features/billing/components/invoice-document";
+import { resolveInvoiceRecipientEmail } from "@/features/billing/lib/invoice-recipient";
 import { siteConfig } from "@/config/site";
-import { requireStaff, requireUser } from "@/lib/auth/guards";
+import { requireStaff } from "@/lib/auth/guards";
 import { createClient } from "@/lib/supabase/server";
+import { createServiceClient } from "@/lib/supabase/admin";
+import { listAccessiblePatients } from "@/features/patients/api/patients";
 
 function asString(value: unknown, fallback: string) {
   return typeof value === "string" && value.trim() ? value : fallback;
@@ -38,7 +41,7 @@ export async function getInvoiceForStaff(invoiceId: string) {
   const { data: invoice, error } = await supabase
     .from("invoices")
     .select(
-      "*, patients(id, first_name, last_name, email, postal_address), invoice_line_items(*), payments(*)",
+      "*, patients(id, first_name, last_name, email, postal_address, billing_name, billing_email, billing_address), invoice_line_items(*), payments(*)",
     )
     .eq("id", invoiceId)
     .maybeSingle();
@@ -48,24 +51,48 @@ export async function getInvoiceForStaff(invoiceId: string) {
 }
 
 export async function getInvoiceForPatient(invoiceId: string) {
-  const profile = await requireUser();
-  const supabase = await createClient();
-  const { data: patient } = await supabase
-    .from("patients")
-    .select("id")
-    .eq("profile_id", profile.id)
-    .maybeSingle();
-  if (!patient) return { invoice: null, error: "Patient profile not found" };
+  const { data: accessible } = await listAccessiblePatients();
+  const ids = accessible.map((patient) => patient.id);
+  if (!ids.length) return { invoice: null, error: "Patient profile not found" };
 
+  const supabase = await createClient();
   const { data: invoice, error } = await supabase
     .from("invoices")
     .select(
-      "*, patients(id, first_name, last_name, email, postal_address), invoice_line_items(*), payments(*)",
+      "*, patients(id, first_name, last_name, email, postal_address, billing_name, billing_email, billing_address), invoice_line_items(*), payments(*)",
     )
     .eq("id", invoiceId)
-    .eq("patient_id", patient.id)
+    .in("patient_id", ids)
     .maybeSingle();
 
   if (error || !invoice) return { invoice: null, error: error?.message ?? "Not found" };
   return { invoice, error: null };
+}
+
+export async function resolvePatientInvoiceRecipient(patientId: string) {
+  const admin = createServiceClient();
+  const [{ data: patient }, { data: holder }] = await Promise.all([
+    admin
+      .from("patients")
+      .select("email, billing_email, billing_name, first_name")
+      .eq("id", patientId)
+      .maybeSingle(),
+    admin
+      .from("patient_contacts")
+      .select("email, full_name")
+      .eq("patient_id", patientId)
+      .eq("is_account_holder", true)
+      .maybeSingle(),
+  ]);
+
+  return {
+    email: resolveInvoiceRecipientEmail({
+      billingEmail: patient?.billing_email,
+      accountHolderEmail: holder?.email,
+      patientEmail: patient?.email,
+    }),
+    firstName: holder?.full_name?.split(" ")[0] || patient?.first_name || "there",
+    accountHolderName: patient?.billing_name || holder?.full_name || null,
+    accountHolderEmail: holder?.email || patient?.billing_email || null,
+  };
 }

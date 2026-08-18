@@ -14,7 +14,7 @@ export const metadata: Metadata = buildMetadata({
   path: routes.marketing.privacy,
 });
 
-const lastUpdated = "21 July 2026";
+const lastUpdated = "14 August 2026";
 
 function PolicySection({
   title,
@@ -190,10 +190,19 @@ export default function PrivacyPage() {
 
             <PolicySection title="9. Cookies and website analytics">
               <p>
-                Our website may use cookies or similar technologies to
-                understand usage patterns and improve your browsing
-                experience. You can control cookie preferences through your
-                browser settings.
+                The website can work without analytics cookies. If you accept, we load Google
+                Analytics 4 to measure anonymous page views and marketing actions such as Book,
+                WhatsApp, phone, email, and contact-form clicks.
+              </p>
+              <p>
+                We do not send names, email addresses, phone numbers, messages, symptoms, clinical
+                notes, or appointment identifiers to Google. Analytics is not loaded on the staff
+                admin or patient portal. Advertising storage stays denied.
+              </p>
+              <p>
+                You can decline analytics cookies on first visit, or clear site data in your
+                browser to be asked again. Search Console verification is a static meta tag and
+                does not set cookies.
               </p>
             </PolicySection>
 

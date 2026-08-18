@@ -13,7 +13,8 @@ import { listPatientInvoices } from "@/features/billing/actions/billing";
 import { getPatientConsentCompletion } from "@/features/consent-forms/lib/completion";
 import { listPatientDocuments } from "@/features/documents/actions/documents";
 import { listPatientProgrammes } from "@/features/exercise-programmes/actions/programmes";
-import { getMyPatientRecord, listMyAppointments } from "@/features/patients/api/patients";
+import { getPortalView, listMyAppointments } from "@/features/patients/api/patients";
+import { patientDisplayName } from "@/features/patients/lib/access";
 import { requireUser } from "@/lib/auth/guards";
 import { routes } from "@/config/routes";
 
@@ -25,14 +26,15 @@ function invoiceCardStatus(status: string): "paid" | "pending" | "overdue" {
 
 export default async function PortalHomePage() {
   const profile = await requireUser();
-  const { data: patient } = await getMyPatientRecord();
+  const { patients, selected } = await getPortalView();
+  const patient = selected;
 
   const [appointmentsResult, programmesResult, invoicesResult, documentsResult] = patient
     ? await Promise.all([
-        listMyAppointments(true),
-        listPatientProgrammes(),
-        listPatientInvoices(),
-        listPatientDocuments(),
+        listMyAppointments(true, patient.id),
+        listPatientProgrammes(patient.id),
+        listPatientInvoices(patient.id),
+        listPatientDocuments(patient.id),
       ])
     : [null, null, null, null];
 
@@ -40,6 +42,7 @@ export default async function PortalHomePage() {
   const completion = patient
     ? await getPatientConsentCompletion(patient.id)
     : null;
+  const viewingSelf = patient?.access === "self";
 
   const upcomingAppointments = (appointmentsResult?.data ?? []).slice(0, 4);
   const recentProgrammes = (programmesResult?.data ?? []).slice(0, 3);
@@ -53,11 +56,13 @@ export default async function PortalHomePage() {
       <div>
         <h1 className="font-display text-2xl font-semibold">Welcome, {greeting}</h1>
         <p className="text-sm text-muted-foreground">
-          Your Fouza Physiotherapy patient portal.
+          {patient
+            ? `Viewing ${patientDisplayName(patient)}${viewingSelf ? "" : " — family account"}.`
+            : "Your Fouza Physiotherapy patient portal."}
         </p>
       </div>
 
-      {patient && completion && !completion.complete ? (
+      {patient && viewingSelf && completion && !completion.complete ? (
         <div className="rounded-2xl border border-warning/40 bg-warning/10 p-5">
           <p className="font-display text-lg font-semibold text-foreground">
             Complete your forms before your visit
@@ -71,6 +76,18 @@ export default async function PortalHomePage() {
           <Button asChild className="mt-4">
             <Link href={routes.portal.forms}>Open informed consent</Link>
           </Button>
+        </div>
+      ) : null}
+
+      {patient && !viewingSelf && completion && !completion.complete ? (
+        <div className="rounded-2xl border border-warning/40 bg-warning/10 p-5">
+          <p className="font-display text-lg font-semibold text-foreground">
+            Consent still outstanding for {patientDisplayName(patient)}
+          </p>
+          <p className="mt-1 text-sm text-muted-foreground">
+            The practice will capture informed consent at the visit. Follow-up booking unlocks
+            once it is on file.
+          </p>
         </div>
       ) : null}
 
@@ -92,7 +109,7 @@ export default async function PortalHomePage() {
             {!upcomingAppointments.length ? (
               <EmptyState
                 title="No upcoming appointments"
-                description="Book online or call the practice to schedule your next visit."
+                description="Book online or call the practice to schedule the next visit."
                 action={
                   <Button asChild>
                     <Link href={routes.booking.root}>Book appointment</Link>
@@ -132,7 +149,7 @@ export default async function PortalHomePage() {
             {!recentProgrammes.length ? (
               <EmptyState
                 title="No programmes assigned"
-                description="Your practitioner will assign exercises after your consultation."
+                description="Your practitioner will assign exercises after the consultation."
               />
             ) : (
               <div className="grid gap-4 md:grid-cols-2 lg:grid-cols-3">
@@ -189,7 +206,7 @@ export default async function PortalHomePage() {
             {!recentInvoices.length ? (
               <EmptyState
                 title="No invoices yet"
-                description="Invoices will appear here after your consultations."
+                description="Invoices will appear here after consultations."
               />
             ) : (
               <div className="grid gap-4 md:grid-cols-2 lg:grid-cols-3">

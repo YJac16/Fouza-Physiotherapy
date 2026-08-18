@@ -1,6 +1,6 @@
 "use client";
 
-import { useActionState } from "react";
+import { useActionState, useMemo, useState } from "react";
 
 import { Button } from "@/components/ui/button";
 import { Input } from "@/components/ui/input";
@@ -8,6 +8,7 @@ import { Label } from "@/components/ui/label";
 import { Textarea } from "@/components/ui/textarea";
 import {
   createInvoiceAction,
+  type BillableAppointmentOption,
   type BillingActionState,
 } from "@/features/billing/actions/billing";
 
@@ -15,38 +16,121 @@ const initial: BillingActionState = {};
 
 export function InvoiceForm({
   patients,
+  appointments,
+  defaultPatientId,
+  defaultAppointmentId,
 }: {
   patients: { id: string; label: string }[];
+  appointments: BillableAppointmentOption[];
+  defaultPatientId?: string;
+  defaultAppointmentId?: string;
 }) {
   const [state, action, pending] = useActionState(createInvoiceAction, initial);
+  const defaultAppointment = appointments.find((item) => item.id === defaultAppointmentId);
+  const [patientId, setPatientId] = useState(
+    defaultPatientId ?? defaultAppointment?.patientId ?? "",
+  );
+  const [appointmentId, setAppointmentId] = useState(defaultAppointmentId ?? "");
+  const selectedAppointment = useMemo(
+    () => appointments.find((item) => item.id === appointmentId) ?? null,
+    [appointmentId, appointments],
+  );
+  const patientAppointments = useMemo(
+    () => appointments.filter((item) => item.patientId === patientId),
+    [appointments, patientId],
+  );
+  const [description, setDescription] = useState(defaultAppointment?.description ?? "");
+  const [subtotalCents, setSubtotalCents] = useState(
+    defaultAppointment?.amountCents ? String(defaultAppointment.amountCents) : "",
+  );
+
+  function handlePatientChange(nextPatientId: string) {
+    setPatientId(nextPatientId);
+    if (selectedAppointment && selectedAppointment.patientId !== nextPatientId) {
+      setAppointmentId("");
+    }
+  }
+
+  function handleAppointmentChange(nextAppointmentId: string) {
+    setAppointmentId(nextAppointmentId);
+    const next = appointments.find((item) => item.id === nextAppointmentId);
+    if (!next) return;
+    setPatientId(next.patientId);
+    setDescription(next.description);
+    setSubtotalCents(String(next.amountCents));
+  }
 
   return (
     <form action={action} className="space-y-4">
+      <input type="hidden" name="serviceId" value={selectedAppointment?.serviceId ?? ""} />
       <div className="space-y-2">
         <Label htmlFor="patientId">Patient</Label>
         <select
           id="patientId"
           name="patientId"
           required
+          value={patientId}
+          onChange={(event) => handlePatientChange(event.target.value)}
           className="flex h-10 w-full rounded-xl border border-input bg-background px-3 text-sm"
         >
           <option value="">Select patient</option>
-          {patients.map((p) => (
-            <option key={p.id} value={p.id}>
-              {p.label}
+          {patients.map((patient) => (
+            <option key={patient.id} value={patient.id}>
+              {patient.label}
             </option>
           ))}
         </select>
       </div>
       <div className="space-y-2">
+        <Label htmlFor="appointmentId">Appointment</Label>
+        <select
+          id="appointmentId"
+          name="appointmentId"
+          value={appointmentId}
+          onChange={(event) => handleAppointmentChange(event.target.value)}
+          disabled={!patientId}
+          className="flex h-10 w-full rounded-xl border border-input bg-background px-3 text-sm"
+        >
+          <option value="">No linked visit</option>
+          {patientAppointments.map((appointment) => (
+            <option key={appointment.id} value={appointment.id}>
+              {appointment.label}
+            </option>
+          ))}
+        </select>
+        <p className="text-xs text-muted-foreground">
+          Link the visit so cash collected can be attributed to a service. The booked price is
+          used as the starting amount.
+        </p>
+      </div>
+      <div className="space-y-2">
         <Label htmlFor="description">Description</Label>
-        <Textarea id="description" name="description" required rows={3} />
+        <Textarea
+          id="description"
+          name="description"
+          required
+          rows={3}
+          value={description}
+          onChange={(event) => setDescription(event.target.value)}
+        />
       </div>
       <div className="grid gap-4 md:grid-cols-2">
         <div className="space-y-2">
           <Label htmlFor="subtotalCents">Amount (cents)</Label>
-          <Input id="subtotalCents" name="subtotalCents" type="number" min={0} required defaultValue={70000} />
-          <p className="text-xs text-muted-foreground">e.g. 70000 = R700.00</p>
+          <Input
+            id="subtotalCents"
+            name="subtotalCents"
+            type="number"
+            min={0}
+            required
+            value={subtotalCents}
+            onChange={(event) => setSubtotalCents(event.target.value)}
+          />
+          <p className="text-xs text-muted-foreground">
+            {subtotalCents
+              ? `R ${(Number(subtotalCents || 0) / 100).toFixed(2)}`
+              : "e.g. 70000 = R700.00"}
+          </p>
         </div>
         <div className="space-y-2">
           <Label htmlFor="taxCents">Tax (cents)</Label>

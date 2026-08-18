@@ -1,11 +1,11 @@
-import { AlertTriangle, Car, Clock, Mail, MapPin, MessageCircle } from "lucide-react";
+import { AlertTriangle, Car, Clock, Mail, MapPin, MessageCircle, Phone } from "lucide-react";
 import type { Metadata } from "next";
 
 import { ContactForm, PageHero } from "@/components/marketing";
 import { Container, Section, SectionHeader } from "@/components/layout/container";
 import { Typography } from "@/components/ui/typography";
 import { routes } from "@/config/routes";
-import { mapsQueryUrl, siteConfig } from "@/config/site";
+import { mapsQueryUrl, siteConfig, telHref } from "@/config/site";
 import { JsonLd, breadcrumbJsonLd } from "@/lib/seo/json-ld";
 import { buildMetadata } from "@/lib/seo/metadata";
 
@@ -23,6 +23,12 @@ const contactDetails = [
     value: siteConfig.address,
     href: mapsQueryUrl(),
     external: true,
+  },
+  {
+    icon: Phone,
+    label: "Phone",
+    value: siteConfig.phoneDisplay,
+    href: telHref(),
   },
   {
     icon: MessageCircle,

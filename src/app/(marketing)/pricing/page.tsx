@@ -11,6 +11,7 @@ import { routes } from "@/config/routes";
 import { pricingNotices, pricingPlans } from "@/content/pricing";
 import { JsonLd, breadcrumbJsonLd } from "@/lib/seo/json-ld";
 import { buildMetadata } from "@/lib/seo/metadata";
+import { TrackViewItem } from "@/components/analytics/marketing-tracker";
 
 export const metadata: Metadata = buildMetadata({
   title: "Pricing | Fouza Physiotherapy",
@@ -28,6 +29,7 @@ const notices = [
 export default function PricingPage() {
   return (
     <>
+      <TrackViewItem itemId="pricing" itemName="Pricing" />
       <JsonLd
         data={breadcrumbJsonLd([
           { name: "Home", path: routes.marketing.home },
@@ -78,7 +80,13 @@ export default function PricingPage() {
                 badge={plan.badge}
                 cta={
                   <Button asChild className="w-full" variant={plan.highlighted ? "default" : "outline"}>
-                    <Link href={routes.booking.root}>Book this session</Link>
+                    <Link
+                      href={routes.booking.root}
+                      data-item-id={plan.id}
+                      data-item-name={plan.title}
+                    >
+                      Book this session
+                    </Link>
                   </Button>
                 }
               />

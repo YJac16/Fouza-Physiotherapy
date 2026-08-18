@@ -15,6 +15,7 @@ import { routes } from "@/config/routes";
 import { getService, serviceHref, services } from "@/content/services";
 import { JsonLd, breadcrumbJsonLd, faqJsonLd } from "@/lib/seo/json-ld";
 import { buildMetadata } from "@/lib/seo/metadata";
+import { TrackViewItem } from "@/components/analytics/marketing-tracker";
 
 interface ServicePageProps {
   params: Promise<{ slug: string }>;
@@ -66,6 +67,7 @@ export default async function ServiceDetailPage({ params }: ServicePageProps) {
         ])}
       />
       {service.faqs.length > 0 ? <JsonLd data={faqJsonLd(service.faqs)} /> : null}
+      <TrackViewItem itemId={service.slug} itemName={service.name} />
 
       <PageHero
         title={service.name}

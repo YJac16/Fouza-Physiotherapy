@@ -21,7 +21,7 @@ export default async function PatientsAdminPage({
     name: (
       <Link
         href={routes.admin.patient(patient.id)}
-        className="font-medium text-foreground underline-offset-4 hover:text-primary hover:underline"
+        className="block truncate font-medium text-foreground underline-offset-4 hover:text-primary hover:underline"
       >
         {patient.first_name} {patient.last_name}
       </Link>
@@ -31,7 +31,7 @@ export default async function PatientsAdminPage({
     medicalAid: patient.medical_aid_name ?? "—",
     view: (
       <Button asChild variant="outline" size="sm">
-        <Link href={routes.admin.patient(patient.id)}>View</Link>
+        <Link href={routes.admin.patient(patient.id)}>View more</Link>
       </Button>
     ),
   }));
@@ -53,9 +53,14 @@ export default async function PatientsAdminPage({
         </Button>
       </div>
 
-      <form action={routes.admin.patients} method="get" className="flex max-w-md gap-2">
-        <Input name="q" placeholder="Search by name, email, or phone" defaultValue={q ?? ""} />
-        <Button type="submit" variant="secondary">
+      <form action={routes.admin.patients} method="get" className="flex w-full max-w-md gap-2">
+        <Input
+          name="q"
+          placeholder="Search by name, email, or phone"
+          defaultValue={q ?? ""}
+          className="min-w-0 flex-1"
+        />
+        <Button type="submit" variant="secondary" className="shrink-0">
           Search
         </Button>
       </form>
@@ -73,36 +78,17 @@ export default async function PatientsAdminPage({
           }
         />
       ) : (
-        <>
-          <ul className="divide-y divide-border overflow-hidden rounded-2xl border border-border md:hidden">
-            {(patients ?? []).map((patient) => (
-              <li
-                key={patient.id}
-                className="flex items-center justify-between gap-3 px-4 py-3"
-              >
-                <p className="min-w-0 font-medium [overflow-wrap:anywhere]">
-                  {patient.first_name} {patient.last_name}
-                </p>
-                <Button asChild variant="outline" size="sm" className="shrink-0">
-                  <Link href={routes.admin.patient(patient.id)}>View more</Link>
-                </Button>
-              </li>
-            ))}
-          </ul>
-          <div className="hidden md:block">
-            <PatientTable
-              caption="Patients"
-              columns={[
-                { key: "name", header: "Name" },
-                { key: "email", header: "Email" },
-                { key: "phone", header: "Phone" },
-                { key: "medicalAid", header: "Medical aid" },
-                { key: "view", header: "", align: "right" },
-              ]}
-              rows={rows}
-            />
-          </div>
-        </>
+        <PatientTable
+          caption="Patients"
+          columns={[
+            { key: "name", header: "Name" },
+            { key: "email", header: "Email" },
+            { key: "phone", header: "Phone" },
+            { key: "medicalAid", header: "Medical aid" },
+            { key: "view", header: "", align: "right" },
+          ]}
+          rows={rows}
+        />
       )}
     </div>
   );

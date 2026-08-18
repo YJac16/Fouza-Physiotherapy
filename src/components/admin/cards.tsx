@@ -385,10 +385,26 @@ export function PatientTable({
   className,
   ...props
 }: PatientTableProps) {
+  const nameCol = columns.find((col) => col.key === "name") ?? columns[0];
+  const actionCol =
+    columns.find((col) => col.key === "view") ?? columns.find((col) => col.align === "right");
+
   return (
     <Card className={cn("overflow-hidden shadow-sm", className)} {...props}>
-      <div className="overflow-x-auto rounded-xl border border-border">
-        <table className="w-full min-w-[640px] text-sm">
+      <ul className="divide-y divide-border lg:hidden" aria-label={caption}>
+        {rows.length === 0 ? (
+          <li className="px-4 py-12 text-center text-sm text-muted-foreground">{emptyMessage}</li>
+        ) : (
+          rows.map((row) => (
+            <li key={row.id} className="flex items-center gap-3 px-4 py-3.5">
+              <div className="min-w-0 flex-1 truncate font-medium">{row[nameCol.key]}</div>
+              {actionCol ? <div className="shrink-0">{row[actionCol.key]}</div> : null}
+            </li>
+          ))
+        )}
+      </ul>
+      <div className="hidden overflow-x-auto lg:block">
+        <table className="w-full text-sm">
           <caption className="sr-only">{caption}</caption>
           <thead>
             <tr className="border-b border-border bg-secondary/50">
@@ -428,6 +444,7 @@ export function PatientTable({
                       key={col.key}
                       className={cn(
                         "px-4 py-3 text-foreground",
+                        col.key === "name" && "max-w-[14rem] truncate",
                         col.align === "center" && "text-center",
                         col.align === "right" && "text-right",
                       )}

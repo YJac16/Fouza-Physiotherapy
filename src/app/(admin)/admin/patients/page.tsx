@@ -73,17 +73,36 @@ export default async function PatientsAdminPage({
           }
         />
       ) : (
-        <PatientTable
-          caption="Patients"
-          columns={[
-            { key: "name", header: "Name" },
-            { key: "email", header: "Email" },
-            { key: "phone", header: "Phone" },
-            { key: "medicalAid", header: "Medical aid" },
-            { key: "view", header: "", align: "right" },
-          ]}
-          rows={rows}
-        />
+        <>
+          <ul className="divide-y divide-border overflow-hidden rounded-2xl border border-border md:hidden">
+            {(patients ?? []).map((patient) => (
+              <li
+                key={patient.id}
+                className="flex items-center justify-between gap-3 px-4 py-3"
+              >
+                <p className="min-w-0 font-medium [overflow-wrap:anywhere]">
+                  {patient.first_name} {patient.last_name}
+                </p>
+                <Button asChild variant="outline" size="sm" className="shrink-0">
+                  <Link href={routes.admin.patient(patient.id)}>View more</Link>
+                </Button>
+              </li>
+            ))}
+          </ul>
+          <div className="hidden md:block">
+            <PatientTable
+              caption="Patients"
+              columns={[
+                { key: "name", header: "Name" },
+                { key: "email", header: "Email" },
+                { key: "phone", header: "Phone" },
+                { key: "medicalAid", header: "Medical aid" },
+                { key: "view", header: "", align: "right" },
+              ]}
+              rows={rows}
+            />
+          </div>
+        </>
       )}
     </div>
   );

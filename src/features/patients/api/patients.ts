@@ -1,4 +1,4 @@
-import { requireStaff, requireUser } from "@/lib/auth/guards";
+import { requireAdmin, requireStaff, requireUser } from "@/lib/auth/guards";
 import { createServiceClient } from "@/lib/supabase/admin";
 import { createClient } from "@/lib/supabase/server";
 import type { CreatePatientInput, UpdatePatientInput } from "@/features/patients/schemas/patient";
@@ -402,4 +402,107 @@ export async function listMyAppointments(upcomingOnly = false, patientId?: strin
   }
 
   return request;
+}
+
+function normalizePersonName(value: string) {
+  return value.trim().replace(/\s+/g, " ");
+}
+
+async function removeStorageFiles(
+  bucket: "patient-documents" | "consent-signatures" | "invoices",
+  paths: string[],
+) {
+  if (!paths.length) return;
+  const admin = createServiceClient();
+  const unique = [...new Set(paths.filter(Boolean))];
+  const chunkSize = 100;
+  for (let i = 0; i < unique.length; i += chunkSize) {
+    await admin.storage.from(bucket).remove(unique.slice(i, i + chunkSize));
+  }
+}
+
+export async function getPatientRelatedCounts(patientId: string) {
+  await requireStaff();
+  const supabase = await createClient();
+  const [appointments, invoices, payments] = await Promise.all([
+    supabase.from("appointments").select("id", { count: "exact", head: true }).eq("patient_id", patientId),
+    supabase.from("invoices").select("id", { count: "exact", head: true }).eq("patient_id", patientId),
+    supabase.from("payments").select("id", { count: "exact", head: true }).eq("patient_id", patientId),
+  ]);
+
+  return {
+    appointments: appointments.count ?? 0,
+    invoices: invoices.count ?? 0,
+    payments: payments.count ?? 0,
+  };
+}
+
+/**
+ * Permanently delete a patient and related booking/billing rows. Admin only.
+ */
+export async function deletePatient(patientId: string, confirmationName: string) {
+  await requireAdmin();
+  const admin = createServiceClient();
+
+  const { data: patient, error: patientError } = await admin
+    .from("patients")
+    .select("id, first_name, last_name, profile_id")
+    .eq("id", patientId)
+    .maybeSingle();
+
+  if (patientError) return { error: patientError.message };
+  if (!patient) return { error: "Patient not found" };
+
+  const expected = normalizePersonName(`${patient.first_name} ${patient.last_name}`);
+  const given = normalizePersonName(confirmationName);
+  if (!given || given.toLowerCase() !== expected.toLowerCase()) {
+    return { error: "Name does not match. Type the patient's first name and surname to confirm." };
+  }
+
+  const { data: documents } = await admin
+    .from("documents")
+    .select("storage_path")
+    .eq("patient_id", patientId);
+
+  const documentPaths = (documents ?? [])
+    .map((doc) => doc.storage_path.replace(/^patient-documents\//, ""))
+    .filter(Boolean);
+
+  const { data: folderFiles } = await admin.storage
+    .from("patient-documents")
+    .list(patientId, { limit: 1000 });
+  const folderPaths = (folderFiles ?? []).map((file) => `${patientId}/${file.name}`);
+
+  await removeStorageFiles("patient-documents", [...documentPaths, ...folderPaths]);
+
+  const { error: paymentsError } = await admin.from("payments").delete().eq("patient_id", patientId);
+  if (paymentsError) return { error: paymentsError.message };
+
+  const { error: invoicesError } = await admin.from("invoices").delete().eq("patient_id", patientId);
+  if (invoicesError) return { error: invoicesError.message };
+
+  const { error: appointmentsError } = await admin
+    .from("appointments")
+    .delete()
+    .eq("patient_id", patientId);
+  if (appointmentsError) return { error: appointmentsError.message };
+
+  const profileId = patient.profile_id;
+
+  const { error: deleteError } = await admin.from("patients").delete().eq("id", patientId);
+  if (deleteError) return { error: deleteError.message };
+
+  if (profileId) {
+    const [{ data: profile }, { data: otherPatient }, { data: otherContact }] = await Promise.all([
+      admin.from("profiles").select("id, role").eq("id", profileId).maybeSingle(),
+      admin.from("patients").select("id").eq("profile_id", profileId).limit(1).maybeSingle(),
+      admin.from("patient_contacts").select("id").eq("profile_id", profileId).limit(1).maybeSingle(),
+    ]);
+
+    if (profile?.role === "patient" && !otherPatient && !otherContact) {
+      await admin.auth.admin.deleteUser(profileId);
+    }
+  }
+
+  return { error: null };
 }

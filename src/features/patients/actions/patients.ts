@@ -2,8 +2,9 @@
 
 import { revalidatePath } from "next/cache";
 import { cookies } from "next/headers";
+import { redirect } from "next/navigation";
 
-import { createPatient, searchPatients, updatePatient } from "@/features/patients/api/patients";
+import { createPatient, deletePatient, searchPatients, updatePatient } from "@/features/patients/api/patients";
 import {
   createPatientSchema,
   updatePatientSchema,
@@ -115,4 +116,19 @@ export async function setSelectedPortalPatientAction(patientId: string) {
   revalidatePath("/portal");
   revalidatePath("/book");
   return { error: null as string | null };
+}
+
+export async function deletePatientAction(
+  _prev: PatientActionState,
+  formData: FormData,
+): Promise<PatientActionState> {
+  const id = formData.get("id")?.toString() ?? "";
+  const confirmationName = formData.get("confirmationName")?.toString() ?? "";
+  if (!id) return { error: "Patient is required" };
+
+  const { error } = await deletePatient(id, confirmationName);
+  if (error) return { error };
+
+  revalidatePath(routes.admin.patients);
+  redirect(routes.admin.patients);
 }

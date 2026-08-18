@@ -419,6 +419,8 @@ export type Database = {
           observations: string | null;
           plan: string | null;
           region_notes: Json;
+          subjective: Json;
+          objective: Json;
           is_locked: boolean;
           created_at: string;
           updated_at: string;
@@ -434,6 +436,8 @@ export type Database = {
           observations?: string | null;
           plan?: string | null;
           region_notes?: Json;
+          subjective?: Json;
+          objective?: Json;
           is_locked?: boolean;
           created_at?: string;
           updated_at?: string;
@@ -449,6 +453,8 @@ export type Database = {
           observations?: string | null;
           plan?: string | null;
           region_notes?: Json;
+          subjective?: Json;
+          objective?: Json;
           is_locked?: boolean;
           created_at?: string;
           updated_at?: string;

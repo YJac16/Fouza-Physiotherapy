@@ -55,7 +55,7 @@ export function PatientClinicalRecords({
       <div>
         <h2 className="font-display text-xl font-semibold">Clinical records</h2>
         <p className="text-sm text-muted-foreground">
-          Assessments, notes, and files for this patient.
+          Staff-only assessments and notes. Patients cannot see these in the portal.
         </p>
       </div>
 

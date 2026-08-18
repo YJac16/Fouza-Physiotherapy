@@ -45,12 +45,12 @@ export function PricingCard({
       )}
       {...props}
     >
-      {badge ? (
-        <Badge className="absolute -top-3 left-6" variant={highlighted ? "default" : "accent"}>
-          {badge}
-        </Badge>
-      ) : null}
       <CardHeader className="pb-4">
+        {badge ? (
+          <Badge className="mb-2 w-fit" variant={highlighted ? "default" : "accent"}>
+            {badge}
+          </Badge>
+        ) : null}
         <CardTitle>{title}</CardTitle>
         {description ? <CardDescription>{description}</CardDescription> : null}
         <div className="pt-2">

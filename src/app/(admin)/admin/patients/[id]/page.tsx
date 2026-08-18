@@ -12,9 +12,11 @@ import { getPatientConsentCompletionAdmin } from "@/features/consent-forms/lib/c
 import { listStaffDocuments } from "@/features/documents/actions/documents";
 import { PatientClinicalRecords } from "@/features/patients/components/patient-clinical-records";
 import { PatientVerificationControls } from "@/features/patients/components/patient-verification-controls";
+import { DeletePatientForm } from "@/features/patients/components/delete-patient-form";
 import { EditPatientForm } from "@/features/patients/components/create-patient-form";
-import { getPatient, getPatientTimeline, listPatientContacts } from "@/features/patients/api/patients";
+import { getPatient, getPatientRelatedCounts, getPatientTimeline, listPatientContacts } from "@/features/patients/api/patients";
 import { routes } from "@/config/routes";
+import { getSessionProfile } from "@/lib/auth/guards";
 import { createSignedDownloadUrl } from "@/lib/supabase/storage";
 
 export default async function PatientDetailPage({
@@ -26,11 +28,13 @@ export default async function PatientDetailPage({
   const { data: patient } = await getPatient(id);
   if (!patient) notFound();
 
-  const [timeline, consent, documentsResult, contactsResult] = await Promise.all([
+  const [timeline, consent, documentsResult, contactsResult, relatedCounts, profile] = await Promise.all([
     getPatientTimeline(id),
     getPatientConsentCompletionAdmin(id),
     listStaffDocuments(id),
     listPatientContacts(id),
+    getPatientRelatedCounts(id),
+    getSessionProfile(),
   ]);
   const accountHolder = (contactsResult.data ?? []).find((contact) => contact.is_account_holder);
 
@@ -291,6 +295,14 @@ export default async function PatientDetailPage({
         notes={timeline.notes}
         documents={documents}
       />
+
+      {profile?.role === "admin" ? (
+        <DeletePatientForm
+          patientId={patient.id}
+          fullName={fullName}
+          counts={relatedCounts}
+        />
+      ) : null}
 
       <section className="space-y-4">
         <h2 className="font-display text-xl font-semibold">Timeline</h2>

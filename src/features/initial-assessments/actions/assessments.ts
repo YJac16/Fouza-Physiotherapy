@@ -6,6 +6,9 @@ import { redirect } from "next/navigation";
 import { routes } from "@/config/routes";
 import {
   initialAssessmentSchema,
+  objectiveFromFormData,
+  subjectiveFromFormData,
+  summarizeAssessment,
   type RegionAnnotation,
 } from "@/features/initial-assessments/schemas/assessment";
 import { requireStaff } from "@/lib/auth/guards";
@@ -49,16 +52,25 @@ export async function upsertInitialAssessmentAction(
   await requireStaff();
 
   const regionNotes = parseRegionNotes(formData.get("regionNotes"));
+  const subjective = subjectiveFromFormData(formData);
+  const objective = objectiveFromFormData(formData);
+  const summary = summarizeAssessment({
+    subjective,
+    objective,
+    plan: formData.get("plan")?.toString() ?? "",
+  });
   const parsed = initialAssessmentSchema.safeParse({
     patientId: formData.get("patientId"),
     practitionerId: formData.get("practitionerId"),
     appointmentId: formData.get("appointmentId") || null,
-    chiefComplaint: formData.get("chiefComplaint") || "",
-    history: formData.get("history") || "",
+    chiefComplaint: summary.chiefComplaint ?? "",
+    history: summary.history ?? "",
     painScale: parsePainScale(formData.get("painScale")),
-    observations: formData.get("observations") || "",
-    plan: formData.get("plan") || "",
+    observations: summary.observations ?? "",
+    plan: summary.plan ?? "",
     regionNotes,
+    subjective,
+    objective,
   });
 
   if (!parsed.success) {
@@ -89,6 +101,8 @@ export async function upsertInitialAssessmentAction(
         observations: parsed.data.observations || null,
         plan: parsed.data.plan || null,
         region_notes: parsed.data.regionNotes as unknown as Json,
+        subjective: parsed.data.subjective as unknown as Json,
+        objective: parsed.data.objective as unknown as Json,
       })
       .eq("id", id)
       .eq("is_locked", false)
@@ -116,6 +130,8 @@ export async function upsertInitialAssessmentAction(
       observations: parsed.data.observations || null,
       plan: parsed.data.plan || null,
       region_notes: parsed.data.regionNotes as unknown as Json,
+      subjective: parsed.data.subjective as unknown as Json,
+      objective: parsed.data.objective as unknown as Json,
     })
     .select("id")
     .single();

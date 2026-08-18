@@ -5,7 +5,11 @@ import { Button } from "@/components/ui/button";
 import { AssessmentForm } from "@/features/initial-assessments/components/assessment-form";
 import { AssessmentView } from "@/features/initial-assessments/components/assessment-view";
 import { lockInitialAssessmentAction } from "@/features/initial-assessments/actions/assessments";
-import type { RegionAnnotation } from "@/features/initial-assessments/schemas/assessment";
+import {
+  parseObjective,
+  parseSubjective,
+  type RegionAnnotation,
+} from "@/features/initial-assessments/schemas/assessment";
 import { requireStaff } from "@/lib/auth/guards";
 import { createClient } from "@/lib/supabase/server";
 import { routes } from "@/config/routes";
@@ -27,6 +31,13 @@ function parseAnnotations(raw: unknown): RegionAnnotation[] {
         (item as RegionAnnotation).view === "posterior") &&
       typeof (item as RegionAnnotation).note === "string",
   );
+}
+
+function contactDetails(patient: {
+  phone?: string | null;
+  email?: string | null;
+}) {
+  return [patient.phone, patient.email].filter(Boolean).join(" · ") || null;
 }
 
 export default async function InitialAssessmentDetailPage({
@@ -52,7 +63,7 @@ export default async function InitialAssessmentDetailPage({
     await Promise.all([
       supabase
         .from("patients")
-        .select("first_name, last_name")
+        .select("first_name, last_name, id_number, postal_address, date_of_birth, email, phone")
         .eq("id", assessment.patient_id)
         .maybeSingle(),
       supabase
@@ -71,6 +82,13 @@ export default async function InitialAssessmentDetailPage({
     (practitioner?.profiles as { full_name?: string } | null)?.full_name ??
     practitioner?.title ??
     "Practitioner";
+  const snapshot = {
+    name: patientName,
+    idNumber: patient?.id_number,
+    address: patient?.postal_address,
+    dateOfBirth: patient?.date_of_birth,
+    contact: patient ? contactDetails(patient) : null,
+  };
 
   const showEdit = !assessment.is_locked && edit === "1";
 
@@ -91,13 +109,14 @@ export default async function InitialAssessmentDetailPage({
           assessment={assessment}
           patientName={patientName}
           practitionerName={practitionerName}
+          patientSnapshot={snapshot}
         />
       </div>
     );
   }
 
   return (
-    <div className="mx-auto max-w-3xl space-y-6">
+    <div className="mx-auto max-w-4xl space-y-6">
       <div className="flex flex-wrap items-center justify-between gap-3">
         <div>
           <h1 className="font-display text-2xl font-semibold">Edit assessment</h1>
@@ -110,15 +129,20 @@ export default async function InitialAssessmentDetailPage({
       <AssessmentForm
         assessmentId={assessment.id}
         defaultPatientId={assessment.patient_id}
+        patientSnapshot={snapshot}
         defaults={{
-          chiefComplaint: assessment.chief_complaint ?? "",
-          history: assessment.history ?? "",
           painScale: assessment.pain_scale,
-          observations: assessment.observations ?? "",
           plan: assessment.plan ?? "",
           practitionerId: assessment.practitioner_id,
           appointmentId: assessment.appointment_id,
           regionNotes: parseAnnotations(assessment.region_notes),
+          subjective: parseSubjective(assessment.subjective, {
+            history: assessment.history,
+            chiefComplaint: assessment.chief_complaint,
+          }),
+          objective: parseObjective(assessment.objective, {
+            observations: assessment.observations,
+          }),
         }}
         patients={(patients ?? []).map((p) => ({
           id: p.id,

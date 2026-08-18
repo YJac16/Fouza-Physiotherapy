@@ -388,6 +388,7 @@ export function PatientTable({
   const nameCol = columns.find((col) => col.key === "name") ?? columns[0];
   const actionCol =
     columns.find((col) => col.key === "view") ?? columns.find((col) => col.align === "right");
+  const nameKey = nameCol?.key ?? "name";
 
   return (
     <Card className={cn("overflow-hidden shadow-sm", className)} {...props}>
@@ -397,7 +398,7 @@ export function PatientTable({
         ) : (
           rows.map((row) => (
             <li key={row.id} className="flex items-center gap-3 px-4 py-3.5">
-              <div className="min-w-0 flex-1 truncate font-medium">{row[nameCol.key]}</div>
+              <div className="min-w-0 flex-1 truncate font-medium">{row[nameKey]}</div>
               {actionCol ? <div className="shrink-0">{row[actionCol.key]}</div> : null}
             </li>
           ))

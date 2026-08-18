@@ -7,7 +7,8 @@ export type FaqItem = {
     | "Treatment"
     | "Dry Needling"
     | "Cancellation"
-    | "Exercise Programmes";
+    | "Exercise Programmes"
+    | "Website";
   question: string;
   answer: string;
 };
@@ -125,6 +126,13 @@ export const faqs: FaqItem[] = [
     answer:
       "Some mild discomfort can be normal, but sharp or escalating pain is not. Contact us so we can adjust your programme.",
   },
+  {
+    id: "web-1",
+    category: "Website",
+    question: "Can I add Fouza Physiotherapy to my phone’s Home Screen?",
+    answer:
+      "Yes. The website can be installed like a web app so it opens full-screen from your Home Screen. On iPhone or iPad in Safari, tap Share, then Add to Home Screen. On Android Chrome, use the browser menu or the on-site Add to Home Screen prompt when it appears.",
+  },
 ];
 
 export const faqCategories = [
@@ -135,6 +143,7 @@ export const faqCategories = [
   "Dry Needling",
   "Cancellation",
   "Exercise Programmes",
+  "Website",
 ] as const;
 
 export const faqPreviewIds = ["book-1", "pay-1", "aid-1", "tx-1", "cancel-1", "ex-1"];

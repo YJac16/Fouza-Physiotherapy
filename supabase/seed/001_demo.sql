@@ -1,10 +1,14 @@
 -- Seed: demo services (no PHI)
 insert into public.services (name, slug, description, duration_minutes, price_cents, currency, is_bookable_online, is_active)
 values
-  ('Initial Consultation', 'initial-consultation', 'Comprehensive assessment and first treatment.', 60, 70000, 'ZAR', true, true),
+  ('Initial Consultation', 'initial-consultation', 'Comprehensive assessment and first treatment.', 60, 100000, 'ZAR', true, true),
   ('Follow-up Consultation', 'follow-up-consultation', 'Focused follow-up for one joint or region.', 45, 60000, 'ZAR', true, true),
   ('Double Follow-up', 'double-follow-up', 'Extended session for two regions.', 90, 80000, 'ZAR', true, true),
-  ('Injury Prevention Assessment', 'injury-prevention', 'Movement screening and prevention plan.', 60, 60000, 'ZAR', true, true)
+  ('Injury Prevention Assessment', 'injury-prevention', 'Movement screening and prevention plan.', 60, 60000, 'ZAR', true, true),
+  ('Dry Needling', 'dry-needling', 'Targeted dry needling per unit.', 15, 10000, 'ZAR', false, true),
+  ('Referral', 'referral', 'Referral letter or referral service.', 15, 10000, 'ZAR', false, true),
+  ('Individualised Home Exercise Program', 'home-exercise-program', 'Personalised home exercise programme.', 15, 10000, 'ZAR', false, true),
+  ('Travel', 'travel', 'Travel surcharge for home visits.', 15, 15000, 'ZAR', false, true)
 on conflict (slug) do nothing;
 
 insert into public.consent_forms (title, slug, body_md, version, is_active)

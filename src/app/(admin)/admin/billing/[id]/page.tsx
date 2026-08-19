@@ -7,6 +7,7 @@ import {
 } from "@/features/billing/components/invoice-document";
 import { InvoiceDocumentToolbar } from "@/features/billing/components/invoice-toolbar";
 import { InvoiceLineEditor } from "@/features/billing/components/invoice-line-editor";
+import { listActiveInvoiceServices } from "@/features/billing/actions/billing";
 import { EDITABLE_INVOICE_STATUSES } from "@/features/billing/lib/addons";
 import {
   getInvoiceBankingSettings,
@@ -26,9 +27,10 @@ type PageProps = { params: Promise<{ id: string }> };
 
 export default async function AdminInvoiceDetailPage({ params }: PageProps) {
   const { id } = await params;
-  const [{ invoice, error }, banking] = await Promise.all([
+  const [{ invoice, error }, banking, services] = await Promise.all([
     getInvoiceForStaff(id),
     getInvoiceBankingSettings(),
+    listActiveInvoiceServices(),
   ]);
 
   if (error || !invoice) notFound();
@@ -56,6 +58,7 @@ export default async function AdminInvoiceDetailPage({ params }: PageProps) {
     unit_price_cents: number;
     amount_cents: number;
     treatment_code: string | null;
+    icd10_code?: string | null;
     service_id?: string | null;
     discount_percent?: number | string | null;
     discount_cents?: number | null;
@@ -125,6 +128,7 @@ export default async function AdminInvoiceDetailPage({ params }: PageProps) {
       {canEdit ? (
         <InvoiceLineEditor
           invoiceId={invoice.id}
+          services={services}
           taxCents={invoice.tax_cents}
           initialInvoiceDiscount={{
             percent: invoice.discount_percent,
@@ -138,6 +142,8 @@ export default async function AdminInvoiceDetailPage({ params }: PageProps) {
                   quantity: line.quantity,
                   unitPriceCents: line.unitPriceCents,
                   serviceId: rawLines[index]?.service_id ?? null,
+                  treatmentCode: rawLines[index]?.treatment_code ?? null,
+                  icd10Code: rawLines[index]?.icd10_code ?? null,
                   discountPercent: line.discountPercent,
                   discountCents: line.discountCents,
                 }))
@@ -157,7 +163,8 @@ export default async function AdminInvoiceDetailPage({ params }: PageProps) {
         </p>
       )}
 
-      <InvoiceReceiptDocument
+      <div id="preview">
+        <InvoiceReceiptDocument
         variant={isReceipt ? "receipt" : "invoice"}
         invoiceNumber={invoice.invoice_number}
         reference={reference}
@@ -183,7 +190,8 @@ export default async function AdminInvoiceDetailPage({ params }: PageProps) {
         paymentMethod={latestPayment?.method}
         paidAt={latestPayment?.paid_at}
         banking={banking}
-      />
+        />
+      </div>
     </div>
   );
 }

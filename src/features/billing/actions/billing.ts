@@ -1,7 +1,6 @@
 "use server";
 
 import { revalidatePath } from "next/cache";
-import { redirect } from "next/navigation";
 import { z } from "zod";
 
 import { requireStaff } from "@/lib/auth/guards";
@@ -23,13 +22,10 @@ import {
 } from "@/features/analytics/lib/finance";
 import { formatSastDateTime } from "@/features/booking/lib/timezone";
 
-const invoiceSchema = z.object({
+const createInvoiceSchema = z.object({
   patientId: z.string().uuid(),
   appointmentId: z.string().uuid().optional().nullable(),
-  serviceId: z.string().uuid().optional().nullable(),
-  subtotalCents: z.coerce.number().int().nonnegative(),
   taxCents: z.coerce.number().int().nonnegative().default(0),
-  description: z.string().min(2),
 });
 
 const paymentSchema = z.object({
@@ -71,7 +67,108 @@ export type BillableAppointmentOption = {
   description: string;
   amountCents: number;
   serviceId: string | null;
+  alreadyInvoiced: boolean;
 };
+
+export type InvoiceServiceOption = {
+  id: string;
+  name: string;
+  slug: string;
+  priceCents: number;
+  description?: string | null;
+};
+
+type ParsedLinePayload =
+  | {
+      ok: true;
+      lines: z.infer<typeof lineItemSchema>[];
+      invoiceDiscount: z.infer<typeof invoiceDiscountSchema>;
+      taxCents: number;
+    }
+  | { ok: false; error: string };
+
+function parseInvoiceLinesPayload(formData: FormData): ParsedLinePayload {
+  let linesRaw: unknown;
+  let discountRaw: unknown;
+  try {
+    linesRaw = JSON.parse(formData.get("linesJson")?.toString() ?? "[]");
+    discountRaw = JSON.parse(formData.get("invoiceDiscountJson")?.toString() || "{}");
+  } catch {
+    return { ok: false, error: "Invalid line items" };
+  }
+
+  const taxCents = Number(formData.get("taxCents") ?? 0);
+  const linesParsed = z.array(lineItemSchema).min(1).safeParse(linesRaw);
+  if (!linesParsed.success) return { ok: false, error: "Add at least one valid line item" };
+  const discountParsed = invoiceDiscountSchema.safeParse(discountRaw);
+  if (!discountParsed.success) return { ok: false, error: "Invalid invoice discount" };
+
+  return {
+    ok: true,
+    lines: linesParsed.data,
+    invoiceDiscount: discountParsed.data,
+    taxCents: Number.isFinite(taxCents) && taxCents >= 0 ? Math.round(taxCents) : 0,
+  };
+}
+
+function computeInvoiceTotals(
+  lines: z.infer<typeof lineItemSchema>[],
+  invoiceDiscount: z.infer<typeof invoiceDiscountSchema>,
+  taxCents: number,
+) {
+  return invoiceTotalsFromLines({
+    lines: lines.map((line) => ({
+      quantity: line.quantity,
+      unitPriceCents: line.unitPriceCents,
+      discount: {
+        mode: line.discountMode ?? "none",
+        percent: line.discountPercent,
+        amountCents: line.discountAmountCents,
+      },
+    })),
+    invoiceDiscount: {
+      mode: invoiceDiscount.mode,
+      percent: invoiceDiscount.percent,
+      amountCents: invoiceDiscount.amountCents,
+    },
+    taxCents,
+  });
+}
+
+function mapLinesForInsert(
+  invoiceId: string,
+  lines: z.infer<typeof lineItemSchema>[],
+  totals: ReturnType<typeof computeInvoiceTotals>,
+) {
+  return lines.map((line, index) => ({
+    invoice_id: invoiceId,
+    description: line.description.trim(),
+    quantity: line.quantity,
+    unit_price_cents: line.unitPriceCents,
+    amount_cents: totals.lines[index]?.amountCents ?? 0,
+    discount_percent: totals.lines[index]?.discountPercent ?? null,
+    discount_cents: totals.lines[index]?.discountCents ?? 0,
+    service_id: line.serviceId ?? null,
+    treatment_code: line.treatmentCode || null,
+    icd10_code: line.icd10Code || null,
+  }));
+}
+
+async function insertInvoiceLineItems(
+  supabase: Awaited<ReturnType<typeof createClient>>,
+  rows: ReturnType<typeof mapLinesForInsert>,
+) {
+  const { error: insertError } = await supabase.from("invoice_line_items").insert(rows);
+  if (!insertError) return null;
+
+  if (/service_id/i.test(insertError.message)) {
+    const withoutService = rows.map(({ service_id: _serviceId, ...rest }) => rest);
+    const { error: retryError } = await supabase.from("invoice_line_items").insert(withoutService);
+    return retryError?.message ?? null;
+  }
+
+  return insertError.message;
+}
 
 async function applyInvoicePaymentStatus(invoiceId: string) {
   const admin = createServiceClient();
@@ -156,9 +253,30 @@ export async function listBillableAppointmentsForInvoice(input?: {
         description: serviceName,
         amountCents,
         serviceId: row.service_id,
+        alreadyInvoiced,
       },
     ];
   });
+}
+
+export async function listActiveInvoiceServices(): Promise<InvoiceServiceOption[]> {
+  await requireStaff();
+  const supabase = await createClient();
+  const { data, error } = await supabase
+    .from("services")
+    .select("id, name, slug, price_cents, description")
+    .eq("is_active", true)
+    .order("name");
+
+  if (error) throw new Error(error.message);
+
+  return (data ?? []).map((service) => ({
+    id: service.id,
+    name: service.name,
+    slug: service.slug,
+    priceCents: service.price_cents,
+    description: service.description,
+  }));
 }
 
 export async function createInvoiceAction(
@@ -166,70 +284,74 @@ export async function createInvoiceAction(
   formData: FormData,
 ): Promise<BillingActionState> {
   const profile = await requireStaff();
-  const parsed = invoiceSchema.safeParse({
+  const headerParsed = createInvoiceSchema.safeParse({
     patientId: formData.get("patientId"),
     appointmentId: formData.get("appointmentId") || null,
-    serviceId: formData.get("serviceId") || null,
-    subtotalCents: formData.get("subtotalCents"),
     taxCents: formData.get("taxCents") || 0,
-    description: formData.get("description"),
   });
-  if (!parsed.success) return { error: "Invalid invoice" };
+  if (!headerParsed.success) return { error: "Invalid invoice" };
+
+  const payload = parseInvoiceLinesPayload(formData);
+  if (!payload.ok) return { error: payload.error };
 
   const admin = createServiceClient();
-  let serviceId = parsed.data.serviceId ?? null;
-  if (parsed.data.appointmentId) {
+  if (headerParsed.data.appointmentId) {
     const { data: appointment } = await admin
       .from("appointments")
-      .select("id, patient_id, service_id")
-      .eq("id", parsed.data.appointmentId)
+      .select("id, patient_id")
+      .eq("id", headerParsed.data.appointmentId)
       .maybeSingle();
-    if (!appointment || appointment.patient_id !== parsed.data.patientId) {
+    if (!appointment || appointment.patient_id !== headerParsed.data.patientId) {
       return { error: "Appointment does not belong to this patient" };
     }
-    serviceId = serviceId ?? appointment.service_id;
+
+    const { data: existingInvoice } = await admin
+      .from("invoices")
+      .select("id")
+      .eq("appointment_id", headerParsed.data.appointmentId)
+      .maybeSingle();
+    if (existingInvoice) {
+      return { error: "This appointment has already been invoiced" };
+    }
   }
+
+  const totals = computeInvoiceTotals(
+    payload.lines,
+    payload.invoiceDiscount,
+    payload.taxCents,
+  );
 
   const { data: numberData, error: numError } = await admin.rpc("next_invoice_number");
   if (numError) return { error: numError.message };
 
-  const total = parsed.data.subtotalCents + parsed.data.taxCents;
   const supabase = await createClient();
   const { data, error } = await supabase
     .from("invoices")
     .insert({
-      patient_id: parsed.data.patientId,
-      appointment_id: parsed.data.appointmentId,
+      patient_id: headerParsed.data.patientId,
+      appointment_id: headerParsed.data.appointmentId,
       invoice_number: numberData as string,
-      status: "sent",
+      status: "draft",
       issue_date: new Date().toISOString().slice(0, 10),
-      subtotal_cents: parsed.data.subtotalCents,
-      tax_cents: parsed.data.taxCents,
-      total_cents: total,
+      subtotal_cents: totals.subtotalCents,
+      discount_cents: totals.invoiceDiscountCents,
+      discount_percent: totals.invoiceDiscountPercent,
+      discount_note: payload.invoiceDiscount.note?.trim() || null,
+      tax_cents: totals.taxCents,
+      total_cents: totals.totalCents,
       currency: "ZAR",
-      notes: parsed.data.description,
+      notes: payload.lines[0]?.description.trim() ?? null,
     })
     .select("id")
     .single();
 
   if (error || !data) return { error: error?.message ?? "Failed" };
 
-  const lineItem = {
-    invoice_id: data.id,
-    description: parsed.data.description,
-    quantity: 1,
-    unit_price_cents: parsed.data.subtotalCents,
-    amount_cents: parsed.data.subtotalCents,
-    treatment_code: formData.get("treatmentCode")?.toString() || null,
-    icd10_code: formData.get("icd10Code")?.toString() || null,
-    service_id: serviceId,
-  };
-  const { error: lineError } = await supabase.from("invoice_line_items").insert(lineItem);
-  if (lineError && /service_id/i.test(lineError.message)) {
-    const { service_id: _serviceId, ...withoutService } = lineItem;
-    await supabase.from("invoice_line_items").insert(withoutService);
-  } else if (lineError) {
-    return { error: lineError.message };
+  const lineRows = mapLinesForInsert(data.id, payload.lines, totals);
+  const lineError = await insertInvoiceLineItems(supabase, lineRows);
+  if (lineError) {
+    await supabase.from("invoices").delete().eq("id", data.id);
+    return { error: lineError };
   }
 
   await supabase.from("audit_logs").insert({
@@ -239,62 +361,11 @@ export async function createInvoiceAction(
     entity_id: data.id,
   });
 
-  const { data: patientRow } = await admin
-    .from("patients")
-    .select("email, first_name, last_name")
-    .eq("id", parsed.data.patientId)
-    .maybeSingle();
-
-  const recipientEmail = patientRow?.email?.trim().toLowerCase();
-  const patientName =
-    `${patientRow?.first_name ?? ""} ${patientRow?.last_name ?? ""}`.trim() || "a patient";
-  const banking = await getInvoiceBankingSettings();
-  const sharedPayload = {
-    invoiceId: data.id,
-    patientId: parsed.data.patientId,
-    invoiceNumber: numberData as string,
-    firstName: patientRow?.first_name ?? "there",
-    patientName,
-    description: parsed.data.description,
-    totalCents: total,
-    currency: "ZAR",
-    bankName: banking.bankName,
-    accountName: banking.accountName,
-    accountNumber: banking.accountNumber,
-    branchCode: banking.branchCode,
-    proofEmail: banking.proofEmail,
-  };
-
-  const practiceRecipients = await resolveBillingAlertRecipients(parsed.data.appointmentId);
-  const outboxRows = [
-    ...(recipientEmail
-      ? [
-          {
-            channel: "email" as const,
-            template_key: "invoice.sent",
-            recipient: recipientEmail,
-            payload: sharedPayload,
-          },
-        ]
-      : []),
-    ...practiceRecipients.map((recipient) => ({
-      channel: "email" as const,
-      template_key: "invoice.practitioner_alert",
-      recipient,
-      payload: sharedPayload,
-    })),
-  ];
-
-  if (outboxRows.length) {
-    await admin.from("notification_outbox").insert(outboxRows);
-    await drainEmailOutbox(Math.max(5, outboxRows.length));
-  }
-
   revalidatePath("/admin");
   revalidatePath("/admin/analytics");
   revalidatePath("/admin/billing");
   revalidatePath(`/admin/billing/${data.id}`);
-  redirect(`/admin/billing/${data.id}`);
+  return { success: "Invoice created", id: data.id };
 }
 
 export async function updateInvoiceLineItemsAction(
@@ -305,19 +376,8 @@ export async function updateInvoiceLineItemsAction(
   const invoiceId = formData.get("invoiceId")?.toString();
   if (!invoiceId) return { error: "Missing invoice" };
 
-  let linesRaw: unknown;
-  let discountRaw: unknown;
-  try {
-    linesRaw = JSON.parse(formData.get("linesJson")?.toString() ?? "[]");
-    discountRaw = JSON.parse(formData.get("invoiceDiscountJson")?.toString() || "{}");
-  } catch {
-    return { error: "Invalid line items" };
-  }
-
-  const linesParsed = z.array(lineItemSchema).min(1).safeParse(linesRaw);
-  if (!linesParsed.success) return { error: "Add at least one valid line item" };
-  const discountParsed = invoiceDiscountSchema.safeParse(discountRaw);
-  if (!discountParsed.success) return { error: "Invalid invoice discount" };
+  const payload = parseInvoiceLinesPayload(formData);
+  if (!payload.ok) return { error: payload.error };
 
   const supabase = await createClient();
   const { data: invoice, error: invoiceError } = await supabase
@@ -331,37 +391,14 @@ export async function updateInvoiceLineItemsAction(
     return { error: "Paid or void invoices cannot be edited. Create a new invoice for extras." };
   }
 
-  const invoiceDiscount = discountParsed.data;
-  const totals = invoiceTotalsFromLines({
-    lines: linesParsed.data.map((line) => ({
-      quantity: line.quantity,
-      unitPriceCents: line.unitPriceCents,
-      discount: {
-        mode: line.discountMode ?? "none",
-        percent: line.discountPercent,
-        amountCents: line.discountAmountCents,
-      },
-    })),
-    invoiceDiscount: {
-      mode: invoiceDiscount.mode,
-      percent: invoiceDiscount.percent,
-      amountCents: invoiceDiscount.amountCents,
-    },
-    taxCents: invoice.tax_cents ?? 0,
-  });
+  const invoiceDiscount = payload.invoiceDiscount;
+  const totals = computeInvoiceTotals(
+    payload.lines,
+    invoiceDiscount,
+    invoice.tax_cents ?? payload.taxCents,
+  );
 
-  const lines = linesParsed.data.map((line, index) => ({
-    invoice_id: invoiceId,
-    description: line.description.trim(),
-    quantity: line.quantity,
-    unit_price_cents: line.unitPriceCents,
-    amount_cents: totals.lines[index]?.amountCents ?? 0,
-    discount_percent: totals.lines[index]?.discountPercent ?? null,
-    discount_cents: totals.lines[index]?.discountCents ?? 0,
-    service_id: line.serviceId ?? null,
-    treatment_code: line.treatmentCode || null,
-    icd10_code: line.icd10Code || null,
-  }));
+  const lines = mapLinesForInsert(invoiceId, payload.lines, totals);
 
   const { error: deleteError } = await supabase
     .from("invoice_line_items")

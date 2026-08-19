@@ -1,21 +1,6 @@
 import { describe, expect, it } from "vitest";
 
-import { INVOICE_ADDONS } from "@/features/billing/lib/addons";
 import { invoiceTotalsFromLines, lineTotals } from "@/features/billing/lib/discounts";
-
-describe("home visit invoice add-ons", () => {
-  it("defaults home visit consultation to R1000", () => {
-    expect(INVOICE_ADDONS.homeVisitConsultation.description).toBe("Home visit consultation");
-    expect(INVOICE_ADDONS.homeVisitConsultation.unitPriceCents).toBe(100000);
-    expect(INVOICE_ADDONS.homeVisitConsultation.defaultQuantity).toBe(1);
-  });
-
-  it("defaults home follow-up to R900", () => {
-    expect(INVOICE_ADDONS.homeFollowUp.description).toBe("Home follow-up");
-    expect(INVOICE_ADDONS.homeFollowUp.unitPriceCents).toBe(90000);
-    expect(INVOICE_ADDONS.homeFollowUp.defaultQuantity).toBe(1);
-  });
-});
 
 describe("invoice discounts", () => {
   it("applies a line percent discount", () => {

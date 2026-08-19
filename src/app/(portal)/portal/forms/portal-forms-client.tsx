@@ -432,16 +432,16 @@ export function PortalFormsClient({
           <div className="grid gap-4">
             <div className="space-y-2">
               <Label>Name and Surname *</Label>
-              <Input required value={respName} onChange={(e) => setRespName(e.target.value)} />
+              <Input required={!isStaff} value={respName} onChange={(e) => setRespName(e.target.value)} />
             </div>
             <div className="space-y-2">
               <Label>ID number *</Label>
-              <Input required value={respId} onChange={(e) => setRespId(e.target.value)} />
+              <Input required={!isStaff} value={respId} onChange={(e) => setRespId(e.target.value)} />
             </div>
             <div className="space-y-2">
               <Label>Contact Number *</Label>
               <Input
-                required
+                required={!isStaff}
                 value={respContact}
                 onChange={(e) => setRespContact(e.target.value)}
               />
@@ -450,7 +450,7 @@ export function PortalFormsClient({
               <Label>Email address *</Label>
               <Input
                 type="email"
-                required
+                required={!isStaff}
                 value={respEmail}
                 onChange={(e) => setRespEmail(e.target.value)}
               />
@@ -458,7 +458,7 @@ export function PortalFormsClient({
             <div className="space-y-2">
               <Label>Postal Address *</Label>
               <Textarea
-                required
+                required={!isStaff}
                 rows={3}
                 value={respPostal}
                 onChange={(e) => setRespPostal(e.target.value)}
@@ -711,7 +711,7 @@ export function PortalFormsClient({
         size="lg"
         className="w-full sm:w-auto"
         loading={pending}
-        disabled={!treatmentSignature || !accountSignature}
+        disabled={isStaff ? !treatmentSignature : !treatmentSignature || !accountSignature}
       >
         {isStaff
           ? patientId

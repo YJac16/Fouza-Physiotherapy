@@ -45,6 +45,9 @@ export default async function PortalInvoiceDetailPage({ params }: PageProps) {
   const patientName = patient
     ? `${patient.first_name ?? ""} ${patient.last_name ?? ""}`.trim()
     : "Patient";
+  const billingName = patient?.billing_name?.trim() || null;
+  const recipientName = billingName || patientName;
+  const useBillingAsRecipient = Boolean(billingName);
 
   const lines: InvoiceDocumentLine[] = (invoice.invoice_line_items ?? []).map(
     (line: {
@@ -109,10 +112,10 @@ export default async function PortalInvoiceDetailPage({ params }: PageProps) {
         dueDate={invoice.due_date}
         practiceName={siteConfig.practiceName}
         practiceAddress={`${siteConfig.address}, ${siteConfig.region}`}
-        patientName={patientName}
+        patientName={recipientName}
         patientAddress={patient?.billing_address || patient?.postal_address}
-        accountHolderName={patient?.billing_name}
-        accountHolderEmail={patient?.billing_email}
+        accountHolderName={useBillingAsRecipient ? undefined : billingName}
+        accountHolderEmail={useBillingAsRecipient ? undefined : patient?.billing_email}
         lines={lines}
         subtotalCents={invoice.subtotal_cents}
         taxCents={invoice.tax_cents}

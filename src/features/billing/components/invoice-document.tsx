@@ -116,7 +116,7 @@ export function InvoiceReceiptDocument({
         <header className="flex flex-col gap-6 border-b border-[#d8d8d8] pb-6 sm:flex-row sm:items-start sm:justify-between">
           <div className="shrink-0">
             <Image
-              src={siteConfig.images.logoWordmark}
+              src="/fouza-physiotherapy-logo-no-background.png"
               alt={practiceName}
               width={220}
               height={64}

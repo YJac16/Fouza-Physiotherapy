@@ -440,6 +440,48 @@ export async function updateInvoiceLineItemsAction(
   return { success: "Invoice updated", id: invoiceId };
 }
 
+const VOIDABLE_INVOICE_STATUSES = new Set(["draft", "sent", "overdue"]);
+
+export async function voidInvoiceAction(invoiceId: string): Promise<BillingActionState> {
+  const profile = await requireStaff();
+  if (!invoiceId) return { error: "Missing invoice" };
+
+  const supabase = await createClient();
+  const { data: invoice, error: invoiceError } = await supabase
+    .from("invoices")
+    .select("id, status, invoice_number")
+    .eq("id", invoiceId)
+    .maybeSingle();
+
+  if (invoiceError || !invoice) {
+    return { error: invoiceError?.message ?? "Invoice not found" };
+  }
+  if (!VOIDABLE_INVOICE_STATUSES.has(invoice.status)) {
+    return { error: "Only draft, sent, or overdue invoices can be voided" };
+  }
+
+  const { error: updateError } = await supabase
+    .from("invoices")
+    .update({ status: "void" })
+    .eq("id", invoiceId);
+  if (updateError) return { error: updateError.message };
+
+  await supabase.from("audit_logs").insert({
+    actor_id: profile.id,
+    action: "invoice.void",
+    entity_type: "invoice",
+    entity_id: invoiceId,
+  });
+
+  revalidatePath("/admin");
+  revalidatePath("/admin/analytics");
+  revalidatePath("/admin/billing");
+  revalidatePath(`/admin/billing/${invoiceId}`);
+  revalidatePath("/portal/invoices");
+  revalidatePath(`/portal/invoices/${invoiceId}`);
+  return { success: `Invoice ${invoice.invoice_number} voided`, id: invoiceId };
+}
+
 export async function sendInvoiceEmailAction(invoiceId: string): Promise<SendInvoiceState> {
   await requireStaff();
   const admin = createServiceClient();

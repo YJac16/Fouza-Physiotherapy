@@ -7,6 +7,7 @@ export {
   recordPaymentAction,
   sendInvoiceEmailAction,
   updateInvoiceLineItemsAction,
+  voidInvoiceAction,
 } from "./actions/billing";
 export type {
   BillableAppointmentOption,

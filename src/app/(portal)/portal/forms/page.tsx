@@ -4,9 +4,11 @@ import {
   getPatientConsentCompletion,
   INTAKE_SLUG,
   syncPatientConsentFlagsIfComplete,
+  type ConsentCompletion,
 } from "@/features/consent-forms/lib/completion";
 import { getSignedConsentPackage } from "@/features/consent-forms/lib/signed-package";
 import { SignedConsentView } from "@/features/consent-forms/components/signed-consent-view";
+import { FamilyAccountResponsibilitySign } from "@/features/consent-forms/components/family-account-responsibility-sign";
 import { getPortalView } from "@/features/patients/api/patients";
 import { patientDisplayName } from "@/features/patients/lib/access";
 import { createClient } from "@/lib/supabase/server";
@@ -58,13 +60,14 @@ export default async function PortalFormsPage({
   let alreadyComplete = false;
   let appointmentId: string | null = null;
   let signedPackage = null;
+  let completion: ConsentCompletion | null = null;
   if (patient) {
     alreadyComplete = Boolean(patient.informed_consent_signed);
     if (!alreadyComplete) {
       const synced = await syncPatientConsentFlagsIfComplete(patient.id);
       alreadyComplete = synced.informed_consent_signed;
       if (!alreadyComplete) {
-        const completion = await getPatientConsentCompletion(patient.id);
+        completion = await getPatientConsentCompletion(patient.id);
         alreadyComplete = completion.complete;
       }
     }
@@ -89,6 +92,20 @@ export default async function PortalFormsPage({
     returnTo && returnTo.startsWith("/") && !returnTo.startsWith("//") ? returnTo : null;
   const patientName = selected ? patientDisplayName(selected) : "this patient";
 
+  const intakeMissingLabel = "Fouza Physiotherapy Consent Form (intake)";
+  const canFamilySignAccountResponsibility =
+    Boolean(
+      patient &&
+        isFamilyView &&
+        !viewingSigned &&
+        completion &&
+        accountConsent &&
+        treatmentConsent &&
+        completion.missing.includes(accountConsent.title) &&
+        !completion.missing.includes(intakeMissingLabel) &&
+        !completion.missing.includes(treatmentConsent.title),
+    );
+
   return (
     <div className="min-w-0 space-y-6 overflow-x-hidden sm:space-y-8">
       <div className="min-w-0">
@@ -110,10 +127,20 @@ export default async function PortalFormsPage({
           description="Contact the practice to link your account before completing forms."
         />
       ) : isFamilyView && !viewingSigned ? (
-        <EmptyState
-          title="Consent is captured at the visit"
-          description={`Ask the practice to complete informed consent for ${patientName} on the admin tablet. You will then be able to view the signed forms here.`}
-        />
+        canFamilySignAccountResponsibility ? (
+          accountConsent ? (
+            <FamilyAccountResponsibilitySign
+              patientId={patient.id}
+              accountConsent={accountConsent}
+              defaultTypedName={profile.full_name ?? undefined}
+            />
+          ) : null
+        ) : (
+          <EmptyState
+            title="Consent is captured at the visit"
+            description={`Ask the practice to complete informed consent for ${patientName} on the admin tablet. You will then be able to view the signed forms here.`}
+          />
+        )
       ) : isFamilyView && signedPackage ? (
         <SignedConsentView package={signedPackage} showTitle={false} />
       ) : !intakeForm || !treatmentConsent || !accountConsent ? (

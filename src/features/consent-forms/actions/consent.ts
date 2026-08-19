@@ -48,7 +48,27 @@ const packageSchema = z.object({
   patientId: z.string().uuid(),
 });
 
-const createStaffPackageSchema = z.object(packageFields);
+const staffPackageFields = {
+  intakeFormId: z.string().uuid(),
+  appointmentId: z.string().uuid().optional().nullable(),
+  treatmentFormId: z.string().uuid(),
+  accountFormId: z.string().uuid(),
+  treatmentSignature: z.string().min(2),
+  // Staff-assisted capture can happen without the account-holder being present.
+  // In that case we persist intake + treatment consent, and skip account-responsibility signature.
+  accountSignature: z.string().min(2).optional(),
+  answersJson: z.string().min(2),
+  treatmentSignerRole: z.enum(["patient", "account_holder", "proxy"]).optional(),
+  accountSignerRole: z.enum(["patient", "account_holder", "proxy"]).optional(),
+  accountTypedName: z.string().min(2).optional(),
+};
+
+const staffPackageSchema = z.object({
+  ...staffPackageFields,
+  patientId: z.string().uuid(),
+});
+
+const createStaffPackageSchema = z.object(staffPackageFields);
 
 export type ConsentActionState = { error?: string; success?: string; id?: string };
 
@@ -276,13 +296,15 @@ export async function submitFouzaConsentPackageAction(
 type StaffPackageFields = z.infer<typeof createStaffPackageSchema>;
 
 function staffPackageFromFormData(formData: FormData) {
+  const rawTreatmentSignature = formData.get("treatmentSignature");
+  const rawAccountSignature = formData.get("accountSignature");
   return {
     intakeFormId: formData.get("intakeFormId"),
     appointmentId: formData.get("appointmentId") || null,
     treatmentFormId: formData.get("treatmentFormId"),
     accountFormId: formData.get("accountFormId"),
-    treatmentSignature: formData.get("treatmentSignature"),
-    accountSignature: formData.get("accountSignature"),
+    treatmentSignature: rawTreatmentSignature?.toString() ?? "",
+    accountSignature: rawAccountSignature?.toString() || undefined,
     answersJson: formData.get("answersJson"),
     treatmentSignerRole: formData.get("treatmentSignerRole") || "patient",
     accountSignerRole: formData.get("accountSignerRole") || "account_holder",
@@ -301,6 +323,7 @@ function parseConsentAnswers(answersJson: string): { answers?: Record<string, un
 function validateStaffConsentAnswers(
   answers: Record<string, unknown>,
   accountTypedName?: string,
+  requireAccountName: boolean = true,
 ): { error?: string; treatmentTypedName?: string; accountTypedName?: string } {
   if (answers.undertaking !== "yes") {
     return { error: "The undertaking must be accepted (Yes) to continue." };
@@ -313,6 +336,11 @@ function validateStaffConsentAnswers(
   if (treatmentTypedName.length < 2) {
     return { error: "Type the patient's (or proxy's) full name to sign treatment consent." };
   }
+
+  if (!requireAccountName) {
+    return { treatmentTypedName, accountTypedName: accountTypedName?.trim() || undefined };
+  }
+
   const resolvedAccountName =
     accountTypedName?.trim() ||
     String(parseAccountResponsible(answers).name ?? treatmentTypedName).trim();
@@ -328,13 +356,13 @@ async function persistStaffConsentPackage(input: {
   parsed: StaffPackageFields;
   answers: Record<string, unknown>;
   treatmentTypedName: string;
-  accountTypedName: string;
+  accountTypedName?: string;
   created: boolean;
 }): Promise<ConsentActionState> {
   const admin = createServiceClient();
   const { data: patient } = await admin
     .from("patients")
-    .select("id, informed_consent_signed")
+    .select("id, informed_consent_signed, billing_name, billing_email, billing_phone, billing_address")
     .eq("id", input.patientId)
     .maybeSingle();
   if (!patient) return { error: "Patient not found" };
@@ -353,31 +381,50 @@ async function persistStaffConsentPackage(input: {
   const patientEmail = String(input.answers.email ?? "").trim().toLowerCase() || null;
   const patientPhone = String(input.answers.contactNumber ?? "").trim() || null;
 
+  const hasAccountSignature = Boolean(input.parsed.accountSignature);
+
+  // Used as a fallback for portal invite routing when staff submits without payer details.
+  const { data: existingAccountHolder } = await admin
+    .from("patient_contacts")
+    .select("id, email, full_name")
+    .eq("patient_id", input.patientId)
+    .eq("is_account_holder", true)
+    .limit(1)
+    .maybeSingle();
+
+  const patientUpdate: Record<string, unknown> = {
+    first_name: names.firstName || undefined,
+    last_name: names.lastName || names.firstName,
+    medical_aid_name: medicalAid || null,
+    medical_aid_number: medicalAidNumber || null,
+    medical_aid_dependant_code: dependant || null,
+    id_number: idNumber || null,
+    postal_address: postal || null,
+    phone: patientPhone ?? undefined,
+    email: patientEmail ?? undefined,
+  };
+
+  if (responsible.sameAsPatient) {
+    patientUpdate.billing_name = patientFullName || null;
+    patientUpdate.billing_email = patientEmail;
+    patientUpdate.billing_phone = patientPhone;
+    patientUpdate.billing_address = postal || null;
+  } else {
+    // Only overwrite billing fields if we have non-empty values from the staff submission.
+    const billingName = responsible.name?.trim() || null;
+    const billingEmail = responsible.email?.trim().toLowerCase() || null;
+    const billingPhone = responsible.contactNumber?.trim() || null;
+    const billingAddress = responsible.postalAddress?.trim() || null;
+
+    if (billingName) patientUpdate.billing_name = billingName;
+    if (billingEmail) patientUpdate.billing_email = billingEmail;
+    if (billingPhone) patientUpdate.billing_phone = billingPhone;
+    if (billingAddress) patientUpdate.billing_address = billingAddress;
+  }
+
   const { error: demoError } = await admin
     .from("patients")
-    .update({
-      first_name: names.firstName || undefined,
-      last_name: names.lastName || undefined,
-      medical_aid_name: medicalAid || null,
-      medical_aid_number: medicalAidNumber || null,
-      medical_aid_dependant_code: dependant || null,
-      id_number: idNumber || null,
-      postal_address: postal || null,
-      phone: patientPhone ?? undefined,
-      email: patientEmail ?? undefined,
-      billing_name: responsible.sameAsPatient
-        ? patientFullName || null
-        : responsible.name?.trim() || null,
-      billing_email: responsible.sameAsPatient
-        ? patientEmail
-        : responsible.email?.trim().toLowerCase() || null,
-      billing_phone: responsible.sameAsPatient
-        ? patientPhone
-        : responsible.contactNumber?.trim() || null,
-      billing_address: responsible.sameAsPatient
-        ? postal || null
-        : responsible.postalAddress?.trim() || null,
-    })
+    .update(patientUpdate)
     .eq("id", input.patientId);
   if (demoError) return { error: demoError.message };
 
@@ -428,16 +475,10 @@ async function persistStaffConsentPackage(input: {
   if (intakeError) return { error: intakeError.message };
 
   const treatmentRole = (input.parsed.treatmentSignerRole ?? "patient") as ConsentSignerRole;
-  const accountRole = (input.parsed.accountSignerRole ?? "account_holder") as ConsentSignerRole;
   const ipAddress = await getRequestIpAddress();
   const signedAt = new Date().toISOString();
 
-  const { data: formVersions } = await admin
-    .from("consent_forms")
-    .select("id, slug, version")
-    .in("id", [input.parsed.treatmentFormId, input.parsed.accountFormId]);
-
-  const { error: sigError } = await admin.from("consent_signatures").insert([
+  const signaturesToInsert = [
     {
       form_id: input.parsed.treatmentFormId,
       patient_id: input.patientId,
@@ -449,35 +490,48 @@ async function persistStaffConsentPackage(input: {
       ip_address: ipAddress,
       signed_at: signedAt,
     },
-    {
-      form_id: input.parsed.accountFormId,
-      patient_id: input.patientId,
-      signature_data: buildSignaturePayload({
-        typedName: input.accountTypedName,
-        pad: input.parsed.accountSignature,
-        role: accountRole,
-      }),
-      ip_address: ipAddress,
-      signed_at: signedAt,
-    },
-  ]);
+    ...(hasAccountSignature
+      ? [
+          {
+            form_id: input.parsed.accountFormId,
+            patient_id: input.patientId,
+            signature_data: buildSignaturePayload({
+              typedName: input.accountTypedName ?? input.treatmentTypedName,
+              pad: input.parsed.accountSignature!,
+              role: (input.parsed.accountSignerRole ?? "account_holder") as ConsentSignerRole,
+            }),
+            ip_address: ipAddress,
+            signed_at: signedAt,
+          },
+        ]
+      : []),
+  ];
+
+  const { error: sigError } = await admin.from("consent_signatures").insert(signaturesToInsert);
   if (sigError) return { error: sigError.message };
 
-  const versionLabel = buildConsentVersionLabel(
-    (formVersions ?? []).map((form) => ({ slug: form.slug, version: form.version })),
-  );
+  if (hasAccountSignature) {
+    const { data: formVersions } = await admin
+      .from("consent_forms")
+      .select("id, slug, version")
+      .in("id", [input.parsed.treatmentFormId, input.parsed.accountFormId]);
 
-  const { error: flagError } = await admin
-    .from("patients")
-    .update(
-      staffConsentPatientUpdate({
-        staffProfileId: input.staffProfileId,
-        signedAt,
-        versionLabel: versionLabel || null,
-      }),
-    )
-    .eq("id", input.patientId);
-  if (flagError) return { error: flagError.message };
+    const versionLabel = buildConsentVersionLabel(
+      (formVersions ?? []).map((form) => ({ slug: form.slug, version: form.version })),
+    );
+
+    const { error: flagError } = await admin
+      .from("patients")
+      .update(
+        staffConsentPatientUpdate({
+          staffProfileId: input.staffProfileId,
+          signedAt,
+          versionLabel: versionLabel || null,
+        }),
+      )
+      .eq("id", input.patientId);
+    if (flagError) return { error: flagError.message };
+  }
 
   const invitePlan = portalInviteFromConsentAnswers(input.answers);
 
@@ -494,9 +548,21 @@ async function persistStaffConsentPackage(input: {
       email: invitePlan.email,
       fullName: invitePlan.fullName,
       patientId: input.patientId,
-      contactId,
+      contactId: contactId ?? existingAccountHolder?.id ?? null,
     });
     inviteError = invite.error;
+  } else if (invitePlan.kind === "none" && responsible.sameAsPatient === false) {
+    const fallbackEmail = existingAccountHolder?.email?.trim();
+    const fallbackFullName = existingAccountHolder?.full_name?.trim();
+    if (fallbackEmail && fallbackFullName) {
+      const invite = await ensureAccountHolderPortalInvite({
+        email: fallbackEmail,
+        fullName: fallbackFullName,
+        patientId: input.patientId,
+        contactId: existingAccountHolder?.id ?? null,
+      });
+      inviteError = invite.error ?? inviteError;
+    }
   }
 
   revalidatePath("/admin/consent-forms");
@@ -506,8 +572,12 @@ async function persistStaffConsentPackage(input: {
   revalidatePath("/admin/patients/new");
 
   const success = input.created
-    ? "Patient created and informed consent captured."
-    : "Informed consent captured for this patient.";
+    ? hasAccountSignature
+      ? "Patient created and informed consent captured."
+      : "Patient created and informed consent partially captured (account responsibility pending)."
+    : hasAccountSignature
+      ? "Informed consent captured for this patient."
+      : "Informed consent captured for this patient (account responsibility pending).";
   return {
     success: inviteError ? `${success} Portal invite could not be sent.` : success,
     id: input.patientId,
@@ -519,7 +589,7 @@ export async function submitStaffConsentPackageAction(
   formData: FormData,
 ): Promise<ConsentActionState> {
   const staff = await requireStaff();
-  const parsed = packageSchema.safeParse({
+  const parsed = staffPackageSchema.safeParse({
     ...staffPackageFromFormData(formData),
     patientId: formData.get("patientId"),
   });
@@ -530,12 +600,17 @@ export async function submitStaffConsentPackageAction(
     return { error: parsedAnswers.error ?? "Invalid form answers" };
   }
 
+  const requireAccountName = Boolean(parsed.data.accountSignature);
   const validated = validateStaffConsentAnswers(
     parsedAnswers.answers,
     parsed.data.accountTypedName,
+    requireAccountName,
   );
-  if (validated.error || !validated.treatmentTypedName || !validated.accountTypedName) {
+  if (validated.error || !validated.treatmentTypedName) {
     return { error: validated.error ?? "Please complete all required fields" };
+  }
+  if (requireAccountName && !validated.accountTypedName) {
+    return { error: "Please complete all required fields" };
   }
 
   return persistStaffConsentPackage({
@@ -562,12 +637,17 @@ export async function createPatientWithStaffConsentAction(
     return { error: parsedAnswers.error ?? "Invalid form answers" };
   }
 
+  const requireAccountName = Boolean(parsed.data.accountSignature);
   const validated = validateStaffConsentAnswers(
     parsedAnswers.answers,
     parsed.data.accountTypedName,
+    requireAccountName,
   );
-  if (validated.error || !validated.treatmentTypedName || !validated.accountTypedName) {
+  if (validated.error || !validated.treatmentTypedName) {
     return { error: validated.error ?? "Please complete all required fields" };
+  }
+  if (requireAccountName && !validated.accountTypedName) {
+    return { error: "Please complete all required fields" };
   }
 
   const patientFullName = String(parsedAnswers.answers.fullName ?? "").trim();

@@ -17,7 +17,10 @@ import {
   joinPostalAddress,
   parseAccountResponsible,
   portalConsentPatientUpdate,
+  portalInviteFromAccountPayer,
   portalInviteFromConsentAnswers,
+  resolveStaffAccountTypedName,
+  shouldPreserveExistingBilling,
   splitFullName,
   staffConsentPatientUpdate,
   type ConsentSignerRole,
@@ -41,6 +44,7 @@ const packageFields = {
   treatmentSignerRole: z.enum(["patient", "account_holder", "proxy"]).optional(),
   accountSignerRole: z.enum(["patient", "account_holder", "proxy"]).optional(),
   accountTypedName: z.string().min(2).optional(),
+  preserveExistingBilling: z.boolean().optional(),
 };
 
 const packageSchema = z.object({
@@ -287,6 +291,7 @@ function staffPackageFromFormData(formData: FormData) {
     treatmentSignerRole: formData.get("treatmentSignerRole") || "patient",
     accountSignerRole: formData.get("accountSignerRole") || "account_holder",
     accountTypedName: formData.get("accountTypedName") || undefined,
+    preserveExistingBilling: formData.get("preserveExistingBilling") === "true",
   };
 }
 
@@ -301,6 +306,7 @@ function parseConsentAnswers(answersJson: string): { answers?: Record<string, un
 function validateStaffConsentAnswers(
   answers: Record<string, unknown>,
   accountTypedName?: string,
+  existingAccountPayerName?: string,
 ): { error?: string; treatmentTypedName?: string; accountTypedName?: string } {
   if (answers.undertaking !== "yes") {
     return { error: "The undertaking must be accepted (Yes) to continue." };
@@ -313,9 +319,12 @@ function validateStaffConsentAnswers(
   if (treatmentTypedName.length < 2) {
     return { error: "Type the patient's (or proxy's) full name to sign treatment consent." };
   }
-  const resolvedAccountName =
-    accountTypedName?.trim() ||
-    String(parseAccountResponsible(answers).name ?? treatmentTypedName).trim();
+  const resolvedAccountName = resolveStaffAccountTypedName({
+    accountTypedName,
+    answers,
+    existingAccountPayerName,
+    treatmentTypedName,
+  });
   if (resolvedAccountName.length < 2) {
     return { error: "Type the account holder's full name to sign account responsibility." };
   }
@@ -334,13 +343,21 @@ async function persistStaffConsentPackage(input: {
   const admin = createServiceClient();
   const { data: patient } = await admin
     .from("patients")
-    .select("id, informed_consent_signed")
+    .select(
+      "id, informed_consent_signed, billing_name, billing_email, billing_phone, billing_address",
+    )
     .eq("id", input.patientId)
     .maybeSingle();
   if (!patient) return { error: "Patient not found" };
   if (patient.informed_consent_signed) {
     return { error: "Informed consent is already on file for this patient." };
   }
+
+  const preserveBilling = shouldPreserveExistingBilling({
+    preserveExistingBilling: input.parsed.preserveExistingBilling === true,
+    created: input.created,
+    existingBillingName: patient.billing_name,
+  });
 
   const medicalAid = String(input.answers.medicalAid ?? "").trim();
   const medicalAidNumber = String(input.answers.medicalAidNumber ?? "").trim();
@@ -353,36 +370,49 @@ async function persistStaffConsentPackage(input: {
   const patientEmail = String(input.answers.email ?? "").trim().toLowerCase() || null;
   const patientPhone = String(input.answers.contactNumber ?? "").trim() || null;
 
+  const patientUpdate: Record<string, unknown> = {
+    first_name: names.firstName || undefined,
+    last_name: names.lastName || undefined,
+    medical_aid_name: medicalAid || null,
+    medical_aid_number: medicalAidNumber || null,
+    medical_aid_dependant_code: dependant || null,
+    id_number: idNumber || null,
+    postal_address: postal || null,
+    phone: patientPhone ?? undefined,
+    email: patientEmail ?? undefined,
+  };
+
+  if (!preserveBilling) {
+    patientUpdate.billing_name = responsible.sameAsPatient
+      ? patientFullName || null
+      : responsible.name?.trim() || null;
+    patientUpdate.billing_email = responsible.sameAsPatient
+      ? patientEmail
+      : responsible.email?.trim().toLowerCase() || null;
+    patientUpdate.billing_phone = responsible.sameAsPatient
+      ? patientPhone
+      : responsible.contactNumber?.trim() || null;
+    patientUpdate.billing_address = responsible.sameAsPatient
+      ? postal || null
+      : responsible.postalAddress?.trim() || null;
+  }
+
   const { error: demoError } = await admin
     .from("patients")
-    .update({
-      first_name: names.firstName || undefined,
-      last_name: names.lastName || undefined,
-      medical_aid_name: medicalAid || null,
-      medical_aid_number: medicalAidNumber || null,
-      medical_aid_dependant_code: dependant || null,
-      id_number: idNumber || null,
-      postal_address: postal || null,
-      phone: patientPhone ?? undefined,
-      email: patientEmail ?? undefined,
-      billing_name: responsible.sameAsPatient
-        ? patientFullName || null
-        : responsible.name?.trim() || null,
-      billing_email: responsible.sameAsPatient
-        ? patientEmail
-        : responsible.email?.trim().toLowerCase() || null,
-      billing_phone: responsible.sameAsPatient
-        ? patientPhone
-        : responsible.contactNumber?.trim() || null,
-      billing_address: responsible.sameAsPatient
-        ? postal || null
-        : responsible.postalAddress?.trim() || null,
-    })
+    .update(patientUpdate)
     .eq("id", input.patientId);
   if (demoError) return { error: demoError.message };
 
   let contactId: string | null = null;
-  if (!responsible.sameAsPatient && responsible.name?.trim() && responsible.email?.trim()) {
+  if (preserveBilling) {
+    const { data: existingContact } = await admin
+      .from("patient_contacts")
+      .select("id")
+      .eq("patient_id", input.patientId)
+      .eq("is_account_holder", true)
+      .maybeSingle();
+    contactId = existingContact?.id ?? null;
+  } else if (!responsible.sameAsPatient && responsible.name?.trim() && responsible.email?.trim()) {
     const email = responsible.email.trim().toLowerCase();
     const { data: existingContact } = await admin
       .from("patient_contacts")
@@ -479,7 +509,15 @@ async function persistStaffConsentPackage(input: {
     .eq("id", input.patientId);
   if (flagError) return { error: flagError.message };
 
-  const invitePlan = portalInviteFromConsentAnswers(input.answers);
+  const invitePlan = preserveBilling
+    ? portalInviteFromAccountPayer({
+        sameAsPatient: false,
+        patientFullName,
+        patientEmail,
+        payerName: patient.billing_name,
+        payerEmail: patient.billing_email,
+      })
+    : portalInviteFromConsentAnswers(input.answers);
 
   let inviteError: string | undefined;
   if (invitePlan.kind === "patient") {
@@ -530,9 +568,17 @@ export async function submitStaffConsentPackageAction(
     return { error: parsedAnswers.error ?? "Invalid form answers" };
   }
 
+  const admin = createServiceClient();
+  const { data: existingPatient } = await admin
+    .from("patients")
+    .select("billing_name")
+    .eq("id", parsed.data.patientId)
+    .maybeSingle();
+
   const validated = validateStaffConsentAnswers(
     parsedAnswers.answers,
     parsed.data.accountTypedName,
+    parsed.data.preserveExistingBilling ? existingPatient?.billing_name ?? undefined : undefined,
   );
   if (validated.error || !validated.treatmentTypedName || !validated.accountTypedName) {
     return { error: validated.error ?? "Please complete all required fields" };

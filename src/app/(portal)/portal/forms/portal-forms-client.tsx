@@ -57,6 +57,12 @@ export interface PortalFormsClientProps {
     accountHolderPhone?: string;
     accountHolderAddress?: string;
   };
+  accountPayerOnFile?: {
+    name: string;
+    email?: string;
+    phone?: string;
+    address?: string;
+  };
 }
 
 function Section({
@@ -156,6 +162,7 @@ export function PortalFormsClient({
   treatmentConsent,
   accountConsent,
   defaults,
+  accountPayerOnFile,
   returnTo,
   mode = "portal",
   submitAction = submitFouzaConsentPackageAction,
@@ -175,7 +182,12 @@ export function PortalFormsClient({
     router.refresh();
   }, [state.success, state.id, returnTo, router]);
 
-  const [sameAsPatient, setSameAsPatient] = useState(!defaults?.accountHolderName);
+  const isStaff = mode === "staff";
+  const payerOnFile = isStaff && accountPayerOnFile?.name?.trim() ? accountPayerOnFile : undefined;
+
+  const [sameAsPatient, setSameAsPatient] = useState(
+    payerOnFile ? true : !defaults?.accountHolderName,
+  );
   const [fullName, setFullName] = useState(defaults?.fullName ?? "");
   const [idNumber, setIdNumber] = useState(defaults?.idNumber ?? "");
   const [contactNumber, setContactNumber] = useState(defaults?.phone ?? "");
@@ -202,51 +214,42 @@ export function PortalFormsClient({
   const [undertaking, setUndertaking] = useState<"yes" | "no" | "">("");
   const [pleaseNote, setPleaseNote] = useState<"agree" | "disagree" | "">("");
   const [typedFullName, setTypedFullName] = useState("");
-  const [accountTypedName, setAccountTypedName] = useState(defaults?.accountHolderName ?? "");
+  const [accountTypedName, setAccountTypedName] = useState(
+    payerOnFile?.name ?? defaults?.accountHolderName ?? "",
+  );
   const [treatmentSignerRole, setTreatmentSignerRole] = useState<"patient" | "proxy">("patient");
   const [treatmentSignature, setTreatmentSignature] = useState("");
   const [accountSignature, setAccountSignature] = useState("");
-  const isStaff = mode === "staff";
 
-  const answersJson = useMemo(
-    () =>
-      JSON.stringify({
-        fullName,
-        idNumber,
-        contactNumber,
-        email,
-        street,
-        suburb,
-        areaCode,
-        accountResponsible: sameAsPatient
-          ? {
-              sameAsPatient: true,
-              name: fullName,
-              idNumber,
-              contactNumber,
-              email,
-              postalAddress: [street, suburb, areaCode].filter(Boolean).join(", "),
-            }
-          : {
-              sameAsPatient: false,
-              name: respName,
-              idNumber: respId,
-              contactNumber: respContact,
-              email: respEmail,
-              postalAddress: respPostal,
-            },
-        medicalAid,
-        medicalAidNumber,
-        dependantCode,
-        releaseInformation: release,
-        releaseOther,
-        referralSources: sources,
-        sourceOther,
-        undertaking,
-        pleaseNote,
-        typedFullName,
-      }),
-    [
+  const answersJson = useMemo(() => {
+    const accountResponsible = payerOnFile
+      ? {
+          sameAsPatient: false,
+          name: payerOnFile.name,
+          contactNumber: payerOnFile.phone ?? "",
+          email: payerOnFile.email ?? "",
+          postalAddress: payerOnFile.address ?? "",
+          onFile: true,
+        }
+      : sameAsPatient
+        ? {
+            sameAsPatient: true,
+            name: fullName,
+            idNumber,
+            contactNumber,
+            email,
+            postalAddress: [street, suburb, areaCode].filter(Boolean).join(", "),
+          }
+        : {
+            sameAsPatient: false,
+            name: respName,
+            idNumber: respId,
+            contactNumber: respContact,
+            email: respEmail,
+            postalAddress: respPostal,
+          };
+
+    return JSON.stringify({
       fullName,
       idNumber,
       contactNumber,
@@ -254,24 +257,44 @@ export function PortalFormsClient({
       street,
       suburb,
       areaCode,
-      sameAsPatient,
-      respName,
-      respId,
-      respContact,
-      respEmail,
-      respPostal,
+      accountResponsible,
       medicalAid,
       medicalAidNumber,
       dependantCode,
-      release,
+      releaseInformation: release,
       releaseOther,
-      sources,
+      referralSources: sources,
       sourceOther,
       undertaking,
       pleaseNote,
       typedFullName,
-    ],
-  );
+    });
+  }, [
+    fullName,
+    idNumber,
+    contactNumber,
+    email,
+    street,
+    suburb,
+    areaCode,
+    payerOnFile,
+    sameAsPatient,
+    respName,
+    respId,
+    respContact,
+    respEmail,
+    respPostal,
+    medicalAid,
+    medicalAidNumber,
+    dependantCode,
+    release,
+    releaseOther,
+    sources,
+    sourceOther,
+    undertaking,
+    pleaseNote,
+    typedFullName,
+  ]);
 
   function toggle(list: string[], value: string, setter: (v: string[]) => void) {
     setter(list.includes(value) ? list.filter((v) => v !== value) : [...list, value]);
@@ -325,11 +348,14 @@ export function PortalFormsClient({
       <input type="hidden" name="answersJson" value={answersJson} />
       <input type="hidden" name="treatmentSignature" value={treatmentSignature} />
       <input type="hidden" name="accountSignature" value={accountSignature} />
+      {payerOnFile ? (
+        <input type="hidden" name="preserveExistingBilling" value="true" />
+      ) : null}
       {isStaff ? (
         <>
           <input type="hidden" name="treatmentSignerRole" value={treatmentSignerRole} />
           <input type="hidden" name="accountSignerRole" value="account_holder" />
-          <input type="hidden" name="accountTypedName" value={accountTypedName || respName} />
+          <input type="hidden" name="accountTypedName" value={accountTypedName || respName || payerOnFile?.name || ""} />
         </>
       ) : null}
 
@@ -415,58 +441,73 @@ export function PortalFormsClient({
         </div>
       </Section>
 
-      <Section
-        title="Person Responsible for Account / Main Member of Medical Aid"
-        description='If the patient is responsible for the account, tick “Same as above”.'
-      >
-        <label className="flex min-h-11 items-center gap-3 text-sm">
-          <input
-            type="checkbox"
-            className="size-4 shrink-0"
-            checked={sameAsPatient}
-            onChange={(e) => setSameAsPatient(e.target.checked)}
-          />
-          Same as above
-        </label>
-        {!sameAsPatient ? (
-          <div className="grid gap-4">
-            <div className="space-y-2">
-              <Label>Name and Surname *</Label>
-              <Input required value={respName} onChange={(e) => setRespName(e.target.value)} />
+      {payerOnFile ? (
+        <Card className="border-border bg-muted/30">
+          <CardContent className="space-y-1 p-4 text-sm sm:p-6">
+            <p className="font-medium text-foreground">Account payer already on file</p>
+            <p className="text-muted-foreground">
+              {payerOnFile.name}
+              {payerOnFile.email ? ` · ${payerOnFile.email}` : ""}
+            </p>
+            <p className="text-muted-foreground">
+              Billing details were saved separately. You only need to capture consent below.
+            </p>
+          </CardContent>
+        </Card>
+      ) : (
+        <Section
+          title="Person Responsible for Account / Main Member of Medical Aid"
+          description='If the patient is responsible for the account, tick “Same as above”.'
+        >
+          <label className="flex min-h-11 items-center gap-3 text-sm">
+            <input
+              type="checkbox"
+              className="size-4 shrink-0"
+              checked={sameAsPatient}
+              onChange={(e) => setSameAsPatient(e.target.checked)}
+            />
+            Same as above
+          </label>
+          {!sameAsPatient ? (
+            <div className="grid gap-4">
+              <div className="space-y-2">
+                <Label>Name and Surname *</Label>
+                <Input required value={respName} onChange={(e) => setRespName(e.target.value)} />
+              </div>
+              <div className="space-y-2">
+                <Label>ID number *</Label>
+                <Input required value={respId} onChange={(e) => setRespId(e.target.value)} />
+              </div>
+              <div className="space-y-2">
+                <Label>Contact Number *</Label>
+                <Input
+                  required
+                  value={respContact}
+                  onChange={(e) => setRespContact(e.target.value)}
+                />
+              </div>
+              <div className="space-y-2">
+                <Label>Email address *</Label>
+                <Input
+                  type="email"
+                  required
+                  value={respEmail}
+                  onChange={(e) => setRespEmail(e.target.value)}
+                />
+              </div>
+              <div className="space-y-2">
+                <Label>Postal Address *</Label>
+                <Textarea
+                  required
+                  rows={3}
+                  value={respPostal}
+                  onChange={(e) => setRespPostal(e.target.value)}
+                />
+              </div>
             </div>
-            <div className="space-y-2">
-              <Label>ID number *</Label>
-              <Input required value={respId} onChange={(e) => setRespId(e.target.value)} />
-            </div>
-            <div className="space-y-2">
-              <Label>Contact Number *</Label>
-              <Input
-                required
-                value={respContact}
-                onChange={(e) => setRespContact(e.target.value)}
-              />
-            </div>
-            <div className="space-y-2">
-              <Label>Email address *</Label>
-              <Input
-                type="email"
-                required
-                value={respEmail}
-                onChange={(e) => setRespEmail(e.target.value)}
-              />
-            </div>
-            <div className="space-y-2">
-              <Label>Postal Address *</Label>
-              <Textarea
-                required
-                rows={3}
-                value={respPostal}
-                onChange={(e) => setRespPostal(e.target.value)}
-              />
-            </div>
-          </div>
-        ) : null}
-      </Section>
+          ) : null}
+        </Section>
+      )}
 
       <Section
         title="Medical Aid Details"

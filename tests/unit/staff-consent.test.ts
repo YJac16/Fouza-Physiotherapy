@@ -6,6 +6,8 @@ import {
   portalInviteFromAccountPayer,
   portalInviteFromConsentAnswers,
   portalInviteLinksPatientProfile,
+  resolveStaffAccountTypedName,
+  shouldPreserveExistingBilling,
   splitFullName,
   staffConsentPatientUpdate,
 } from "@/features/consent-forms/lib/staff-capture";
@@ -109,5 +111,60 @@ describe("payer-to-portal routing", () => {
   it("splits a signup full name into first and last names", () => {
     expect(splitFullName("Amina Khan")).toEqual({ firstName: "Amina", lastName: "Khan" });
     expect(splitFullName("Amina")).toEqual({ firstName: "Amina", lastName: "Amina" });
+  });
+});
+
+describe("on-file account payer consent capture", () => {
+  it("resolves account signature name from existing billing when payer is on file", () => {
+    expect(
+      resolveStaffAccountTypedName({
+        answers: {
+          accountResponsible: { sameAsPatient: false, name: "Bhadra Jaga" },
+          typedFullName: "Bhadra Jaga",
+        },
+        existingAccountPayerName: "Mr Roshan Jaga",
+        treatmentTypedName: "Bhadra Jaga",
+      }),
+    ).toBe("Mr Roshan Jaga");
+  });
+
+  it("preserves existing billing only for existing patients with billing on file", () => {
+    expect(
+      shouldPreserveExistingBilling({
+        preserveExistingBilling: true,
+        created: false,
+        existingBillingName: "Mr Roshan Jaga",
+      }),
+    ).toBe(true);
+    expect(
+      shouldPreserveExistingBilling({
+        preserveExistingBilling: true,
+        created: true,
+        existingBillingName: "Mr Roshan Jaga",
+      }),
+    ).toBe(false);
+    expect(
+      shouldPreserveExistingBilling({
+        preserveExistingBilling: false,
+        created: false,
+        existingBillingName: "Mr Roshan Jaga",
+      }),
+    ).toBe(false);
+  });
+
+  it("routes family portal invite from preserved billing details", () => {
+    expect(
+      portalInviteFromAccountPayer({
+        sameAsPatient: false,
+        patientFullName: "Bhadra Jaga",
+        patientEmail: "bhadra@example.com",
+        payerName: "Mr Roshan Jaga",
+        payerEmail: "roshanjaga@gmail.com",
+      }),
+    ).toEqual({
+      kind: "family",
+      email: "roshanjaga@gmail.com",
+      fullName: "Mr Roshan Jaga",
+    });
   });
 });

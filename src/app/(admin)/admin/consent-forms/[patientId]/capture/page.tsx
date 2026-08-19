@@ -55,6 +55,15 @@ export default async function AdminCaptureConsentPage({ params }: PageProps) {
   const signedPackage = alreadyComplete ? await getSignedConsentPackageAdmin(patientId) : null;
   const accountHolder = (contactsResult.data ?? []).find((contact) => contact.is_account_holder);
   const postalParts = splitPostalAddress(patient.postal_address);
+  const payerName = patient.billing_name ?? accountHolder?.full_name;
+  const accountPayerOnFile = payerName
+    ? {
+        name: payerName,
+        email: patient.billing_email ?? accountHolder?.email ?? undefined,
+        phone: patient.billing_phone ?? accountHolder?.phone ?? undefined,
+        address: patient.billing_address ?? undefined,
+      }
+    : undefined;
 
   return (
     <div className="space-y-6">
@@ -81,6 +90,7 @@ export default async function AdminCaptureConsentPage({ params }: PageProps) {
           mode="staff"
           submitAction={submitStaffConsentPackageAction}
           returnTo={routes.admin.patient(patientId)}
+          accountPayerOnFile={accountPayerOnFile}
           defaults={{
             fullName: `${patient.first_name} ${patient.last_name}`.trim(),
             email: patient.email ?? undefined,
@@ -92,10 +102,6 @@ export default async function AdminCaptureConsentPage({ params }: PageProps) {
             medicalAid: patient.medical_aid_name ?? undefined,
             medicalAidNumber: patient.medical_aid_number ?? undefined,
             dependantCode: patient.medical_aid_dependant_code ?? undefined,
-            accountHolderName: patient.billing_name ?? accountHolder?.full_name ?? undefined,
-            accountHolderEmail: patient.billing_email ?? accountHolder?.email ?? undefined,
-            accountHolderPhone: patient.billing_phone ?? accountHolder?.phone ?? undefined,
-            accountHolderAddress: patient.billing_address ?? undefined,
           }}
         />
       ) : (

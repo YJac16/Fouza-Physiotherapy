@@ -127,3 +127,43 @@ export function buildSignaturePayload(input: {
     role: input.role,
   });
 }
+
+export function resolveStaffAccountTypedName(input: {
+  accountTypedName?: string;
+  answers: Record<string, unknown>;
+  existingAccountPayerName?: string;
+  treatmentTypedName: string;
+}): string {
+  return (
+    input.accountTypedName?.trim() ||
+    input.existingAccountPayerName?.trim() ||
+    String(parseAccountResponsible(input.answers).name ?? input.treatmentTypedName).trim()
+  );
+}
+
+export function shouldPreserveExistingBilling(input: {
+  preserveExistingBilling: boolean;
+  created: boolean;
+  existingBillingName: string | null | undefined;
+}): boolean {
+  return (
+    input.preserveExistingBilling &&
+    !input.created &&
+    Boolean(input.existingBillingName?.trim())
+  );
+}
+
+export function buildAccountResponsibleFromPayer(payer: {
+  name: string;
+  email?: string;
+  phone?: string;
+  address?: string;
+}): AccountResponsible {
+  return {
+    sameAsPatient: false,
+    name: payer.name,
+    email: payer.email,
+    contactNumber: payer.phone,
+    postalAddress: payer.address,
+  };
+}

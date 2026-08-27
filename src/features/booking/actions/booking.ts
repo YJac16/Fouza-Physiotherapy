@@ -18,6 +18,8 @@ import {
   rescheduleBooking,
   updateAppointmentAttendance,
 } from "@/features/booking/api/bookings";
+import { extendHoldForConsent } from "@/features/consent-forms/lib/guest-booking";
+import { INTAKE_SLUG } from "@/features/consent-forms/lib/completion";
 import {
   canBookFollowUpServices,
   type BookingPatientContext,
@@ -27,12 +29,15 @@ import { createServiceClient } from "@/lib/supabase/admin";
 import { createClient } from "@/lib/supabase/server";
 import { listAccessiblePatients } from "@/features/patients/api/patients";
 import { syncPatientConsentFlagsIfComplete } from "@/features/consent-forms/lib/completion";
+import { isHoneypotFilled, rateLimit } from "@/lib/security";
 
 export type BookingActionState = {
   error?: string;
   success?: string;
   holdToken?: string;
   appointmentId?: string;
+  confirmationToken?: string;
+  bookingReference?: string;
   slots?: { startsAt: string; endsAt: string; label: string }[];
   outstanding?: { needsConsent: boolean; needsVerification: boolean };
 };
@@ -55,6 +60,15 @@ export async function fetchSlotsAction(input: unknown): Promise<BookingActionSta
 export async function createHoldAction(input: unknown): Promise<BookingActionState> {
   const parsed = holdSchema.safeParse(input);
   if (!parsed.success) return { error: "Invalid hold request" };
+
+  const limitKey = parsed.data.email
+    ? `hold:${parsed.data.email.toLowerCase()}`
+    : `hold:${parsed.data.practitionerId}`;
+  const limit = rateLimit(limitKey, 20, 60_000);
+  if (!limit.ok) {
+    return { error: "Too many slot requests. Please wait a minute and try again." };
+  }
+
   try {
     const result = await createHold(parsed.data);
     if (result.error || !result.holdToken) return { error: result.error ?? "Hold failed" };
@@ -64,10 +78,46 @@ export async function createHoldAction(input: unknown): Promise<BookingActionSta
   }
 }
 
+export async function extendHoldForConsentAction(holdToken: string): Promise<BookingActionState> {
+  if (!holdToken) return { error: "Missing hold token" };
+  const result = await extendHoldForConsent(holdToken);
+  if (result.error) return { error: result.error };
+  return { success: "Hold extended" };
+}
+
+export async function loadBookingConsentFormsAction() {
+  const admin = createServiceClient();
+  const [{ data: consentForms }, { data: intakeForms }] = await Promise.all([
+    admin.from("consent_forms").select("id, title, slug, body_md").eq("is_active", true),
+    admin.from("intake_forms").select("id, title, slug").eq("is_active", true),
+  ]);
+
+  const intakeForm = intakeForms?.find((form) => form.slug === INTAKE_SLUG) ?? intakeForms?.[0] ?? null;
+  const treatmentConsent = consentForms?.find((form) => form.slug === "treatment-consent");
+  const accountConsent = consentForms?.find((form) => form.slug === "account-responsibility");
+
+  if (!intakeForm || !treatmentConsent || !accountConsent) {
+    return { error: "Consent forms are not configured" as const, forms: null };
+  }
+
+  return {
+    error: null,
+    forms: {
+      intakeForm,
+      treatmentConsent,
+      accountConsent,
+    },
+  };
+}
+
 export async function confirmBookingAction(
   _prev: BookingActionState,
   formData: FormData,
 ): Promise<BookingActionState> {
+  if (isHoneypotFilled(formData.get("website"))) {
+    return { error: "Unable to confirm booking" };
+  }
+
   const parsed = confirmBookingSchema.safeParse({
     holdToken: formData.get("holdToken"),
     firstName: formData.get("firstName"),
@@ -78,12 +128,22 @@ export async function confirmBookingAction(
   });
   if (!parsed.success) return { error: "Please complete all fields" };
 
+  const limit = rateLimit(`confirm:${parsed.data.email.toLowerCase()}`, 8, 60_000);
+  if (!limit.ok) {
+    return { error: "Too many confirmation attempts. Please wait a minute and try again." };
+  }
+
   try {
     const result = await confirmBooking(parsed.data);
     if (result.error || !result.appointmentId) {
       return { error: result.error ?? "Booking failed" };
     }
-    return { success: "Booked", appointmentId: result.appointmentId };
+    return {
+      success: "Booked",
+      appointmentId: result.appointmentId,
+      confirmationToken: result.confirmationToken ?? undefined,
+      bookingReference: result.bookingReference ?? undefined,
+    };
   } catch {
     return { error: "Booking unavailable. Try Setmore or call the practice." };
   }
@@ -259,7 +319,7 @@ export async function getAppointmentDetailAction(appointmentId: string) {
   const { data, error } = await supabase
     .from("appointments")
     .select(
-      "id, patient_id, practitioner_id, service_id, starts_at, ends_at, status, source, notes, price_cents, currency, patients(id, first_name, last_name, email, phone, verified_account, informed_consent_signed), services(name, duration_minutes), practitioners(id, title, profiles(full_name))",
+      "id, booking_reference, patient_id, practitioner_id, service_id, starts_at, ends_at, status, source, notes, price_cents, currency, patients(id, first_name, last_name, email, phone, verified_account, informed_consent_signed, informed_consent_signed_at, informed_consent_version), services(name, duration_minutes), practitioners(id, title, profiles(full_name))",
     )
     .eq("id", appointmentId)
     .maybeSingle();
@@ -268,13 +328,27 @@ export async function getAppointmentDetailAction(appointmentId: string) {
 
   const { data: invoice } = await supabase
     .from("invoices")
-    .select("id, status, total_cents")
+    .select("id, status, total_cents, invoice_number")
     .eq("appointment_id", appointmentId)
     .order("created_at", { ascending: false })
     .limit(1)
     .maybeSingle();
 
-  return { error: null, appointment: data, invoice: invoice ?? null };
+  let paymentsTotalCents = 0;
+  if (invoice?.id) {
+    const { data: payments } = await supabase
+      .from("payments")
+      .select("amount_cents")
+      .eq("invoice_id", invoice.id);
+    paymentsTotalCents = (payments ?? []).reduce((sum, row) => sum + row.amount_cents, 0);
+  }
+
+  return {
+    error: null,
+    appointment: data,
+    invoice: invoice ?? null,
+    paymentsTotalCents,
+  };
 }
 
 export async function listStaffBookingCatalog() {

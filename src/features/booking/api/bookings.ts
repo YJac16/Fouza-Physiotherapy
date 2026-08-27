@@ -286,9 +286,56 @@ export async function createAppointmentFromSlot(input: CreateAppointmentCoreInpu
         endsAt: input.endsAt,
       },
     });
+  } else if (input.source === "online") {
+    await admin.from("audit_logs").insert({
+      actor_id: null,
+      action: "appointment.create.online",
+      entity_type: "appointment",
+      entity_id: appointment.id,
+      meta: {
+        source: input.source,
+        patientId: input.patientId,
+        practitionerId: input.practitionerId,
+        serviceId: input.serviceId,
+        startsAt: input.startsAt,
+        endsAt: input.endsAt,
+      },
+    });
   }
 
-  return { error: null, appointmentId: appointment.id as string };
+  const identifiers = await assignBookingIdentifiers(admin, appointment.id);
+
+  return {
+    error: null,
+    appointmentId: appointment.id as string,
+    bookingReference: identifiers.bookingReference,
+    confirmationToken: identifiers.confirmationToken,
+  };
+}
+
+async function assignBookingIdentifiers(admin: ReturnType<typeof createServiceClient>, appointmentId: string) {
+  const confirmationToken = crypto.randomUUID();
+  const { data: bookingReference, error: refError } = await admin.rpc("generate_booking_reference");
+  if (refError || !bookingReference) {
+    return { bookingReference: null as string | null, confirmationToken: null as string | null };
+  }
+
+  const { error: updateError } = await admin
+    .from("appointments")
+    .update({
+      booking_reference: bookingReference as string,
+      confirmation_token: confirmationToken,
+    })
+    .eq("id", appointmentId);
+
+  if (updateError) {
+    return { bookingReference: null as string | null, confirmationToken: null as string | null };
+  }
+
+  return {
+    bookingReference: bookingReference as string,
+    confirmationToken,
+  };
 }
 
 async function enqueueBookingEmails(input: {
@@ -302,6 +349,8 @@ async function enqueueBookingEmails(input: {
   practitionerId: string;
   magicLink?: string | null;
   templateConfirmed?: boolean;
+  bookingReference?: string | null;
+  confirmationToken?: string | null;
 }) {
   const admin = createServiceClient();
   const practiceRecipients = await resolvePracticeAlertRecipients(input.practitionerId);
@@ -313,6 +362,8 @@ async function enqueueBookingEmails(input: {
     magicLink: input.magicLink ?? null,
     patientName: input.patientName,
     serviceName: input.serviceName,
+    bookingReference: input.bookingReference ?? null,
+    confirmationToken: input.confirmationToken ?? null,
   };
 
   const rows: Array<{
@@ -414,14 +465,50 @@ export async function confirmBooking(input: ConfirmBookingInput) {
       .maybeSingle();
     patientRow = selected;
   } else {
+    const normalizedEmail = input.email.toLowerCase();
     const { data: existingByEmail } = await admin
       .from("patients")
       .select(
         "id, profile_id, verified_account, informed_consent_signed, first_name, last_name, email, phone",
       )
-      .eq("email", input.email.toLowerCase())
+      .eq("email", normalizedEmail)
       .maybeSingle();
+
+    if (existingByEmail?.profile_id && !session) {
+      return {
+        error: "An account exists for this email. Please sign in to confirm your booking.",
+        appointmentId: null,
+      };
+    }
+
     patientRow = existingByEmail ?? owned;
+
+    if (!patientRow) {
+      if (!session) {
+        return {
+          error: "Please complete informed consent before confirming this booking.",
+          appointmentId: null,
+        };
+      }
+
+      const { data: created, error: patientError } = await admin
+        .from("patients")
+        .insert({
+          first_name: input.firstName,
+          last_name: input.lastName,
+          email: normalizedEmail,
+          phone: input.phone,
+          profile_id: session.id,
+        })
+        .select(
+          "id, profile_id, verified_account, informed_consent_signed, first_name, last_name, email, phone",
+        )
+        .single();
+      if (patientError || !created) {
+        return { error: patientError?.message ?? "Patient create failed", appointmentId: null };
+      }
+      patientRow = created;
+    }
   }
 
   let flags = {
@@ -439,8 +526,9 @@ export async function confirmBooking(input: ConfirmBookingInput) {
 
   if (!flags.informed_consent_signed) {
     return {
-      error:
-        "Please complete informed consent in your patient portal before confirming this booking.",
+      error: session
+        ? "Please complete informed consent before confirming this booking."
+        : "Please complete informed consent in the booking flow before confirming.",
       appointmentId: null,
     };
   }
@@ -477,7 +565,7 @@ export async function confirmBooking(input: ConfirmBookingInput) {
           .eq("id", session.id);
       }
     }
-  } else {
+  } else if (session) {
     const { data: created, error: patientError } = await admin
       .from("patients")
       .insert({
@@ -485,7 +573,7 @@ export async function confirmBooking(input: ConfirmBookingInput) {
         last_name: input.lastName,
         email: input.email.toLowerCase(),
         phone: input.phone,
-        profile_id: session?.id ?? null,
+        profile_id: session.id,
       })
       .select("id, verified_account, informed_consent_signed")
       .single();
@@ -494,8 +582,7 @@ export async function confirmBooking(input: ConfirmBookingInput) {
     }
     if (!created.informed_consent_signed) {
       return {
-        error:
-          "Please complete informed consent in your patient portal before confirming this booking.",
+        error: "Please complete informed consent before confirming this booking.",
         appointmentId: null,
       };
     }
@@ -589,6 +676,8 @@ export async function confirmBooking(input: ConfirmBookingInput) {
     serviceName: service.name ?? "Physiotherapy",
     practitionerId: freshHold.practitioner_id,
     magicLink,
+    bookingReference: created.bookingReference,
+    confirmationToken: created.confirmationToken,
   });
 
   await admin.from("patient_timeline_events").insert({
@@ -599,7 +688,13 @@ export async function confirmBooking(input: ConfirmBookingInput) {
     entity_id: created.appointmentId,
   });
 
-  return { error: null, appointmentId: created.appointmentId, magicLink };
+  return {
+    error: null,
+    appointmentId: created.appointmentId,
+    magicLink,
+    bookingReference: created.bookingReference,
+    confirmationToken: created.confirmationToken,
+  };
 }
 
 /**

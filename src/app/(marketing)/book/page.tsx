@@ -10,6 +10,7 @@ import { Typography } from "@/components/ui/typography";
 import { routes } from "@/config/routes";
 import { siteConfig } from "@/config/site";
 import { BookingWizard, listBookableCatalog } from "@/features/booking";
+import { loadBookingConsentFormsAction } from "@/features/booking/actions/booking";
 import { JsonLd, breadcrumbJsonLd } from "@/lib/seo/json-ld";
 import { buildMetadata } from "@/lib/seo/metadata";
 
@@ -115,6 +116,7 @@ export default async function BookPage() {
   let patientContext: Awaited<ReturnType<typeof listBookableCatalog>>["patientContext"] = null;
   let bookablePatients: Awaited<ReturnType<typeof listBookableCatalog>>["bookablePatients"] = [];
   let isAuthenticated = false;
+  let consentForms: Awaited<ReturnType<typeof loadBookingConsentFormsAction>>["forms"] = null;
 
   try {
     const catalog = await listBookableCatalog();
@@ -124,6 +126,11 @@ export default async function BookPage() {
     bookablePatients = catalog.bookablePatients;
     isAuthenticated = catalog.isAuthenticated;
     catalogAvailable = services.length > 0 && practitioners.length > 0;
+
+    if (catalogAvailable) {
+      const formsResult = await loadBookingConsentFormsAction();
+      consentForms = formsResult.forms;
+    }
   } catch {
     catalogAvailable = false;
   }
@@ -155,6 +162,7 @@ export default async function BookPage() {
               patientContext={patientContext}
               bookablePatients={bookablePatients}
               isAuthenticated={isAuthenticated}
+              consentForms={consentForms}
             />
           </Container>
         </Section>

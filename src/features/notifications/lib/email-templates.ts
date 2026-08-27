@@ -67,10 +67,10 @@ export function renderEmailTemplate(
           Your patient portal is ready. Please complete your informed consent and intake forms
           before your appointment.
         </p>
-        ${cta(link, "Open forms securely")}
+        ${cta(link, "Open portal securely")}
         <p style="margin:16px 0 0;font-size:13px;line-height:1.5;color:#7a7a7c;">
-          This secure link signs you in automatically. If it expires, use Sign in on our website
-          with the same email and reset your password if needed.
+          This secure link signs you in automatically. If it expires, visit our website and request
+          a new sign-in link with the same email address.
         </p>
       `),
     };
@@ -78,13 +78,26 @@ export function renderEmailTemplate(
 
   if (templateKey === "booking.confirmed") {
     const appointmentsHref = `${appUrl}/portal/appointments`;
+    const bookingReference =
+      typeof payload.bookingReference === "string" ? payload.bookingReference : null;
+    const confirmationHref =
+      typeof payload.confirmationToken === "string"
+        ? `${appUrl}/book/success?token=${encodeURIComponent(payload.confirmationToken)}`
+        : appointmentsHref;
     return {
-      subject: "Appointment confirmed — Fouza Physiotherapy",
+      subject: bookingReference
+        ? `Appointment confirmed — ${bookingReference}`
+        : "Appointment confirmed — Fouza Physiotherapy",
       html: wrap(`
         <h1 style="margin:0 0 12px;font-size:22px;color:#3a3a3c;">You're booked in</h1>
         <p style="margin:0;font-size:15px;line-height:1.6;">
           Hi ${escapeHtml(firstName)}, thank you for booking with ${escapeHtml(siteConfig.practiceName)}.
         </p>
+        ${
+          bookingReference
+            ? `<p style="margin:16px 0 0;font-size:15px;line-height:1.6;"><strong>Booking reference:</strong> ${escapeHtml(bookingReference)}</p>`
+            : ""
+        }
         ${
           startsAt
             ? `<p style="margin:16px 0 0;font-size:15px;line-height:1.6;"><strong>When:</strong> ${escapeHtml(startsAt)}</p>`
@@ -94,9 +107,15 @@ export function renderEmailTemplate(
           <strong>Where:</strong> ${escapeHtml(siteConfig.address)}
         </p>
         <p style="margin:16px 0 0;font-size:15px;line-height:1.6;">
-          You can view and manage this appointment anytime in your patient portal.
+          <strong>Consent:</strong> Completed
         </p>
-        ${cta(appointmentsHref, "View my appointments")}
+        <p style="margin:16px 0 0;font-size:15px;line-height:1.6;">
+          <strong>Payment:</strong> Due at the practice (cash, card, or EFT). This email does not mean payment has been received.
+        </p>
+        <p style="margin:16px 0 0;font-size:13px;line-height:1.6;color:#7a7a7c;">
+          Please cancel or reschedule at least 6 hours before your appointment. Late cancellations or missed appointments incur a fee of 50% of the consultation fee.
+        </p>
+        ${cta(confirmationHref, bookingReference ? "View confirmation" : "View my appointments")}
       `),
     };
   }
@@ -109,18 +128,33 @@ export function renderEmailTemplate(
 
   if (templateKey === "booking.practitioner_alert") {
     const adminHref = `${appUrl}/admin/appointments`;
+    const bookingReference =
+      typeof payload.bookingReference === "string" ? payload.bookingReference : null;
     return {
-      subject: `New booking — ${patientName}`,
+      subject: bookingReference
+        ? `New booking — ${bookingReference}`
+        : `New booking — ${patientName}`,
       html: wrap(`
         <h1 style="margin:0 0 12px;font-size:22px;color:#3a3a3c;">New appointment booked</h1>
         <p style="margin:0;font-size:15px;line-height:1.6;">
           <strong>${escapeHtml(patientName)}</strong> has booked <strong>${escapeHtml(serviceName)}</strong>.
         </p>
         ${
+          bookingReference
+            ? `<p style="margin:16px 0 0;font-size:15px;line-height:1.6;"><strong>Reference:</strong> ${escapeHtml(bookingReference)}</p>`
+            : ""
+        }
+        ${
           startsAt
             ? `<p style="margin:16px 0 0;font-size:15px;line-height:1.6;"><strong>When:</strong> ${escapeHtml(startsAt)}</p>`
             : ""
         }
+        <p style="margin:16px 0 0;font-size:15px;line-height:1.6;">
+          <strong>Consent:</strong> Completed (online booking)
+        </p>
+        <p style="margin:16px 0 0;font-size:15px;line-height:1.6;">
+          <strong>Payment:</strong> Not yet recorded — invoice/payment handled at practice
+        </p>
         ${
           notes
             ? `<p style="margin:16px 0 0;font-size:15px;line-height:1.6;"><strong>Notes:</strong> ${escapeHtml(notes)}</p>`
@@ -290,9 +324,16 @@ export function renderEmailTemplate(
           Hi ${escapeHtml(firstName)}, ${
             isReceipt
               ? `thank you — here is your receipt from ${escapeHtml(siteConfig.practiceName)}.`
-              : `an invoice from ${escapeHtml(siteConfig.practiceName)} is ready to view.`
+              : `your invoice from ${escapeHtml(siteConfig.practiceName)} is ready to view.`
           }
         </p>
+        ${
+          !isReceipt
+            ? `<p style="margin:12px 0 0;font-size:14px;line-height:1.6;color:#5a5a5c;">
+                Click below to securely access your invoice in the patient portal. You may be asked to sign in first.
+              </p>`
+            : ""
+        }
         <p style="margin:16px 0 0;font-size:15px;line-height:1.6;">
           <strong>${isReceipt ? "Receipt" : "Invoice"}:</strong> ${escapeHtml(invoiceNumber)}<br/>
           <strong>For:</strong> ${escapeHtml(description)}
@@ -310,7 +351,7 @@ export function renderEmailTemplate(
               </p>`
             : ""
         }
-        ${cta(invoicesHref, isReceipt ? "View receipt" : "View invoice")}
+        ${cta(invoicesHref, isReceipt ? "View receipt" : "View Invoice")}
       `),
     };
   }

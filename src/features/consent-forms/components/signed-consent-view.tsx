@@ -168,6 +168,7 @@ export function SignedConsentView({
             </CardTitle>
             <div className="space-y-0.5 text-sm leading-relaxed text-muted-foreground">
               <p>Signed {formatDate(sig.signedAt)}</p>
+              {sig.formVersion ? <p>Form version: {sig.formVersion}</p> : null}
               {sig.typedName ? (
                 <p className="[overflow-wrap:anywhere]">Signed by {sig.typedName}</p>
               ) : null}

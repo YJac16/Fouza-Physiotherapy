@@ -5,6 +5,7 @@ export {
   signConsentAction,
   submitIntakeAction,
   submitFouzaConsentPackageAction,
+  submitGuestConsentPackageAction,
   submitStaffConsentPackageAction,
   setPatientVerifiedAction,
 } from "./actions/consent";
@@ -29,6 +30,7 @@ export {
 } from "./lib/signed-package-types";
 export {
   buildSignaturePayload,
+  guestConsentPatientUpdate,
   portalConsentPatientUpdate,
   portalInviteFromAccountPayer,
   portalInviteFromConsentAnswers,

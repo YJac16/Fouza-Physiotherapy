@@ -1,4 +1,4 @@
-export type ConsentCaptureMethod = "portal" | "staff_assisted";
+export type ConsentCaptureMethod = "portal" | "staff_assisted" | "guest_booking";
 export type ConsentSignerRole = "patient" | "account_holder" | "proxy";
 
 export type AccountResponsible = {
@@ -113,6 +113,20 @@ export function portalConsentPatientUpdate(input: {
     informed_consent_version: input.versionLabel,
     verified_account: true,
     consent_capture_method: "portal" as const,
+  };
+}
+
+export function guestConsentPatientUpdate(input: {
+  signedAt: string;
+  versionLabel: string | null;
+}) {
+  return {
+    informed_consent_signed: true,
+    informed_consent_signed_at: input.signedAt,
+    informed_consent_version: input.versionLabel,
+    verified_account: true,
+    consent_capture_method: "guest_booking" as const,
+    consent_captured_by: null,
   };
 }
 

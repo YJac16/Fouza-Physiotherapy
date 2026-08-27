@@ -24,8 +24,11 @@ import {
   type BookingActionState,
   confirmBookingAction,
   createHoldAction,
+  extendHoldForConsentAction,
   fetchSlotsAction,
 } from "@/features/booking/actions/booking";
+import { PortalFormsClient } from "@/app/(portal)/portal/forms/portal-forms-client";
+import { cancellationPolicyNotice } from "@/content/pricing";
 import type { BookingPatientContext } from "@/features/booking/lib/eligibility";
 import { filterBookableServices } from "@/features/booking/lib/eligibility";
 import { BOOKING_TIMEZONE } from "@/features/booking/lib/timezone";
@@ -47,12 +50,19 @@ export type BookablePractitioner = {
   profiles: { full_name: string } | { full_name: string }[] | null;
 };
 
+export type BookingConsentForms = {
+  intakeForm: { id: string; title: string; slug: string };
+  treatmentConsent: { id: string; title: string; body_md: string; slug: string };
+  accountConsent: { id: string; title: string; body_md: string; slug: string };
+};
+
 export interface BookingWizardProps {
   services: BookableService[];
   practitioners: BookablePractitioner[];
   patientContext?: BookingPatientContext | null;
   bookablePatients?: BookingPatientContext[];
   isAuthenticated?: boolean;
+  consentForms?: BookingConsentForms | null;
   className?: string;
 }
 
@@ -61,8 +71,11 @@ const STEPS = [
   { label: "Practitioner", description: "Select your therapist" },
   { label: "Date & time", description: "Pick a slot" },
   { label: "Details", description: "Your contact info" },
-  { label: "Confirm", description: "Review & book" },
+  { label: "Consent", description: "Informed consent" },
+  { label: "Review", description: "Confirm booking" },
 ] as const;
+
+const HOLD_STORAGE_KEY = "fouza-booking-hold";
 
 const initialConfirmState: BookingActionState = {};
 
@@ -130,6 +143,7 @@ export function BookingWizard({
   patientContext = null,
   bookablePatients = [],
   isAuthenticated = false,
+  consentForms = null,
   className,
 }: BookingWizardProps) {
   const router = useRouter();
@@ -162,21 +176,24 @@ export function BookingWizard({
     email: patientContext?.email ?? "",
     phone: patientContext?.phone ?? "",
   });
+  const [consentComplete, setConsentComplete] = useState(false);
   const [confirmState, confirmAction, confirmPending] = useActionState(
     confirmBookingAction,
     initialConfirmState,
   );
 
-  const needsAuth = !isAuthenticated;
-  const needsConsentForms = Boolean(selectedPatient?.access !== "contact" && selectedPatient?.needsConsent);
   const familyConsentMissing = Boolean(
     selectedPatient?.access === "contact" && !selectedPatient.informedConsentSigned,
   );
-  const bookingBlocked = needsAuth || needsConsentForms || familyConsentMissing;
-  const consentReturnTo = `${routes.booking.root}`;
-  const consentHref = `${routes.portal.forms}?returnTo=${encodeURIComponent(consentReturnTo)}`;
-  const loginHref = `${routes.auth.login}?redirectTo=${encodeURIComponent(consentHref)}`;
-  const registerHref = `${routes.auth.register}?redirectTo=${encodeURIComponent(consentHref)}`;
+  const needsConsentStep = Boolean(
+    !familyConsentMissing &&
+      !consentComplete &&
+      (!isAuthenticated || selectedPatient?.needsConsent || !selectedPatient?.informedConsentSigned),
+  );
+  const consentAlreadyOnFile = Boolean(
+    isAuthenticated && selectedPatient && !selectedPatient.needsConsent && selectedPatient.informedConsentSigned,
+  );
+  const bookingBlocked = familyConsentMissing;
 
   const minDate = useMemo(() => getDateKeyInTimezone(), []);
   const selectedService = visibleServices.find((s) => s.id === serviceId) ?? null;
@@ -228,10 +245,36 @@ export function BookingWizard({
   }, [date, loadSlots]);
 
   useEffect(() => {
-    if (confirmState.appointmentId) {
-      router.push(`${routes.booking.success}?id=${confirmState.appointmentId}`);
+    if (holdToken) {
+      sessionStorage.setItem(HOLD_STORAGE_KEY, holdToken);
     }
-  }, [confirmState.appointmentId, router]);
+  }, [holdToken]);
+
+  useEffect(() => {
+    const stored = sessionStorage.getItem(HOLD_STORAGE_KEY);
+    if (stored && !holdToken) {
+      setHoldToken(stored);
+    }
+  }, [holdToken]);
+
+  useEffect(() => {
+    if (consentAlreadyOnFile) {
+      setConsentComplete(true);
+    }
+  }, [consentAlreadyOnFile]);
+
+  useEffect(() => {
+    if (confirmState.appointmentId) {
+      sessionStorage.removeItem(HOLD_STORAGE_KEY);
+      const params = new URLSearchParams();
+      if (confirmState.confirmationToken) {
+        params.set("token", confirmState.confirmationToken);
+      } else if (confirmState.appointmentId) {
+        params.set("id", confirmState.appointmentId);
+      }
+      router.push(`${routes.booking.success}?${params.toString()}`);
+    }
+  }, [confirmState.appointmentId, confirmState.confirmationToken, router]);
 
   async function handleSlotSelect(slot: { startsAt: string; endsAt: string; label: string }) {
     if (!practitionerId || !serviceId) return;
@@ -272,6 +315,8 @@ export function BookingWizard({
           details.email.includes("@") &&
           details.phone.trim().length >= 7
         );
+      case 5:
+        return consentComplete || consentAlreadyOnFile;
       default:
         return true;
     }
@@ -279,10 +324,23 @@ export function BookingWizard({
 
   function goNext() {
     if (!canContinue()) return;
+    if (step === 4 && needsConsentStep) {
+      void extendHoldForConsentAction(holdToken ?? "");
+      setStep(5);
+      return;
+    }
+    if (step === 4 && !needsConsentStep) {
+      setStep(6);
+      return;
+    }
     setStep((current) => Math.min(current + 1, STEPS.length));
   }
 
   function goBack() {
+    if (step === 6) {
+      setStep(needsConsentStep || consentComplete ? 5 : 4);
+      return;
+    }
     setStep((current) => Math.max(current - 1, 1));
   }
 
@@ -527,10 +585,60 @@ export function BookingWizard({
       ) : null}
 
       {step === 5 ? (
+        <section aria-labelledby="booking-step-consent">
+          <Typography as="h2" id="booking-step-consent" variant="h3" className="mb-2">
+            Informed consent
+          </Typography>
+          <Typography variant="small" className="mb-6 text-muted-foreground">
+            {consentAlreadyOnFile
+              ? "Your informed consent is already on file."
+              : "Please read and complete the required consent forms before confirming your appointment."}
+          </Typography>
+
+          {consentAlreadyOnFile || consentComplete ? (
+            <div className="space-y-4 rounded-xl border border-success/30 bg-success/5 p-4">
+              <FormMessage tone="success">Consent already completed</FormMessage>
+              <Typography variant="small" className="text-muted-foreground">
+                You accepted the current terms and conditions. You can review the cancellation policy
+                below before continuing.
+              </Typography>
+              <p className="text-sm leading-relaxed text-muted-foreground">{cancellationPolicyNotice}</p>
+              <Button type="button" onClick={() => setStep(6)}>
+                Continue to review
+              </Button>
+            </div>
+          ) : consentForms ? (
+            <PortalFormsClient
+              mode={isAuthenticated && selectedPatient?.patientId ? "portal" : "guest"}
+              patientId={selectedPatient?.patientId}
+              holdToken={holdToken ?? undefined}
+              guestDetails={details}
+              intakeForm={consentForms.intakeForm}
+              treatmentConsent={consentForms.treatmentConsent}
+              accountConsent={consentForms.accountConsent}
+              defaults={{
+                fullName: `${details.firstName} ${details.lastName}`.trim(),
+                email: details.email,
+                phone: details.phone,
+              }}
+              onConsentComplete={() => {
+                setConsentComplete(true);
+                setStep(6);
+              }}
+            />
+          ) : (
+            <FormMessage tone="error">
+              Consent forms are unavailable. Please contact the practice to complete your booking.
+            </FormMessage>
+          )}
+        </section>
+      ) : null}
+
+      {step === 6 ? (
         <section aria-labelledby="booking-step-confirm" className="grid gap-6 lg:grid-cols-2">
           <div className="min-w-0">
             <Typography as="h2" id="booking-step-confirm" variant="h3" className="mb-2">
-              Confirm your booking
+              Review &amp; confirm
             </Typography>
             <Typography variant="small" className="mb-6 text-muted-foreground">
               Review your appointment details before confirming.
@@ -539,31 +647,13 @@ export function BookingWizard({
             {bookingBlocked ? (
               <div className="space-y-4 rounded-xl border border-warning/30 bg-warning/5 p-4">
                 <FormMessage tone="info">
-                  {needsAuth
-                    ? "Sign in or create an account to confirm this booking. New patients complete informed consent next."
-                    : familyConsentMissing
-                      ? "Informed consent for this patient must be captured by the practice before you can book online."
-                      : "Informed consent must be completed before you can confirm this booking."}
+                  Informed consent for this patient must be captured by the practice before you can
+                  book online.
                 </FormMessage>
-                {needsAuth ? (
-                  <div className="flex flex-col gap-2 sm:flex-row">
-                    <Button asChild size="lg" className="w-full sm:w-auto">
-                      <Link href={loginHref}>Sign in to continue</Link>
-                    </Button>
-                    <Button asChild size="lg" variant="outline" className="w-full sm:w-auto">
-                      <Link href={registerHref}>Create account</Link>
-                    </Button>
-                  </div>
-                ) : familyConsentMissing ? (
-                  <p className="text-sm text-muted-foreground">
-                    Ask the practice to complete consent at the visit, then follow-ups can be booked
-                    here.
-                  </p>
-                ) : (
-                  <Button asChild size="lg" className="w-full sm:w-auto">
-                    <Link href={consentHref}>Complete informed consent</Link>
-                  </Button>
-                )}
+                <p className="text-sm text-muted-foreground">
+                  Ask the practice to complete consent at the visit, then follow-ups can be booked
+                  here.
+                </p>
               </div>
             ) : (
               <form
@@ -577,7 +667,7 @@ export function BookingWizard({
                     event.preventDefault();
                     return;
                   }
-                  if (!holdToken) {
+                  if (!holdToken || (!consentComplete && !consentAlreadyOnFile)) {
                     event.preventDefault();
                   }
                 }}
@@ -596,6 +686,23 @@ export function BookingWizard({
                   aria-hidden
                   className="pointer-events-none absolute left-[-9999px] h-0 w-0 opacity-0"
                 />
+
+                <div className="rounded-xl border border-border/70 bg-muted/20 p-4 text-sm">
+                  <p className="font-medium text-foreground">Consent</p>
+                  <p className="mt-1 text-muted-foreground">
+                    {consentComplete || consentAlreadyOnFile
+                      ? "Completed"
+                      : "Please complete consent before confirming."}
+                  </p>
+                  <p className="mt-3 font-medium text-foreground">Payment</p>
+                  <p className="mt-1 text-muted-foreground">
+                    Payment is handled at the practice after your visit (cash, card, or EFT).
+                  </p>
+                  <p className="mt-3 text-xs leading-relaxed text-muted-foreground">
+                    {cancellationPolicyNotice}
+                  </p>
+                </div>
+
                 {confirmState.error ? (
                   <FormMessage tone="error">{confirmState.error}</FormMessage>
                 ) : null}
@@ -616,7 +723,7 @@ export function BookingWizard({
                   size="lg"
                   className="w-full sm:w-auto"
                   loading={confirmPending}
-                  disabled={!holdToken}
+                  disabled={!holdToken || (!consentComplete && !consentAlreadyOnFile)}
                 >
                   Confirm appointment
                 </Button>
@@ -638,19 +745,21 @@ export function BookingWizard({
         </section>
       ) : null}
 
-      {step < 5 ? (
+      {step < 6 ? (
         <div className="flex flex-col-reverse gap-3 border-t border-border pt-6 sm:flex-row sm:justify-between">
           <Button type="button" variant="outline" className="w-full sm:w-auto" onClick={goBack} disabled={step === 1}>
             Back
           </Button>
-          <Button type="button" className="w-full sm:w-auto" onClick={goNext} disabled={!canContinue()}>
-            Continue
-          </Button>
+          {step !== 5 ? (
+            <Button type="button" className="w-full sm:w-auto" onClick={goNext} disabled={!canContinue()}>
+              Continue
+            </Button>
+          ) : null}
         </div>
       ) : (
         <div className="border-t border-border pt-6">
           <Button type="button" variant="outline" className="w-full sm:w-auto" onClick={goBack}>
-            Back to details
+            Back
           </Button>
         </div>
       )}

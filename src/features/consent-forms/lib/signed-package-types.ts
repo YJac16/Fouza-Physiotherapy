@@ -3,6 +3,7 @@ export type SignedConsentSignature = {
   formTitle: string;
   formSlug: string;
   formBody: string;
+  formVersion: number | null;
   signedAt: string;
   typedName: string | null;
   padDataUrl: string | null;

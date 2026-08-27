@@ -8,8 +8,19 @@ import {
   ensureAccountHolderPortalInvite,
   ensurePatientPortalInvite,
 } from "@/features/auth/lib/portal-invite";
+import { enqueuePortalInviteEmail } from "@/features/notifications/lib/portal-invite-email";
+import {
+  buildConsentSignatureRows,
+  loadActiveConsentForms,
+} from "@/features/consent-forms/lib/consent-snapshots";
+import {
+  extendHoldForConsent,
+  resolveGuestPatientForHold,
+} from "@/features/consent-forms/lib/guest-booking";
 import { requireStaff, requireUser } from "@/lib/auth/guards";
 import { getRequestIpAddress } from "@/lib/http/request-ip";
+import { getRequestUserAgent } from "@/lib/http/request-meta";
+import { isHoneypotFilled, rateLimit } from "@/lib/security";
 import { createServiceClient } from "@/lib/supabase/admin";
 import { createClient } from "@/lib/supabase/server";
 import {
@@ -19,6 +30,7 @@ import {
   portalConsentPatientUpdate,
   portalInviteFromAccountPayer,
   portalInviteFromConsentAnswers,
+  guestConsentPatientUpdate,
   resolveStaffAccountTypedName,
   shouldPreserveExistingBilling,
   splitFullName,
@@ -54,7 +66,16 @@ const packageSchema = z.object({
 
 const createStaffPackageSchema = z.object(packageFields);
 
-export type ConsentActionState = { error?: string; success?: string; id?: string };
+const guestPackageSchema = z.object({
+  ...packageFields,
+  holdToken: z.string().min(10),
+  firstName: z.string().min(1),
+  lastName: z.string().min(1),
+  email: z.string().email(),
+  phone: z.string().min(7),
+});
+
+export type ConsentActionState = { error?: string; success?: string; id?: string; patientId?: string };
 
 export async function signConsentAction(
   _prev: ConsentActionState,
@@ -227,36 +248,36 @@ export async function submitFouzaConsentPackageAction(
   });
 
   const ipAddress = await getRequestIpAddress();
+  const userAgent = await getRequestUserAgent();
   const signedAt = new Date().toISOString();
 
-  const { data: formVersions } = await supabase
-    .from("consent_forms")
-    .select("id, slug, version")
-    .in("id", [parsed.data.treatmentFormId, parsed.data.accountFormId]);
+  const admin = createServiceClient();
+  const activeForms = await loadActiveConsentForms(admin);
+  const signatureRows = buildConsentSignatureRows({
+    patientId: parsed.data.patientId,
+    forms: activeForms,
+    signatures: [
+      {
+        formId: parsed.data.treatmentFormId,
+        signatureData: treatmentPayload,
+      },
+      {
+        formId: parsed.data.accountFormId,
+        signatureData: accountPayload,
+      },
+    ],
+    signedAt,
+    ipAddress,
+    userAgent,
+  });
 
-  const { error: sigError } = await supabase.from("consent_signatures").insert([
-    {
-      form_id: parsed.data.treatmentFormId,
-      patient_id: parsed.data.patientId,
-      signature_data: treatmentPayload,
-      ip_address: ipAddress,
-      signed_at: signedAt,
-    },
-    {
-      form_id: parsed.data.accountFormId,
-      patient_id: parsed.data.patientId,
-      signature_data: accountPayload,
-      ip_address: ipAddress,
-      signed_at: signedAt,
-    },
-  ]);
+  const { error: sigError } = await supabase.from("consent_signatures").insert(signatureRows);
   if (sigError) return { error: sigError.message };
 
   const versionLabel = buildConsentVersionLabel(
-    (formVersions ?? []).map((f) => ({ slug: f.slug, version: f.version })),
+    activeForms.map((f) => ({ slug: f.slug, version: f.version })),
   );
 
-  const admin = createServiceClient();
   const { error: flagError } = await admin
     .from("patients")
     .update(
@@ -274,7 +295,180 @@ export async function submitFouzaConsentPackageAction(
   revalidatePath("/admin/consent-forms");
   revalidatePath("/admin/patients");
   revalidatePath(`/admin/patients/${parsed.data.patientId}`);
-  return { success: "Informed consent submitted. Thank you." };
+  return { success: "Informed consent submitted. Thank you.", patientId: parsed.data.patientId };
+}
+
+/**
+ * Guest booking consent — no account required; gated by valid slot hold + email match.
+ */
+export async function submitGuestConsentPackageAction(
+  _prev: ConsentActionState,
+  formData: FormData,
+): Promise<ConsentActionState> {
+  if (isHoneypotFilled(formData.get("website"))) {
+    return { error: "Unable to submit consent" };
+  }
+
+  const parsed = guestPackageSchema.safeParse({
+    intakeFormId: formData.get("intakeFormId"),
+    appointmentId: formData.get("appointmentId") || null,
+    treatmentFormId: formData.get("treatmentFormId"),
+    accountFormId: formData.get("accountFormId"),
+    treatmentSignature: formData.get("treatmentSignature"),
+    accountSignature: formData.get("accountSignature"),
+    answersJson: formData.get("answersJson"),
+    holdToken: formData.get("holdToken"),
+    firstName: formData.get("firstName"),
+    lastName: formData.get("lastName"),
+    email: formData.get("email"),
+    phone: formData.get("phone"),
+  });
+  if (!parsed.success) return { error: "Please complete all required fields" };
+
+  const limit = rateLimit(`guest-consent:${parsed.data.email.toLowerCase()}`, 5, 60_000);
+  if (!limit.ok) {
+    return { error: "Too many attempts. Please wait a minute and try again." };
+  }
+
+  let answers: Record<string, unknown>;
+  try {
+    answers = JSON.parse(parsed.data.answersJson) as Record<string, unknown>;
+  } catch {
+    return { error: "Invalid form answers" };
+  }
+
+  if (answers.undertaking !== "yes") {
+    return { error: "You must accept the Undertaking (Yes) to continue." };
+  }
+  if (answers.pleaseNote !== "agree") {
+    return { error: "You must Agree and give consent under Please Note to continue." };
+  }
+
+  const typedName = String(answers.typedFullName ?? "").trim();
+  if (typedName.length < 2) {
+    return { error: "Please type your full name to sign." };
+  }
+
+  const resolved = await resolveGuestPatientForHold({
+    holdToken: parsed.data.holdToken,
+    email: parsed.data.email,
+    firstName: parsed.data.firstName,
+    lastName: parsed.data.lastName,
+    phone: parsed.data.phone,
+  });
+  if (!resolved.ok) return { error: resolved.error };
+
+  const admin = createServiceClient();
+  const { data: patient } = await admin
+    .from("patients")
+    .select("id, informed_consent_signed")
+    .eq("id", resolved.patientId)
+    .maybeSingle();
+  if (!patient) return { error: "Patient record not found" };
+
+  if (patient.informed_consent_signed) {
+    await extendHoldForConsent(parsed.data.holdToken);
+    return {
+      success: "Consent already completed for this booking.",
+      patientId: patient.id,
+    };
+  }
+
+  const medicalAid = String(answers.medicalAid ?? "").trim();
+  const medicalAidNumber = String(answers.medicalAidNumber ?? "").trim();
+  const dependant = String(answers.dependantCode ?? "").trim();
+  const idNumber = String(answers.idNumber ?? "").trim();
+  const postal = [answers.street, answers.suburb, answers.areaCode]
+    .map((v) => String(v ?? "").trim())
+    .filter(Boolean)
+    .join(", ");
+
+  const { error: demoError } = await admin
+    .from("patients")
+    .update({
+      medical_aid_name: medicalAid || null,
+      medical_aid_number: medicalAidNumber || null,
+      medical_aid_dependant_code: dependant || null,
+      id_number: idNumber || null,
+      postal_address: postal || null,
+      phone: String(answers.contactNumber ?? parsed.data.phone).trim() || undefined,
+      email: parsed.data.email.trim().toLowerCase(),
+    })
+    .eq("id", patient.id);
+  if (demoError) return { error: demoError.message };
+
+  const { error: intakeError } = await admin.from("intake_responses").insert({
+    form_id: parsed.data.intakeFormId,
+    patient_id: patient.id,
+    appointment_id: parsed.data.appointmentId,
+    answers,
+  });
+  if (intakeError) return { error: intakeError.message };
+
+  const treatmentPayload = buildSignaturePayload({
+    typedName,
+    pad: parsed.data.treatmentSignature,
+    role: "patient",
+  });
+  const accountPayload = buildSignaturePayload({
+    typedName,
+    pad: parsed.data.accountSignature,
+    role: "account_holder",
+  });
+
+  const ipAddress = await getRequestIpAddress();
+  const userAgent = await getRequestUserAgent();
+  const signedAt = new Date().toISOString();
+  const activeForms = await loadActiveConsentForms(admin);
+  const signatureRows = buildConsentSignatureRows({
+    patientId: patient.id,
+    forms: activeForms,
+    signatures: [
+      { formId: parsed.data.treatmentFormId, signatureData: treatmentPayload },
+      { formId: parsed.data.accountFormId, signatureData: accountPayload },
+    ],
+    signedAt,
+    ipAddress,
+    userAgent,
+  });
+
+  const { error: sigError } = await admin.from("consent_signatures").insert(signatureRows);
+  if (sigError) return { error: sigError.message };
+
+  const versionLabel = buildConsentVersionLabel(
+    activeForms.map((f) => ({ slug: f.slug, version: f.version })),
+  );
+
+  const { error: flagError } = await admin
+    .from("patients")
+    .update(
+      guestConsentPatientUpdate({
+        signedAt,
+        versionLabel: versionLabel || null,
+      }),
+    )
+    .eq("id", patient.id);
+  if (flagError) return { error: flagError.message };
+
+  await extendHoldForConsent(parsed.data.holdToken);
+
+  await admin.from("audit_logs").insert({
+    actor_id: null,
+    action: "consent.guest_package",
+    entity_type: "patient",
+    entity_id: patient.id,
+    meta: {
+      holdToken: parsed.data.holdToken,
+      consentVersion: versionLabel,
+    },
+  });
+
+  revalidatePath("/book");
+  revalidatePath("/admin/consent-forms");
+  return {
+    success: "Informed consent submitted. You can continue to review and confirm your booking.",
+    patientId: patient.id,
+  };
 }
 
 type StaffPackageFields = z.infer<typeof createStaffPackageSchema>;
@@ -460,41 +654,41 @@ async function persistStaffConsentPackage(input: {
   const treatmentRole = (input.parsed.treatmentSignerRole ?? "patient") as ConsentSignerRole;
   const accountRole = (input.parsed.accountSignerRole ?? "account_holder") as ConsentSignerRole;
   const ipAddress = await getRequestIpAddress();
+  const userAgent = await getRequestUserAgent();
   const signedAt = new Date().toISOString();
 
-  const { data: formVersions } = await admin
-    .from("consent_forms")
-    .select("id, slug, version")
-    .in("id", [input.parsed.treatmentFormId, input.parsed.accountFormId]);
+  const activeForms = await loadActiveConsentForms(admin);
+  const signatureRows = buildConsentSignatureRows({
+    patientId: input.patientId,
+    forms: activeForms,
+    signatures: [
+      {
+        formId: input.parsed.treatmentFormId,
+        signatureData: buildSignaturePayload({
+          typedName: input.treatmentTypedName,
+          pad: input.parsed.treatmentSignature,
+          role: treatmentRole,
+        }),
+      },
+      {
+        formId: input.parsed.accountFormId,
+        signatureData: buildSignaturePayload({
+          typedName: input.accountTypedName,
+          pad: input.parsed.accountSignature,
+          role: accountRole,
+        }),
+      },
+    ],
+    signedAt,
+    ipAddress,
+    userAgent,
+  });
 
-  const { error: sigError } = await admin.from("consent_signatures").insert([
-    {
-      form_id: input.parsed.treatmentFormId,
-      patient_id: input.patientId,
-      signature_data: buildSignaturePayload({
-        typedName: input.treatmentTypedName,
-        pad: input.parsed.treatmentSignature,
-        role: treatmentRole,
-      }),
-      ip_address: ipAddress,
-      signed_at: signedAt,
-    },
-    {
-      form_id: input.parsed.accountFormId,
-      patient_id: input.patientId,
-      signature_data: buildSignaturePayload({
-        typedName: input.accountTypedName,
-        pad: input.parsed.accountSignature,
-        role: accountRole,
-      }),
-      ip_address: ipAddress,
-      signed_at: signedAt,
-    },
-  ]);
+  const { error: sigError } = await admin.from("consent_signatures").insert(signatureRows);
   if (sigError) return { error: sigError.message };
 
   const versionLabel = buildConsentVersionLabel(
-    (formVersions ?? []).map((form) => ({ slug: form.slug, version: form.version })),
+    activeForms.map((form) => ({ slug: form.slug, version: form.version })),
   );
 
   const { error: flagError } = await admin
@@ -527,6 +721,14 @@ async function persistStaffConsentPackage(input: {
       patientId: input.patientId,
     });
     inviteError = invite.error;
+    if (!invite.error && invite.magicLink) {
+      const emailResult = await enqueuePortalInviteEmail({
+        email: invitePlan.email,
+        fullName: invitePlan.fullName,
+        magicLink: invite.magicLink,
+      });
+      if (emailResult.error) inviteError = emailResult.error;
+    }
   } else if (invitePlan.kind === "family") {
     const invite = await ensureAccountHolderPortalInvite({
       email: invitePlan.email,
@@ -535,6 +737,14 @@ async function persistStaffConsentPackage(input: {
       contactId,
     });
     inviteError = invite.error;
+    if (!invite.error && invite.magicLink) {
+      const emailResult = await enqueuePortalInviteEmail({
+        email: invitePlan.email,
+        fullName: invitePlan.fullName,
+        magicLink: invite.magicLink,
+      });
+      if (emailResult.error) inviteError = emailResult.error;
+    }
   }
 
   revalidatePath("/admin/consent-forms");

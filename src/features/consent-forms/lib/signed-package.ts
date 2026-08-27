@@ -77,7 +77,7 @@ async function loadSignedPackageWithClient(
   for (const form of consentForms ?? []) {
     const { data: sig } = await client
       .from("consent_signatures")
-      .select("signature_data, signed_at")
+      .select("signature_data, signed_at, form_version, body_md_snapshot")
       .eq("patient_id", patientId)
       .eq("form_id", form.id)
       .order("signed_at", { ascending: false })
@@ -89,7 +89,8 @@ async function loadSignedPackageWithClient(
       formId: form.id,
       formTitle: form.title,
       formSlug: form.slug,
-      formBody: form.body_md ?? "",
+      formBody: sig.body_md_snapshot ?? form.body_md ?? "",
+      formVersion: sig.form_version ?? null,
       signedAt: sig.signed_at,
       typedName: parsed.typedName,
       padDataUrl: parsed.padDataUrl,

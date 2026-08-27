@@ -578,6 +578,8 @@ function AppointmentDetailCard({
         phone: string | null;
         verified_account: boolean;
         informed_consent_signed: boolean;
+        informed_consent_signed_at: string | null;
+        informed_consent_version: string | null;
       }
     | null
     | undefined;
@@ -620,8 +622,12 @@ function AppointmentDetailCard({
           {appt.source}
         </Badge>
         {patient && !patient.informed_consent_signed ? (
-          <Badge variant="warning">Consent outstanding</Badge>
-        ) : null}
+          <Badge variant="warning">Consent pending</Badge>
+        ) : patient?.informed_consent_signed ? (
+          <Badge variant="success">Consent completed</Badge>
+        ) : (
+          <Badge variant="destructive">Consent missing</Badge>
+        )}
         {patient && !patient.verified_account ? (
           <Badge variant="warning">Unverified</Badge>
         ) : null}
@@ -633,6 +639,12 @@ function AppointmentDetailCard({
       </div>
 
       <dl className="grid gap-2 text-sm sm:grid-cols-2">
+        {"booking_reference" in appt && appt.booking_reference ? (
+          <div className="sm:col-span-2">
+            <dt className="text-muted-foreground">Booking reference</dt>
+            <dd className="font-medium">{String(appt.booking_reference)}</dd>
+          </div>
+        ) : null}
         <div>
           <dt className="text-muted-foreground">Service</dt>
           <dd className="font-medium">{service?.name ?? "—"}</dd>
@@ -660,6 +672,84 @@ function AppointmentDetailCard({
           </dd>
         </div>
       </dl>
+
+      {patient ? (
+        <div className="space-y-3 rounded-xl border border-border/70 bg-muted/20 p-4 text-sm">
+          <h4 className="font-semibold text-foreground">Customer consent</h4>
+          <dl className="grid gap-2 sm:grid-cols-2">
+            <div>
+              <dt className="text-muted-foreground">Customer</dt>
+              <dd className="font-medium">
+                {patient.first_name} {patient.last_name}
+              </dd>
+            </div>
+            <div>
+              <dt className="text-muted-foreground">Email</dt>
+              <dd className="font-medium">{patient.email ?? "—"}</dd>
+            </div>
+            <div>
+              <dt className="text-muted-foreground">Consent status</dt>
+              <dd className="font-medium">
+                {patient.informed_consent_signed ? "Completed" : "Pending / missing"}
+              </dd>
+            </div>
+            <div>
+              <dt className="text-muted-foreground">Consent date</dt>
+              <dd className="font-medium">
+                {patient.informed_consent_signed_at
+                  ? formatSastDateTime(patient.informed_consent_signed_at)
+                  : "—"}
+              </dd>
+            </div>
+            <div className="sm:col-span-2">
+              <dt className="text-muted-foreground">Consent version</dt>
+              <dd className="font-medium">{patient.informed_consent_version ?? "—"}</dd>
+            </div>
+          </dl>
+          <Button asChild variant="outline" size="sm">
+            <Link href={routes.admin.consentFormPatient(patient.id)}>View accepted consent</Link>
+          </Button>
+        </div>
+      ) : null}
+
+      <div className="space-y-3 rounded-xl border border-border/70 bg-muted/20 p-4 text-sm">
+        <h4 className="font-semibold text-foreground">Payment</h4>
+        {detail.invoice ? (
+          <dl className="grid gap-2 sm:grid-cols-2">
+            <div>
+              <dt className="text-muted-foreground">Invoice</dt>
+              <dd className="font-medium capitalize">{detail.invoice.status}</dd>
+            </div>
+            <div>
+              <dt className="text-muted-foreground">Total</dt>
+              <dd className="font-medium">
+                R {(detail.invoice.total_cents / 100).toFixed(2)}
+              </dd>
+            </div>
+            <div>
+              <dt className="text-muted-foreground">Paid</dt>
+              <dd className="font-medium">
+                R {((detail.paymentsTotalCents ?? 0) / 100).toFixed(2)}
+              </dd>
+            </div>
+            {"invoice_number" in detail.invoice && detail.invoice.invoice_number ? (
+              <div>
+                <dt className="text-muted-foreground">Invoice ref</dt>
+                <dd className="font-medium">{String(detail.invoice.invoice_number)}</dd>
+              </div>
+            ) : null}
+          </dl>
+        ) : (
+          <p className="text-muted-foreground">No invoice yet — payment handled at practice.</p>
+        )}
+      </div>
+
+      {(appt.status === "no_show" || appt.status === "cancelled") && typeof appt.price_cents === "number" ? (
+        <p className="rounded-xl border border-warning/30 bg-warning/5 p-3 text-sm text-muted-foreground">
+          Late cancellation or no-show: consider invoicing 50% of the consultation fee (R{" "}
+          {(appt.price_cents / 200).toFixed(2)}).
+        </p>
+      ) : null}
 
       {patient ? (
         <div className="flex flex-wrap gap-2">

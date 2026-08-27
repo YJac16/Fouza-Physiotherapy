@@ -76,7 +76,7 @@ export type Database = {
           billing_email: string | null;
           billing_phone: string | null;
           billing_address: string | null;
-          consent_capture_method: "portal" | "staff_assisted" | null;
+          consent_capture_method: "portal" | "staff_assisted" | "guest_booking" | null;
           consent_captured_by: string | null;
           created_at: string;
           updated_at: string;
@@ -103,7 +103,7 @@ export type Database = {
           billing_email?: string | null;
           billing_phone?: string | null;
           billing_address?: string | null;
-          consent_capture_method?: "portal" | "staff_assisted" | null;
+          consent_capture_method?: "portal" | "staff_assisted" | "guest_booking" | null;
           consent_captured_by?: string | null;
           created_at?: string;
           updated_at?: string;
@@ -130,7 +130,7 @@ export type Database = {
           billing_email?: string | null;
           billing_phone?: string | null;
           billing_address?: string | null;
-          consent_capture_method?: "portal" | "staff_assisted" | null;
+          consent_capture_method?: "portal" | "staff_assisted" | "guest_booking" | null;
           consent_captured_by?: string | null;
           created_at?: string;
           updated_at?: string;
@@ -308,6 +308,8 @@ export type Database = {
           notes: string | null;
           price_cents: number | null;
           currency: string;
+          booking_reference: string | null;
+          confirmation_token: string | null;
           created_at: string;
           updated_at: string;
         };
@@ -323,6 +325,8 @@ export type Database = {
           notes?: string | null;
           price_cents?: number | null;
           currency?: string;
+          booking_reference?: string | null;
+          confirmation_token?: string | null;
           created_at?: string;
           updated_at?: string;
         };
@@ -338,6 +342,8 @@ export type Database = {
           notes?: string | null;
           price_cents?: number | null;
           currency?: string;
+          booking_reference?: string | null;
+          confirmation_token?: string | null;
           created_at?: string;
           updated_at?: string;
         };
@@ -630,6 +636,9 @@ export type Database = {
           signed_at: string;
           signature_data: string | null;
           ip_address: string | null;
+          form_version: number | null;
+          body_md_snapshot: string | null;
+          user_agent: string | null;
           created_at: string;
         };
         Insert: {
@@ -639,6 +648,9 @@ export type Database = {
           signed_at?: string;
           signature_data?: string | null;
           ip_address?: string | null;
+          form_version?: number | null;
+          body_md_snapshot?: string | null;
+          user_agent?: string | null;
           created_at?: string;
         };
         Update: {
@@ -648,6 +660,9 @@ export type Database = {
           signed_at?: string;
           signature_data?: string | null;
           ip_address?: string | null;
+          form_version?: number | null;
+          body_md_snapshot?: string | null;
+          user_agent?: string | null;
           created_at?: string;
         };
         Relationships: [];
@@ -828,6 +843,7 @@ export type Database = {
           paid_at: string;
           notes: string | null;
           recorded_by: string | null;
+          idempotency_key: string | null;
           created_at: string;
         };
         Insert: {
@@ -840,6 +856,7 @@ export type Database = {
           paid_at?: string;
           notes?: string | null;
           recorded_by?: string | null;
+          idempotency_key?: string | null;
           created_at?: string;
         };
         Update: {
@@ -852,6 +869,7 @@ export type Database = {
           paid_at?: string;
           notes?: string | null;
           recorded_by?: string | null;
+          idempotency_key?: string | null;
           created_at?: string;
         };
         Relationships: [];

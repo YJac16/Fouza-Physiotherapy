@@ -80,5 +80,11 @@ export const pricingNotices = {
   referralLetter:
     "If any referrals need to be written, an additional R100 will be charged.",
   cancellation:
-    "Please provide at least 24 hours’ notice to cancel or reschedule. Late cancellations or non-attendance may incur a fee equivalent to the booked session.",
+    "Please cancel or reschedule at least 6 hours before your appointment. Late cancellations or missed appointments incur a fee of 50% of the consultation fee.",
 };
+
+/** Shared cancellation policy for consent forms and booking copy. */
+export const cancellationPolicyNotice = pricingNotices.cancellation;
+
+export const cancellationPolicyUndertaking =
+  "That appointments not kept will be charged 50% of the consultation fee if not cancelled at least 6 hours beforehand.";

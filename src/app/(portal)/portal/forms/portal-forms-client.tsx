@@ -7,11 +7,12 @@ import { useRouter } from "next/navigation";
 import { SignaturePad } from "@/components/forms/signature-pad";
 import {
   submitFouzaConsentPackageAction,
+  submitGuestConsentPackageAction,
   type ConsentActionState,
 } from "@/features/consent-forms/actions/consent";
 import { SignedConsentView } from "@/features/consent-forms/components/signed-consent-view";
 import type { SignedConsentPackage } from "@/features/consent-forms/lib/signed-package-types";
-import { pricingPlans } from "@/content/pricing";
+import { pricingPlans, cancellationPolicyUndertaking } from "@/content/pricing";
 import { routes } from "@/config/routes";
 import { siteConfig } from "@/config/site";
 import { Button } from "@/components/ui/button";
@@ -36,7 +37,16 @@ export interface PortalFormsClientProps {
   treatmentConsent: { id: string; title: string; body_md: string };
   accountConsent: { id: string; title: string; body_md: string };
   returnTo?: string | null;
-  mode?: "portal" | "staff";
+  mode?: "portal" | "staff" | "guest";
+  holdToken?: string;
+  guestDetails?: {
+    firstName: string;
+    lastName: string;
+    email: string;
+    phone: string;
+  };
+  onGuestConsentComplete?: () => void;
+  onConsentComplete?: () => void;
   submitAction?: (
     prev: ConsentActionState,
     formData: FormData,
@@ -165,13 +175,22 @@ export function PortalFormsClient({
   accountPayerOnFile,
   returnTo,
   mode = "portal",
-  submitAction = submitFouzaConsentPackageAction,
+  holdToken,
+  guestDetails,
+  onGuestConsentComplete,
+  onConsentComplete,
+  submitAction = mode === "guest" ? submitGuestConsentPackageAction : submitFouzaConsentPackageAction,
 }: PortalFormsClientProps) {
   const router = useRouter();
   const [state, action, pending] = useActionState(submitAction, initial);
+  const completeBookingFlow = onConsentComplete ?? onGuestConsentComplete;
 
   useEffect(() => {
     if (!state.success) return;
+    if (mode === "guest" || completeBookingFlow) {
+      completeBookingFlow?.();
+      return;
+    }
     if (state.id) {
       router.push(routes.admin.patient(state.id));
       return;
@@ -180,9 +199,10 @@ export function PortalFormsClient({
       router.push(returnTo);
     }
     router.refresh();
-  }, [state.success, state.id, returnTo, router]);
+  }, [state.success, state.id, returnTo, router, mode, completeBookingFlow]);
 
   const isStaff = mode === "staff";
+  const isGuest = mode === "guest";
   const payerOnFile = isStaff && accountPayerOnFile?.name?.trim() ? accountPayerOnFile : undefined;
 
   const [sameAsPatient, setSameAsPatient] = useState(
@@ -343,6 +363,23 @@ export function PortalFormsClient({
       {appointmentId ? (
         <input type="hidden" name="appointmentId" value={appointmentId} />
       ) : null}
+      {isGuest && holdToken ? <input type="hidden" name="holdToken" value={holdToken} /> : null}
+      {isGuest && guestDetails ? (
+        <>
+          <input type="hidden" name="firstName" value={guestDetails.firstName} />
+          <input type="hidden" name="lastName" value={guestDetails.lastName} />
+          <input type="hidden" name="email" value={guestDetails.email} />
+          <input type="hidden" name="phone" value={guestDetails.phone} />
+        </>
+      ) : null}
+      <input
+        type="text"
+        name="website"
+        tabIndex={-1}
+        autoComplete="off"
+        aria-hidden
+        className="pointer-events-none absolute left-[-9999px] h-0 w-0 opacity-0"
+      />
       <input type="hidden" name="treatmentFormId" value={treatmentConsent.id} />
       <input type="hidden" name="accountFormId" value={accountConsent.id} />
       <input type="hidden" name="answersJson" value={answersJson} />
@@ -668,8 +705,7 @@ export function PortalFormsClient({
             non-payment.
           </li>
           <li className="font-semibold underline">
-            That appointments not kept will be charged 50% of consultation fee if not cancelled
-            at least 6 hours beforehand.
+            {cancellationPolicyUndertaking}
           </li>
         </ol>
         <p className="text-sm">I confirm that all the above information is true and correct.</p>

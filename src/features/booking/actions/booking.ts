@@ -15,6 +15,7 @@ import {
   confirmBooking,
   createHold,
   createStaffAppointment,
+  releaseHold,
   rescheduleBooking,
   updateAppointmentAttendance,
 } from "@/features/booking/api/bookings";
@@ -83,6 +84,13 @@ export async function extendHoldForConsentAction(holdToken: string): Promise<Boo
   const result = await extendHoldForConsent(holdToken);
   if (result.error) return { error: result.error };
   return { success: "Hold extended" };
+}
+
+export async function releaseHoldAction(holdToken: string): Promise<BookingActionState> {
+  if (!holdToken) return { error: "Missing hold token" };
+  const result = await releaseHold(holdToken);
+  if (result.error) return { error: result.error };
+  return { success: "Time released" };
 }
 
 export async function loadBookingConsentFormsAction() {

@@ -10,6 +10,8 @@ export {
   adminUpdateAttendanceAction,
   confirmBookingAction,
   createHoldAction,
+  extendHoldForConsentAction,
+  releaseHoldAction,
   fetchSlotsAction,
   getAppointmentDetailAction,
   listBookableCatalog,
@@ -50,6 +52,7 @@ export {
   createHold,
   createStaffAppointment,
   purgeExpiredHolds,
+  releaseHold,
   rescheduleBooking,
   updateAppointmentAttendance,
 } from "@/features/booking/api/bookings";

@@ -2,7 +2,7 @@
 
 import Link from "next/link";
 import { useRouter } from "next/navigation";
-import { useActionState, useCallback, useEffect, useMemo, useState } from "react";
+import { useActionState, useCallback, useEffect, useMemo, useRef, useState } from "react";
 import { Calendar, MessageCircle } from "lucide-react";
 
 import {
@@ -26,6 +26,7 @@ import {
   createHoldAction,
   extendHoldForConsentAction,
   fetchSlotsAction,
+  releaseHoldAction,
 } from "@/features/booking/actions/booking";
 import { PortalFormsClient } from "@/app/(portal)/portal/forms/portal-forms-client";
 import { cancellationPolicyNotice } from "@/content/pricing";
@@ -212,6 +213,9 @@ export function BookingWizard({
     }
   }, [selectedPatient?.patientId]);
 
+  const holdTokenRef = useRef<string | null>(null);
+  holdTokenRef.current = holdToken;
+
   const loadSlots = useCallback(
     async (nextDate: string) => {
       if (!practitionerId || !serviceId || !nextDate) return;
@@ -219,7 +223,12 @@ export function BookingWizard({
       setSlotsError(null);
       setSlots([]);
       setSelectedSlot(null);
-      setHoldToken(null);
+      const existingHold = holdTokenRef.current;
+      if (existingHold) {
+        void releaseHoldAction(existingHold);
+        sessionStorage.removeItem(HOLD_STORAGE_KEY);
+        setHoldToken(null);
+      }
 
       const result = await fetchSlotsAction({
         practitionerId,
@@ -244,6 +253,17 @@ export function BookingWizard({
     if (date) void loadSlots(date);
   }, [date, loadSlots]);
 
+  const clearHold = useCallback((token?: string | null) => {
+    const toRelease = token ?? holdTokenRef.current;
+    if (!toRelease) {
+      setHoldToken(null);
+      return;
+    }
+    void releaseHoldAction(toRelease);
+    sessionStorage.removeItem(HOLD_STORAGE_KEY);
+    setHoldToken(null);
+  }, []);
+
   useEffect(() => {
     if (holdToken) {
       sessionStorage.setItem(HOLD_STORAGE_KEY, holdToken);
@@ -252,10 +272,11 @@ export function BookingWizard({
 
   useEffect(() => {
     const stored = sessionStorage.getItem(HOLD_STORAGE_KEY);
-    if (stored && !holdToken) {
-      setHoldToken(stored);
+    if (stored) {
+      void releaseHoldAction(stored);
+      sessionStorage.removeItem(HOLD_STORAGE_KEY);
     }
-  }, [holdToken]);
+  }, []);
 
   useEffect(() => {
     if (consentAlreadyOnFile) {
@@ -278,26 +299,35 @@ export function BookingWizard({
 
   async function handleSlotSelect(slot: { startsAt: string; endsAt: string; label: string }) {
     if (!practitionerId || !serviceId) return;
+    if (holdToken && selectedSlot?.startsAt !== slot.startsAt) {
+      clearHold();
+    }
     setSelectedSlot(slot);
     setHoldError(null);
-    setHoldingSlot(true);
+  }
 
+  async function holdSelectedSlot() {
+    if (!practitionerId || !serviceId || !selectedSlot) {
+      setHoldError("Choose a time first.");
+      return null;
+    }
+    setHoldError(null);
+    setHoldingSlot(true);
     const result = await createHoldAction({
       practitionerId,
       serviceId,
-      startsAt: slot.startsAt,
-      endsAt: slot.endsAt,
+      startsAt: selectedSlot.startsAt,
+      endsAt: selectedSlot.endsAt,
       email: details.email || undefined,
     });
-
     setHoldingSlot(false);
     if (result.error || !result.holdToken) {
-      setHoldError(result.error ?? "Unable to reserve this slot.");
-      setSelectedSlot(null);
+      setHoldError(result.error ?? "Unable to reserve this slot. Please pick another time.");
       setHoldToken(null);
-      return;
+      return null;
     }
     setHoldToken(result.holdToken);
+    return result.holdToken;
   }
 
   function canContinue() {
@@ -307,13 +337,14 @@ export function BookingWizard({
       case 2:
         return Boolean(practitionerId);
       case 3:
-        return Boolean(date && selectedSlot && holdToken && !holdingSlot);
+        return Boolean(date && selectedSlot && !holdingSlot);
       case 4:
         return (
           details.firstName.trim().length > 0 &&
           details.lastName.trim().length > 0 &&
           details.email.includes("@") &&
-          details.phone.trim().length >= 7
+          details.phone.trim().length >= 7 &&
+          !holdingSlot
         );
       case 5:
         return consentComplete || consentAlreadyOnFile;
@@ -322,14 +353,16 @@ export function BookingWizard({
     }
   }
 
-  function goNext() {
+  async function goNext() {
     if (!canContinue()) return;
-    if (step === 4 && needsConsentStep) {
-      void extendHoldForConsentAction(holdToken ?? "");
-      setStep(5);
-      return;
-    }
-    if (step === 4 && !needsConsentStep) {
+    if (step === 4) {
+      const token = holdToken || (await holdSelectedSlot());
+      if (!token) return;
+      if (needsConsentStep) {
+        void extendHoldForConsentAction(token);
+        setStep(5);
+        return;
+      }
       setStep(6);
       return;
     }
@@ -484,26 +517,20 @@ export function BookingWizard({
                         key={slot.startsAt}
                         time={slot.label}
                         selected={selectedSlot?.startsAt === slot.startsAt}
-                        disabled={holdingSlot}
                         onClick={() => void handleSlotSelect(slot)}
                       />
                     ))}
                   </div>
-                  {holdingSlot ? (
-                    <FormMessage tone="loading" className="mt-4">
-                      Reserving your slot…
-                    </FormMessage>
-                  ) : null}
                   {holdError ? (
                     <div className="mt-4 space-y-3">
                       <FormMessage tone="error">{holdError}</FormMessage>
                       <SetmoreFallback />
                     </div>
                   ) : null}
-                  {holdToken && selectedSlot ? (
-                    <FormMessage tone="success" className="mt-4">
-                      {selectedSlot.label} on {formatBookingDate(selectedSlot.startsAt)} — held for
-                      10 minutes.
+                  {selectedSlot ? (
+                    <FormMessage tone="info" className="mt-4">
+                      {selectedSlot.label} on {formatBookingDate(selectedSlot.startsAt)} selected.
+                      We only reserve the time after you enter your details.
                     </FormMessage>
                   ) : null}
                 </>
@@ -581,6 +608,35 @@ export function BookingWizard({
               />
             </div>
           </div>
+          {holdingSlot ? (
+            <FormMessage tone="loading" className="mt-4">
+              Reserving your time for 10 minutes…
+            </FormMessage>
+          ) : null}
+          {holdError ? <FormMessage tone="error" className="mt-4">{holdError}</FormMessage> : null}
+          {holdToken && selectedSlot ? (
+            <div className="mt-4 flex flex-col gap-2 rounded-xl border border-border bg-secondary/40 p-4 sm:flex-row sm:items-center sm:justify-between">
+              <FormMessage tone="success" className="m-0">
+                {selectedSlot.label} on {formatBookingDate(selectedSlot.startsAt)} is held for 10
+                minutes.
+              </FormMessage>
+              <Button
+                type="button"
+                variant="outline"
+                size="sm"
+                onClick={() => {
+                  clearHold();
+                  setStep(3);
+                }}
+              >
+                Release this time
+              </Button>
+            </div>
+          ) : (
+            <p className="mt-4 text-sm text-muted-foreground">
+              Continue to reserve this time for 10 minutes while you complete consent.
+            </p>
+          )}
         </section>
       ) : null}
 
@@ -594,6 +650,24 @@ export function BookingWizard({
               ? "Your informed consent is already on file."
               : "Please read and complete the required consent forms before confirming your appointment."}
           </Typography>
+          {holdToken && selectedSlot ? (
+            <div className="mb-6 flex flex-col gap-2 rounded-xl border border-border bg-secondary/40 p-4 sm:flex-row sm:items-center sm:justify-between">
+              <p className="text-sm text-muted-foreground">
+                {selectedSlot.label} is held for 10 minutes while you complete consent.
+              </p>
+              <Button
+                type="button"
+                variant="outline"
+                size="sm"
+                onClick={() => {
+                  clearHold();
+                  setStep(3);
+                }}
+              >
+                Release this time
+              </Button>
+            </div>
+          ) : null}
 
           {consentAlreadyOnFile || consentComplete ? (
             <div className="space-y-4 rounded-xl border border-success/30 bg-success/5 p-4">
@@ -708,16 +782,33 @@ export function BookingWizard({
                 ) : null}
                 {!holdToken ? (
                   <FormMessage tone="error">
-                    Your slot hold has expired.{" "}
+                    Your slot is not reserved.{" "}
                     <button
                       type="button"
                       className="font-medium text-primary underline-offset-2 hover:underline"
                       onClick={() => setStep(3)}
                     >
-                      Choose a new time
+                      Choose a time
                     </button>
                   </FormMessage>
-                ) : null}
+                ) : (
+                  <div className="flex flex-col gap-2 sm:flex-row sm:items-center sm:justify-between">
+                    <FormMessage tone="success">
+                      Time held — confirm below, or release if you need a different slot.
+                    </FormMessage>
+                    <Button
+                      type="button"
+                      variant="outline"
+                      size="sm"
+                      onClick={() => {
+                        clearHold();
+                        setStep(3);
+                      }}
+                    >
+                      Release this time
+                    </Button>
+                  </div>
+                )}
                 <Button
                   type="submit"
                   size="lg"
@@ -751,8 +842,14 @@ export function BookingWizard({
             Back
           </Button>
           {step !== 5 ? (
-            <Button type="button" className="w-full sm:w-auto" onClick={goNext} disabled={!canContinue()}>
-              Continue
+            <Button
+              type="button"
+              className="w-full sm:w-auto"
+              onClick={() => void goNext()}
+              loading={step === 4 && holdingSlot}
+              disabled={!canContinue()}
+            >
+              {step === 4 ? "Reserve time and continue" : "Continue"}
             </Button>
           ) : null}
         </div>

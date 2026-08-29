@@ -66,6 +66,7 @@ describe("invoice discounts", () => {
     expect(totals.lineDiscountCents).toBe(10000);
     expect(totals.invoiceDiscountCents).toBe(10000);
     expect(totals.totalDiscountCents).toBe(20000);
+    expect(totals.grossCents).toBe(100000);
     expect(totals.totalCents).toBe(80000);
   });
 
@@ -94,5 +95,22 @@ describe("invoice discounts", () => {
       taxCents: 1500,
     });
     expect(totals.totalCents).toBe(91500);
+  });
+
+  it("shows gross as the display subtotal so line discounts actually reduce TOTAL", () => {
+    const totals = invoiceTotalsFromLines({
+      lines: [
+        {
+          quantity: 1,
+          unitPriceCents: 205000,
+          discount: { mode: "amount", amountCents: 30000 },
+        },
+      ],
+      taxCents: 0,
+    });
+    expect(totals.grossCents).toBe(205000);
+    expect(totals.lineDiscountCents).toBe(30000);
+    expect(totals.subtotalCents).toBe(175000);
+    expect(totals.totalCents).toBe(175000);
   });
 });

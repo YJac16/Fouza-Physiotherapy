@@ -10,6 +10,7 @@ import {
   getInvoiceBankingSettings,
   getInvoiceForPatient,
 } from "@/features/billing/lib/invoice-data";
+import { totalsFromStoredInvoice } from "@/features/billing/lib/discounts";
 import {
   invoiceDisplayStatus,
   invoiceOutstandingCents,
@@ -80,10 +81,18 @@ export default async function PortalInvoiceDetailPage({ params }: PageProps) {
 
   const payments = invoice.payments ?? [];
   const amountPaidCents = invoicePaidCents(payments);
-  const outstandingCents = invoiceOutstandingCents(invoice.total_cents, amountPaidCents);
+  const computed = totalsFromStoredInvoice({
+    lines: invoice.invoice_line_items ?? [],
+    invoiceDiscountPercent: invoice.discount_percent,
+    invoiceDiscountCents: invoice.discount_cents,
+    taxCents: invoice.tax_cents,
+    fallbackSubtotalCents: invoice.subtotal_cents,
+  });
+  const payableCents = computed.displayTotalCents;
+  const outstandingCents = invoiceOutstandingCents(payableCents, amountPaidCents);
   const displayStatus = invoiceDisplayStatus({
     status: invoice.status,
-    totalCents: invoice.total_cents,
+    totalCents: payableCents,
     paidCents: amountPaidCents,
   });
   const latestPayment = payments[0] as
@@ -117,13 +126,10 @@ export default async function PortalInvoiceDetailPage({ params }: PageProps) {
         accountHolderName={useBillingAsRecipient ? undefined : billingName}
         accountHolderEmail={useBillingAsRecipient ? undefined : patient?.billing_email}
         lines={lines}
-        subtotalCents={invoice.subtotal_cents}
+        subtotalCents={computed.displaySubtotalCents}
         taxCents={invoice.tax_cents}
-        totalCents={invoice.total_cents}
-        discountCents={
-          (invoice.discount_cents ?? 0) +
-          lines.reduce((sum, line) => sum + (line.discountCents ?? 0), 0)
-        }
+        totalCents={payableCents}
+        discountCents={computed.displayDiscountCents}
         discountNote={invoice.discount_note}
         amountPaidCents={amountPaidCents}
         balanceDueCents={outstandingCents}

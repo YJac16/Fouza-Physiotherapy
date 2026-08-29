@@ -49,12 +49,12 @@ export function ServicesCoverflow({
     <Section spacing="md" className={cn("overflow-x-hidden", className)} {...props}>
       <Container>
         <SectionHeader eyebrow={eyebrow} title={title} description={description} />
-        <div className="hidden gap-6 motion-reduce:!grid tablet:grid-cols-2 lg:grid-cols-3">
+        <div className="services-catalogue-static gap-6 tablet:grid-cols-2 lg:grid-cols-3">
           <ServiceCards items={services} />
         </div>
       </Container>
 
-      <div className="motion-reduce:hidden">
+      <div className="services-catalogue-motion">
         <SnapCoverflow ariaLabel={ariaLabel}>
           {services.map((service) => (
             <ServiceCoverflowCard

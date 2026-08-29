@@ -160,6 +160,21 @@
   }
 }
 
+/* Services catalogue: coverflow by default, readable grid when motion is reduced. */
+.services-catalogue-static {
+  display: none;
+}
+
+@media (prefers-reduced-motion: reduce) {
+  .services-catalogue-static {
+    display: grid;
+  }
+
+  .services-catalogue-motion {
+    display: none;
+  }
+}
+
 @media print {
   body {
     background: white !important;

@@ -25,6 +25,15 @@ test.describe("marketing smoke", () => {
     );
   });
 
+  test("reduced motion falls back to a static services grid", async ({ page }) => {
+    await page.emulateMedia({ reducedMotion: "reduce" });
+    await page.goto("/");
+    await expect(page.getByRole("region", { name: /physiotherapy services/i })).toHaveCount(0);
+    await expect(page.getByText("Learn more").first()).toBeVisible();
+    await page.getByRole("link", { name: /dry needling/i }).first().click();
+    await expect(page).toHaveURL(/\/services\/dry-needling/);
+  });
+
   test("login page loads", async ({ page }) => {
     await page.goto("/login");
     await expect(page.getByRole("heading", { name: /sign in/i })).toBeVisible();

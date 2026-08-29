@@ -256,20 +256,28 @@ export function SnapCoverflow({
     if (event.pointerType === "mouse" && event.button !== 0) return;
     pause();
     suppressClickRef.current = false;
+    dragOffsetRef.current = 0;
     dragRef.current = {
       pointerId: event.pointerId,
       startX: event.clientX,
       originIndex: indexRef.current >= count ? 0 : indexRef.current,
     };
-    setAnimating(false);
-    event.currentTarget.setPointerCapture(event.pointerId);
   };
 
   const onPointerMove = (event: PointerEvent<HTMLDivElement>) => {
     const drag = dragRef.current;
     if (!drag || drag.pointerId !== event.pointerId) return;
     const dx = event.clientX - drag.startX;
-    if (Math.abs(dx) > 6) suppressClickRef.current = true;
+    if (Math.abs(dx) <= 6) return;
+    if (!suppressClickRef.current) {
+      suppressClickRef.current = true;
+      setAnimating(false);
+      try {
+        event.currentTarget.setPointerCapture(event.pointerId);
+      } catch {
+        // capture may already be held
+      }
+    }
     dragOffsetRef.current = dx;
     setDragOffset(dx);
   };
@@ -284,12 +292,20 @@ export function SnapCoverflow({
       // already released
     }
 
+    const didScrub = suppressClickRef.current;
     const threshold = Math.max(48, stepRef.current * 0.22);
     let next = drag.originIndex;
     if (dragOffsetRef.current <= -threshold) next += 1;
     else if (dragOffsetRef.current >= threshold) next -= 1;
 
-    applyIndex(next, true);
+    if (didScrub && next !== indexRef.current) {
+      applyIndex(next, true);
+    } else if (didScrub) {
+      setDragOffset(0);
+      dragOffsetRef.current = 0;
+      setAnimating(true);
+    }
+
     scheduleResume();
   };
 

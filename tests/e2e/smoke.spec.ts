@@ -36,6 +36,21 @@ test.describe("marketing smoke", () => {
     });
   });
 
+  test("coverflow wraps last to first and first to last without leaving the strip", async ({
+    page,
+  }) => {
+    await page.goto("/");
+    const catalogue = page.getByRole("region", { name: /physiotherapy services/i });
+    await catalogue.scrollIntoViewIfNeeded();
+    await catalogue.focus();
+    await page.keyboard.press("ArrowLeft");
+    await expect(catalogue.getByRole("link", { name: /shoulder rehabilitation/i })).toBeVisible();
+    // Let the silent rewind land on the last real card before wrapping forward.
+    await page.waitForTimeout(1400);
+    await page.keyboard.press("ArrowRight");
+    await expect(catalogue.getByRole("link", { name: /dry needling/i })).toBeVisible();
+  });
+
   test("reduced motion falls back to a static services grid", async ({ page }) => {
     await page.emulateMedia({ reducedMotion: "reduce" });
     await page.goto("/");

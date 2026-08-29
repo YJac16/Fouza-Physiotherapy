@@ -7,6 +7,7 @@ import {
   COVERFLOW_DWELL_MS,
   COVERFLOW_SIDE_SCALE,
   COVERFLOW_SLIDE_MS,
+  rewindLoopedCoverflowIndex,
   shouldRunCoverflowAutoplay,
 } from "@/components/marketing/snap-coverflow";
 
@@ -78,5 +79,13 @@ describe("services coverflow catalogue", () => {
     expect(shouldRunCoverflowAutoplay({ ...ready, pageVisible: false })).toBe(false);
     expect(shouldRunCoverflowAutoplay({ ...ready, dragging: true })).toBe(false);
     expect(shouldRunCoverflowAutoplay({ ...ready, count: 1 })).toBe(false);
+  });
+
+  it("rewinds clone indices to the matching real card in the middle band", () => {
+    expect(rewindLoopedCoverflowIndex(10, 5)).toBe(5);
+    expect(rewindLoopedCoverflowIndex(4, 5)).toBe(9);
+    expect(rewindLoopedCoverflowIndex(7, 5)).toBeNull();
+    expect(rewindLoopedCoverflowIndex(5, 5)).toBeNull();
+    expect(rewindLoopedCoverflowIndex(0, 1)).toBeNull();
   });
 });

@@ -44,6 +44,17 @@ export function shouldRunCoverflowAutoplay(state: CoverflowAutoplayGate) {
   );
 }
 
+/**
+ * Triple-band track: [clones] [real] [clones].
+ * After sliding onto a clone, rewind to the matching real card with no animation.
+ */
+export function rewindLoopedCoverflowIndex(absolute: number, count: number): number | null {
+  if (count < 2) return null;
+  if (absolute === count * 2) return count;
+  if (absolute === count - 1) return count * 2 - 1;
+  return null;
+}
+
 type SnapCoverflowProps = {
   children: ReactNode;
   dwellMs?: number;
@@ -61,7 +72,8 @@ type SnapCoverflowProps = {
  *
  * Autoplay starts when the strip enters the viewport. Hover-pause is limited
  * to fine pointers (mouse); tap-focus and iOS sticky hover must not freeze it.
- * `prefers-reduced-motion: reduce` disables autoplay (parent shows a grid).
+ * The track is tripled so last→first and first→last slide onto a clone, then
+ * the index rewinds silently. `prefers-reduced-motion` disables autoplay.
  */
 export function SnapCoverflow({
   children,
@@ -85,7 +97,12 @@ export function SnapCoverflow({
   const hoverCapableRef = useRef(false);
   const keyboardFocusRef = useRef(false);
   const reduceMotionRef = useRef(false);
-  const indexRef = useRef(0);
+  const items = Children.toArray(children);
+  const count = items.length;
+  const looped = count >= 2;
+  const startIndex = looped ? count : 0;
+
+  const indexRef = useRef(startIndex);
   const dragOffsetRef = useRef(0);
   const stepRef = useRef(280);
   const suppressClickRef = useRef(false);
@@ -97,14 +114,11 @@ export function SnapCoverflow({
     originIndex: number;
   } | null>(null);
 
-  const [index, setIndex] = useState(0);
+  const [index, setIndex] = useState(startIndex);
   const [dragOffset, setDragOffset] = useState(0);
   const [motionOk, setMotionOk] = useState(true);
   const [step, setStep] = useState(280);
   const [animating, setAnimating] = useState(true);
-
-  const items = Children.toArray(children);
-  const count = items.length;
 
   const clearDwell = () => {
     if (dwellTimerRef.current) {
@@ -146,12 +160,15 @@ export function SnapCoverflow({
     return stepRef.current;
   }, []);
 
-  const jumpToLogical = useCallback((logical: number) => {
+  const jumpTo = useCallback((absolute: number) => {
+    // Drop transitions first, then change index, so the rewind is not interpolated.
     setAnimating(false);
-    indexRef.current = logical;
-    setIndex(logical);
     requestAnimationFrame(() => {
-      requestAnimationFrame(() => setAnimating(true));
+      indexRef.current = absolute;
+      setIndex(absolute);
+      requestAnimationFrame(() => {
+        requestAnimationFrame(() => setAnimating(true));
+      });
     });
   }, []);
 
@@ -159,9 +176,19 @@ export function SnapCoverflow({
     (next: number, withAnim: boolean) => {
       if (count === 0) return;
 
+      if (wrapTimerRef.current) {
+        clearTimeout(wrapTimerRef.current);
+        wrapTimerRef.current = null;
+      }
+
       let absolute = next;
-      if (absolute < 0) absolute = count - 1;
-      if (absolute > count) absolute = absolute % count;
+      if (looped) {
+        if (absolute < count - 1) absolute = count - 1;
+        if (absolute > count * 2) absolute = count * 2;
+      } else {
+        if (absolute < 0) absolute = count - 1;
+        if (absolute >= count) absolute = 0;
+      }
 
       indexRef.current = absolute;
       setAnimating(withAnim && !reduceMotionRef.current);
@@ -169,14 +196,14 @@ export function SnapCoverflow({
       setDragOffset(0);
       dragOffsetRef.current = 0;
 
-      if (withAnim && absolute === count) {
-        if (wrapTimerRef.current) clearTimeout(wrapTimerRef.current);
+      const rewindTo = looped && withAnim ? rewindLoopedCoverflowIndex(absolute, count) : null;
+      if (rewindTo !== null) {
         wrapTimerRef.current = setTimeout(() => {
-          jumpToLogical(0);
-        }, slideMs + 30);
+          jumpTo(rewindTo);
+        }, slideMs + 50);
       }
     },
-    [count, jumpToLogical, slideMs],
+    [count, jumpTo, looped, slideMs],
   );
 
   const goBy = useCallback(
@@ -327,7 +354,7 @@ export function SnapCoverflow({
     dragRef.current = {
       pointerId: event.pointerId,
       startX: event.clientX,
-      originIndex: indexRef.current >= count ? 0 : indexRef.current,
+      originIndex: indexRef.current,
     };
   };
 
@@ -401,20 +428,15 @@ export function SnapCoverflow({
   if (count === 0) return null;
 
   const trackOffset = -index * step + dragOffset;
-  const focusLogical = index >= count ? 0 : index;
+  const bands = looped && motionOk ? ([-1, 0, 1] as const) : ([0] as const);
 
-  const renderBand = (band: 0 | 1) =>
+  const renderBand = (band: -1 | 0 | 1) =>
     items.map((child, i) => {
       if (!isValidElement(child)) return child;
       const element = child as ReactElement<{ className?: string }>;
-      const showingActive =
-        (index < count && band === 0 && i === index) ||
-        (index === count && band === 1 && i === 0);
-
-      const distance = Math.min(
-        Math.abs(i - focusLogical),
-        count - Math.abs(i - focusLogical),
-      );
+      const absolute = looped && motionOk ? (band + 1) * count + i : i;
+      const showingActive = absolute === index;
+      const distance = Math.abs(absolute - index);
 
       const scale = motionOk
         ? showingActive
@@ -432,14 +454,16 @@ export function SnapCoverflow({
           }}
           className={cn(
             "shrink-0 origin-center will-change-transform",
-            motionOk ? "transition-[transform,opacity] duration-500 ease-premium" : "",
+            motionOk && animating
+              ? "transition-[transform,opacity] duration-500 ease-premium"
+              : "",
           )}
           style={{
             transform: `scale(${scale})`,
             opacity: motionOk ? (showingActive ? 1 : distance === 1 ? 0.9 : 0.78) : 1,
             zIndex: showingActive ? 3 : distance === 1 ? 2 : 1,
           }}
-          aria-hidden={band === 1 || !showingActive}
+          aria-hidden={!showingActive}
         >
           {cloneElement(element, {
             className: cn(
@@ -508,8 +532,7 @@ export function SnapCoverflow({
             willChange: "transform",
           }}
         >
-          {renderBand(0)}
-          {motionOk ? renderBand(1) : null}
+          {bands.map((band) => renderBand(band))}
         </div>
       </div>
     </div>

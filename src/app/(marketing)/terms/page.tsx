@@ -63,12 +63,10 @@ export default function TermsPage() {
 
             <TermsSection title="2. Bookings">
               <p>
-                Appointments may be requested online or via
+                Appointments may be requested online on this website or via
                 WhatsApp. A booking is only confirmed once you receive
-                confirmation from the practice. Online booking is currently
-                handled through our external scheduling partner; please
-                ensure your contact details are accurate so we can reach you
-                if needed.
+                confirmation from the practice. Please ensure your contact
+                details are accurate so we can reach you if needed.
               </p>
               <p>
                 No medical referral is required to book a physiotherapy

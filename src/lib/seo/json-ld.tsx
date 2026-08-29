@@ -46,9 +46,7 @@ export function medicalBusinessJsonLd() {
       jobTitle: siteConfig.founder.title,
     },
     medicalSpecialty: "Physiotherapy",
-    sameAs: [siteConfig.whatsappUrl, siteConfig.bookingExternalUrl].filter(
-      Boolean,
-    ),
+    sameAs: [siteConfig.whatsappUrl].filter(Boolean),
   };
 }
 

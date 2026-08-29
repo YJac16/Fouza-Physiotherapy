@@ -8,13 +8,10 @@
 - Align auth routes with middleware
 - Keep online booking on service-role Server Actions (Phase 6)
 
-## Interim booking channel
+## Public booking channel
 
-Until native booking (Phase 6) is live, public CTAs may use Setmore:
-
-- `siteConfig.bookingExternalUrl` → `https://fouzaphysiotherapy.setmore.com/`
-
-Native `/book` wizard will supersede this; keep Setmore as fallback during rollout.
+Native `/book` is the only public booking path. Marketing, portal, and booking CTAs
+must stay on-site (`routes.booking.root`). Do not fall back to an external scheduler.
 
 ## Migrations
 

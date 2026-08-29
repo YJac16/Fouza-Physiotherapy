@@ -15,7 +15,7 @@ import {
   MeetFouza,
   ReviewSummary,
   ServiceCard,
-  ServicesGrid,
+  ServicesCoverflow,
   WhyChooseUs,
 } from "@/components/marketing";
 import { FeatureCard } from "@/components/shared/feature-card";
@@ -28,7 +28,7 @@ import { routes } from "@/config/routes";
 import { siteConfig } from "@/config/site";
 import { conditions } from "@/content/conditions";
 import { faqPreviewIds, faqs } from "@/content/faqs";
-import { serviceHref, services, trustItems } from "@/content/services";
+import { services, trustItems } from "@/content/services";
 import { getPublicGoogleReviews } from "@/features/reviews";
 import { buildMetadata } from "@/lib/seo/metadata";
 
@@ -165,25 +165,12 @@ export default async function HomePage() {
         </Container>
       </Section>
 
-      <ServicesGrid
+      <ServicesCoverflow
         eyebrow="Services"
         title="Understanding your pain. Restoring your movement. Helping you get back to life."
         description="Physiotherapy for persistent pain—so you can get back to living your life."
-      >
-        {services.map((service) => {
-          const Icon = service.icon;
-          return (
-            <ServiceCard
-              key={service.slug}
-              title={service.name}
-              description={service.shortDescription}
-              href={serviceHref(service.slug)}
-              icon={<Icon className="size-5" />}
-              imageSrc={service.image}
-            />
-          );
-        })}
-      </ServicesGrid>
+        services={services}
+      />
 
       <MeetFouza
         eyebrow="Meet Fouza"

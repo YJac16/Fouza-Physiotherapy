@@ -16,6 +16,8 @@ import { siteConfig } from "@/config/site";
 export type ServiceContent = {
   slug: string;
   name: string;
+  /** Short second-line caption for catalogue tiles (sentence case). */
+  qualifier: string;
   shortDescription: string;
   overview: string;
   whoItHelps: string[];
@@ -25,12 +27,14 @@ export type ServiceContent = {
   faqs: { question: string; answer: string }[];
   icon: LucideIcon;
   image: string;
+  imageAlt: string;
 };
 
 export const services: ServiceContent[] = [
   {
     slug: "dry-needling",
     name: "Dry Needling",
+    qualifier: "Targeted trigger-point care",
     shortDescription:
       "Targeted needling to ease muscle tension and support pain relief as part of a broader plan.",
     overview:
@@ -66,10 +70,12 @@ export const services: ServiceContent[] = [
     ],
     icon: Syringe,
     image: siteConfig.images.dryNeedling,
+    imageAlt: "Dry needling treatment at Fouza Physiotherapy",
   },
   {
     slug: "manual-therapy",
     name: "Manual Therapy",
+    qualifier: "Hands-on mobility treatment",
     shortDescription:
       "Skilled hands-on techniques to improve mobility, ease pain, and restore comfortable movement.",
     overview:
@@ -100,10 +106,12 @@ export const services: ServiceContent[] = [
     ],
     icon: Hand,
     image: siteConfig.images.manualTherapy,
+    imageAlt: "Hands-on physiotherapy assessment on the treatment table",
   },
   {
     slug: "back-pain",
     name: "Back Pain Treatment",
+    qualifier: "Acute and persistent back pain",
     shortDescription:
       "Assessment and rehab for acute and persistent lower and mid-back pain.",
     overview:
@@ -134,10 +142,12 @@ export const services: ServiceContent[] = [
     ],
     icon: Activity,
     image: siteConfig.images.backRehab,
+    imageAlt: "Back rehabilitation in the Fouza Physiotherapy clinic",
   },
   {
     slug: "neck-pain",
     name: "Neck Pain Treatment",
+    qualifier: "Stiffness, tension, and control",
     shortDescription:
       "Relief and rehab for neck stiffness, tension, and movement-related discomfort.",
     overview:
@@ -168,10 +178,12 @@ export const services: ServiceContent[] = [
     ],
     icon: PersonStanding,
     image: siteConfig.images.posture,
+    imageAlt: "Neck and posture rehabilitation at Fouza Physiotherapy",
   },
   {
     slug: "shoulder-rehabilitation",
     name: "Shoulder Rehabilitation",
+    qualifier: "Mobility, strength, and comfort",
     shortDescription:
       "Restore mobility and strength after shoulder pain, injury, or stiffness.",
     overview:
@@ -202,6 +214,7 @@ export const services: ServiceContent[] = [
     ],
     icon: Armchair,
     image: siteConfig.images.shoulderRehab,
+    imageAlt: "Shoulder rehabilitation session at Fouza Physiotherapy",
   },
 ];
 

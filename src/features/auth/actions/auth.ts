@@ -11,7 +11,8 @@ import {
 } from "@/features/auth/schemas/auth";
 import { createClient } from "@/lib/supabase/server";
 import { createServiceClient } from "@/lib/supabase/admin";
-import { isStaffRole } from "@/lib/auth/guards";
+import { isStaffRole, requireAdmin } from "@/lib/auth/guards";
+import { revalidatePath } from "next/cache";
 import type { AppRole } from "@/types/auth";
 
 export type AuthActionState = {
@@ -185,4 +186,61 @@ export async function inviteStaffAction(
 
   if (error) return { error: error.message };
   return { success: `Invite created for ${parsed.data.email}. Share the invite link securely.` };
+}
+
+export async function deactivateStaffAccessAction(profileId: string): Promise<AuthActionState> {
+  const actor = await requireAdmin();
+  if (profileId === actor.id) {
+    return { error: "You cannot revoke your own access." };
+  }
+
+  const supabase = await createClient();
+  const { data: target } = await supabase
+    .from("profiles")
+    .select("id, role, email, full_name")
+    .eq("id", profileId)
+    .maybeSingle();
+  if (!target) return { error: "User not found" };
+  if (!isStaffRole(target.role)) return { error: "This account is not staff" };
+
+  if (target.role === "admin") {
+    const { count } = await supabase
+      .from("profiles")
+      .select("id", { count: "exact", head: true })
+      .eq("role", "admin");
+    if ((count ?? 0) <= 1) return { error: "Keep at least one admin on the practice." };
+  }
+
+  const { error } = await supabase.from("profiles").update({ role: "patient" }).eq("id", profileId);
+  if (error) return { error: error.message };
+
+  await supabase.from("practitioners").update({ is_active: false }).eq("profile_id", profileId);
+  await supabase.from("audit_logs").insert({
+    actor_id: actor.id,
+    action: "staff.deactivate",
+    entity_type: "profile",
+    entity_id: profileId,
+    meta: { previousRole: target.role, email: target.email },
+  });
+
+  revalidatePath("/admin/users");
+  return { success: `${target.full_name ?? target.email} can no longer access admin.` };
+}
+
+export async function cancelStaffInviteAction(inviteId: string): Promise<AuthActionState> {
+  await requireAdmin();
+  const supabase = await createClient();
+  const { data: invite } = await supabase
+    .from("staff_invites")
+    .select("id, email, accepted_at")
+    .eq("id", inviteId)
+    .maybeSingle();
+  if (!invite) return { error: "Invite not found" };
+  if (invite.accepted_at) return { error: "This invite has already been used" };
+
+  const { error } = await supabase.from("staff_invites").delete().eq("id", inviteId);
+  if (error) return { error: error.message };
+
+  revalidatePath("/admin/users");
+  return { success: `Invite for ${invite.email} cancelled` };
 }

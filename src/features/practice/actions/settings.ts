@@ -7,39 +7,45 @@ import { requireAdmin } from "@/lib/auth/guards";
 
 export type SettingsActionState = { error?: string; success?: string };
 
+async function saveKeys(entries: Array<[string, string]>) {
+  const results = await Promise.all(entries.map(([key, value]) => setPracticeSetting(key, value)));
+  const failed = results.find((r) => r.error);
+  return failed?.error?.message ?? null;
+}
+
 export async function savePracticeSettingsAction(
   _prev: SettingsActionState,
   formData: FormData,
 ): Promise<SettingsActionState> {
   await requireAdmin();
+  const section = formData.get("section")?.toString() || "all";
 
-  const practiceName = formData.get("practiceName")?.toString() ?? "";
-  const contactEmail = formData.get("contactEmail")?.toString() ?? "";
-  const contactPhone = formData.get("contactPhone")?.toString() ?? "";
-  const bankName = formData.get("bankName")?.toString() ?? "";
-  const accountName = formData.get("accountName")?.toString() ?? "";
-  const accountNumber = formData.get("accountNumber")?.toString() ?? "";
-  const branchCode = formData.get("branchCode")?.toString() ?? "";
-  const accountType = formData.get("accountType")?.toString() ?? "";
-  const proofEmail = formData.get("proofEmail")?.toString() ?? "";
+  if (section === "banking") {
+    if (formData.get("confirmBanking") !== "true") {
+      return { error: "Tick the confirmation box before saving banking details." };
+    }
+    const error = await saveKeys([
+      ["banking.bank_name", formData.get("bankName")?.toString() ?? ""],
+      ["banking.account_name", formData.get("accountName")?.toString() ?? ""],
+      ["banking.account_number", formData.get("accountNumber")?.toString() ?? ""],
+      ["banking.branch_code", formData.get("branchCode")?.toString() ?? ""],
+      ["banking.account_type", formData.get("accountType")?.toString() ?? ""],
+      ["banking.proof_email", formData.get("proofEmail")?.toString() ?? ""],
+    ]);
+    if (error) return { error };
+    revalidatePath("/admin/settings");
+    revalidatePath("/admin/billing");
+    return { success: "Banking details saved" };
+  }
 
-  const results = await Promise.all([
-    setPracticeSetting("practice_name", practiceName),
-    setPracticeSetting("contact_email", contactEmail),
-    setPracticeSetting("contact_phone", contactPhone),
-    setPracticeSetting("banking.bank_name", bankName),
-    setPracticeSetting("banking.account_name", accountName),
-    setPracticeSetting("banking.account_number", accountNumber),
-    setPracticeSetting("banking.branch_code", branchCode),
-    setPracticeSetting("banking.account_type", accountType),
-    setPracticeSetting("banking.proof_email", proofEmail),
+  const error = await saveKeys([
+    ["practice_name", formData.get("practiceName")?.toString() ?? ""],
+    ["contact_email", formData.get("contactEmail")?.toString() ?? ""],
+    ["contact_phone", formData.get("contactPhone")?.toString() ?? ""],
   ]);
-
-  const failed = results.find((r) => r.error);
-  if (failed?.error) return { error: failed.error.message };
+  if (error) return { error };
 
   revalidatePath("/");
   revalidatePath("/admin/settings");
-  revalidatePath("/admin/billing");
-  return { success: "Settings saved" };
+  return { success: "Practice details saved" };
 }

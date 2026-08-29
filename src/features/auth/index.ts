@@ -8,6 +8,8 @@ import {
 export {
   forgotPasswordAction,
   inviteStaffAction,
+  deactivateStaffAccessAction,
+  cancelStaffInviteAction,
   resetPasswordAction,
   signInAction,
   signOutAction,

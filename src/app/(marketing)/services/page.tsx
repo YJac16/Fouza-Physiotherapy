@@ -1,12 +1,11 @@
 import Link from "next/link";
 import type { Metadata } from "next";
 
-import { PageHero } from "@/components/marketing";
-import { ServiceCard } from "@/components/marketing/cards";
+import { PageHero, ServicesCoverflow } from "@/components/marketing";
 import { Button } from "@/components/ui/button";
 import { Container, Section, SectionHeader } from "@/components/layout/container";
 import { routes } from "@/config/routes";
-import { serviceHref, services } from "@/content/services";
+import { services } from "@/content/services";
 import { JsonLd, breadcrumbJsonLd } from "@/lib/seo/json-ld";
 import { buildMetadata } from "@/lib/seo/metadata";
 
@@ -36,30 +35,12 @@ export default function ServicesPage() {
         ]}
       />
 
-      <Section spacing="md">
-        <Container>
-          <SectionHeader
-            eyebrow="What we offer"
-            title="Understanding your pain. Restoring your movement. Helping you get back to life."
-            description="Every service combines thorough assessment, hands-on treatment where indicated, and a personalised exercise plan."
-          />
-          <div className="grid gap-6 tablet:grid-cols-2 lg:grid-cols-3">
-            {services.map((service) => {
-              const Icon = service.icon;
-              return (
-                <ServiceCard
-                  key={service.slug}
-                  title={service.name}
-                  description={service.shortDescription}
-                  href={serviceHref(service.slug)}
-                  icon={<Icon className="size-5" />}
-                  imageSrc={service.image}
-                />
-              );
-            })}
-          </div>
-        </Container>
-      </Section>
+      <ServicesCoverflow
+        eyebrow="What we offer"
+        title="Understanding your pain. Restoring your movement. Helping you get back to life."
+        description="Every service combines thorough assessment, hands-on treatment where indicated, and a personalised exercise plan."
+        services={services}
+      />
 
       <Section spacing="md" tone="muted">
         <Container size="md">

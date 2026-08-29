@@ -4,3 +4,6 @@ export * from "./faq-search";
 export * from "./page-hero";
 export * from "./reviews";
 export * from "./sections";
+export * from "./service-coverflow-card";
+export * from "./services-coverflow";
+export * from "./snap-coverflow";

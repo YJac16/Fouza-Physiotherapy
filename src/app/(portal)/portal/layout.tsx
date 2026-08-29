@@ -1,6 +1,8 @@
 import { PortalShell } from "@/components/layout/portal-shell";
 import { getPortalView } from "@/features/patients/api/patients";
-import { requireUser } from "@/lib/auth/guards";
+import { isStaffRole, requireUser } from "@/lib/auth/guards";
+import { routes } from "@/config/routes";
+import { redirect } from "next/navigation";
 import type { Metadata } from "next";
 
 export const metadata: Metadata = {
@@ -9,6 +11,9 @@ export const metadata: Metadata = {
 
 export default async function PortalLayout({ children }: { children: React.ReactNode }) {
   const profile = await requireUser();
+  if (isStaffRole(profile.role)) {
+    redirect(routes.admin.root);
+  }
   const { patients, selected } = await getPortalView();
   const userName = profile.full_name ?? profile.email;
 

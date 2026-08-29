@@ -5,6 +5,7 @@ import { useState, useTransition } from "react";
 import { setPatientVerifiedAction } from "@/features/consent-forms/actions/consent";
 import { Badge } from "@/components/ui/badge";
 import { Button } from "@/components/ui/button";
+import { ConfirmAction } from "@/components/ui/confirm-action";
 import { FormMessage } from "@/components/ui/form-message";
 
 export function PatientVerificationControls({
@@ -58,16 +59,26 @@ export function PatientVerificationControls({
           {consentVersion ? ` · Version ${consentVersion}` : ""}
         </p>
       ) : null}
-      <Button
-        type="button"
-        variant="outline"
-        size="sm"
-        className="w-full sm:w-auto"
-        loading={pending}
-        onClick={toggle}
-      >
-        {isVerified ? "Remove verification" : "Mark as verified"}
-      </Button>
+      {isVerified ? (
+        <ConfirmAction
+          label="Remove verification"
+          confirmLabel="Yes, remove verification"
+          description="Remove verified-account status? The patient may lose follow-up booking access until they are verified again."
+          pending={pending}
+          onConfirm={toggle}
+        />
+      ) : (
+        <Button
+          type="button"
+          variant="outline"
+          size="sm"
+          className="w-full sm:w-auto"
+          loading={pending}
+          onClick={toggle}
+        >
+          Mark as verified
+        </Button>
+      )}
       {error ? <FormMessage tone="error">{error}</FormMessage> : null}
     </div>
   );

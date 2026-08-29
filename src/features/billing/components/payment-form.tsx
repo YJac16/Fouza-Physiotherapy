@@ -56,8 +56,19 @@ export function PaymentForm({
       </div>
       <div className="grid gap-4 md:grid-cols-2">
         <div className="space-y-2">
-          <Label htmlFor="amountCents">Amount (cents)</Label>
-          <Input id="amountCents" name="amountCents" type="number" min={1} required />
+          <Label htmlFor="amountRands">Amount (R)</Label>
+          <Input
+            id="amountRands"
+            name="amountRands"
+            type="text"
+            inputMode="decimal"
+            required
+            placeholder="2050 or 2050.00"
+            autoComplete="off"
+          />
+          <p className="text-xs text-muted-foreground">
+            Enter rands — 2050 or 2050.00 is stored as R 2 050,00.
+          </p>
         </div>
         <div className="space-y-2">
           <Label htmlFor="method">Method</Label>

@@ -101,6 +101,7 @@ export function InvoiceReceiptDocument({
   const isReceipt = variant === "receipt";
   const exclusive = subtotalCents;
   const grandTotal = totalCents;
+  const netExclusive = Math.max(0, grandTotal - taxCents);
   const balance =
     balanceDueCents ?? (isReceipt ? 0 : Math.max(grandTotal - (amountPaidCents ?? 0), 0));
   const showLineDiscounts = lines.some((line) => (line.discountCents ?? 0) > 0);
@@ -283,8 +284,12 @@ export function InvoiceReceiptDocument({
 
           <section className="space-y-1.5 text-sm sm:text-right">
             <div className="flex justify-between gap-6 sm:justify-end">
+              <span className="text-[#666]">Subtotal</span>
+              <span>{money(exclusive)}</span>
+            </div>
+            <div className="flex justify-between gap-6 sm:justify-end">
               <span className="text-[#666]">Total Discount</span>
-              <span>{money(discountCents)}</span>
+              <span>{discountCents > 0 ? `−${money(discountCents)}` : money(0)}</span>
             </div>
             {discountNote ? (
               <p className="text-xs text-[#666] sm:text-right">{discountNote}</p>
@@ -293,18 +298,19 @@ export function InvoiceReceiptDocument({
               <>
                 <div className="flex justify-between gap-6 sm:justify-end">
                   <span className="text-[#666]">Total Exclusive</span>
-                  <span>{money(exclusive)}</span>
+                  <span>{money(netExclusive)}</span>
                 </div>
                 <div className="flex justify-between gap-6 sm:justify-end">
                   <span className="text-[#666]">Total VAT</span>
                   <span>{money(taxCents)}</span>
                 </div>
-                <div className="flex justify-between gap-6 sm:justify-end">
-                  <span className="text-[#666]">Sub Total</span>
-                  <span>{money(exclusive + taxCents)}</span>
-                </div>
               </>
-            ) : null}
+            ) : (
+              <div className="flex justify-between gap-6 sm:justify-end">
+                <span className="text-[#666]">VAT</span>
+                <span>{money(0)}</span>
+              </div>
+            )}
             <div className="flex justify-between gap-6 border-t border-[#ddd] pt-2 text-base font-semibold sm:justify-end">
               <span>Grand Total</span>
               <span>{money(grandTotal)}</span>

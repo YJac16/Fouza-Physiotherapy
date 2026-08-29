@@ -14,7 +14,17 @@ export function centsToRandsInput(cents: number) {
 }
 
 export function randsToCents(value: string | number) {
-  const parsed = typeof value === "number" ? value : Number.parseFloat(value);
+  if (typeof value === "number") {
+    if (!Number.isFinite(value)) return 0;
+    return Math.round(value * 100);
+  }
+  const compact = value.trim().replace(/\s/g, "");
+  if (!compact) return 0;
+  const normalized =
+    compact.includes(",") && !compact.includes(".")
+      ? compact.replace(",", ".")
+      : compact.replace(/,/g, "");
+  const parsed = Number.parseFloat(normalized);
   if (!Number.isFinite(parsed)) return 0;
   return Math.round(parsed * 100);
 }

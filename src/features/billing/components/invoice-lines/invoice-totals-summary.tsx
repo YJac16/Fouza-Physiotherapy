@@ -11,7 +11,7 @@ export function InvoiceTotalsSummary({ totals, className }: Props) {
     <div className={className ?? "space-y-1 text-sm"}>
       <div className="flex justify-between gap-4">
         <span className="text-muted-foreground">Subtotal</span>
-        <span>{formatZar(totals.subtotalCents)}</span>
+        <span>{formatZar(totals.grossCents)}</span>
       </div>
       {totals.lineDiscountCents > 0 ? (
         <div className="flex justify-between gap-4">

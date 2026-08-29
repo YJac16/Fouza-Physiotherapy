@@ -21,7 +21,10 @@ export type LineDiscountResult = {
 
 export type InvoiceTotals = {
   lines: LineDiscountResult[];
+  /** Sum of quantity × unit price, before any discounts. */
+  grossCents: number;
   lineDiscountCents: number;
+  /** Net after line discounts, before invoice-level discount and tax. Stored as invoices.subtotal_cents. */
   subtotalCents: number;
   invoiceDiscountCents: number;
   invoiceDiscountPercent: number | null;
@@ -87,6 +90,7 @@ export function invoiceTotalsFromLines(input: {
   taxCents?: number;
 }): InvoiceTotals {
   const lines = input.lines.map(lineTotals);
+  const grossCents = lines.reduce((sum, line) => sum + line.grossCents, 0);
   const lineDiscountCents = lines.reduce((sum, line) => sum + line.discountCents, 0);
   const subtotalCents = lines.reduce((sum, line) => sum + line.amountCents, 0);
   const invoiceResolved = resolveDiscount(subtotalCents, input.invoiceDiscount);
@@ -94,6 +98,7 @@ export function invoiceTotalsFromLines(input: {
 
   return {
     lines,
+    grossCents,
     lineDiscountCents,
     subtotalCents,
     invoiceDiscountCents: invoiceResolved.discountCents,
@@ -113,4 +118,51 @@ export function discountInputFromStored(input?: {
   if (percent) return { mode: "percent", percent, amountCents: 0 };
   if (cents > 0) return { mode: "amount", percent: null, amountCents: cents };
   return { mode: "none", percent: null, amountCents: 0 };
+}
+
+export function invoiceDocumentTotals(input: {
+  lines: DiscountableLine[];
+  invoiceDiscount?: DiscountInput | null;
+  taxCents?: number;
+}) {
+  const totals = invoiceTotalsFromLines(input);
+  return {
+    ...totals,
+    displaySubtotalCents: totals.grossCents,
+    displayDiscountCents: totals.totalDiscountCents,
+    displayTotalCents: totals.totalCents,
+  };
+}
+
+export function totalsFromStoredInvoice(input: {
+  lines: Array<{
+    quantity: number;
+    unit_price_cents: number;
+    discount_percent?: number | string | null;
+    discount_cents?: number | null;
+  }>;
+  invoiceDiscountPercent?: number | string | null;
+  invoiceDiscountCents?: number | null;
+  taxCents?: number;
+  fallbackSubtotalCents?: number;
+}) {
+  const lines: DiscountableLine[] = input.lines.length
+    ? input.lines.map((line) => ({
+        quantity: Number(line.quantity) || 1,
+        unitPriceCents: line.unit_price_cents,
+        discount: discountInputFromStored({
+          percent: line.discount_percent,
+          cents: line.discount_cents,
+        }),
+      }))
+    : [{ quantity: 1, unitPriceCents: input.fallbackSubtotalCents ?? 0 }];
+
+  return invoiceDocumentTotals({
+    lines,
+    invoiceDiscount: discountInputFromStored({
+      percent: input.invoiceDiscountPercent,
+      cents: input.invoiceDiscountCents,
+    }),
+    taxCents: input.taxCents,
+  });
 }

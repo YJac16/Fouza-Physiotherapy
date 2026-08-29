@@ -1,6 +1,6 @@
 "use client";
 
-import { useActionState } from "react";
+import { useActionState, useState } from "react";
 
 import {
   registerDocumentAction,
@@ -10,12 +10,18 @@ import { Button } from "@/components/ui/button";
 import { FormMessage } from "@/components/ui/form-message";
 import { Input } from "@/components/ui/input";
 import { Label } from "@/components/ui/label";
+import { SearchSelect } from "@/components/ui/search-select";
 import { Card, CardContent, CardHeader, CardTitle } from "@/components/ui/card";
 
 const initial: DocumentActionState = {};
 
-export function RegisterDocumentForm() {
+export function RegisterDocumentForm({
+  patients,
+}: {
+  patients: { id: string; label: string }[];
+}) {
   const [state, action, pending] = useActionState(registerDocumentAction, initial);
+  const [patientId, setPatientId] = useState("");
 
   return (
     <Card>
@@ -24,9 +30,21 @@ export function RegisterDocumentForm() {
       </CardHeader>
       <CardContent>
         <form action={action} className="grid max-w-lg gap-4">
+          <input type="hidden" name="patientId" value={patientId} />
           <div className="space-y-2">
-            <Label htmlFor="patientId">Patient ID</Label>
-            <Input id="patientId" name="patientId" required placeholder="UUID" />
+            <Label htmlFor="patientId">Patient</Label>
+            <SearchSelect
+              id="patientId"
+              options={patients.map((patient) => ({
+                value: patient.id,
+                label: patient.label,
+              }))}
+              value={patientId}
+              onValueChange={setPatientId}
+              placeholder="Search patient…"
+              searchPlaceholder="Search by name…"
+              emptyMessage="No matching patients"
+            />
           </div>
           <div className="space-y-2">
             <Label htmlFor="title">Title</Label>
@@ -54,7 +72,7 @@ export function RegisterDocumentForm() {
           </div>
           {state.error ? <FormMessage tone="error">{state.error}</FormMessage> : null}
           {state.success ? <FormMessage tone="success">{state.success}</FormMessage> : null}
-          <Button type="submit" loading={pending}>
+          <Button type="submit" loading={pending} disabled={!patientId}>
             Register document
           </Button>
         </form>

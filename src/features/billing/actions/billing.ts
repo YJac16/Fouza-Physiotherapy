@@ -12,6 +12,7 @@ import { getInvoiceBankingSettings, resolvePatientInvoiceRecipient } from "@/fea
 import { listAccessiblePatients } from "@/features/patients/api/patients";
 import { EDITABLE_INVOICE_STATUSES } from "@/features/billing/lib/addons";
 import { invoiceTotalsFromLines } from "@/features/billing/lib/discounts";
+import { randsToCents } from "@/features/billing/lib/money";
 import {
   invoiceOutstandingCents,
   invoicePaidCents,
@@ -567,11 +568,11 @@ export async function recordPaymentAction(
   const parsed = paymentSchema.safeParse({
     patientId: formData.get("patientId"),
     invoiceId: formData.get("invoiceId") || null,
-    amountCents: formData.get("amountCents"),
+    amountCents: randsToCents(formData.get("amountRands")?.toString() ?? formData.get("amountCents")?.toString() ?? ""),
     method: formData.get("method") || "eft",
     notes: formData.get("notes") || undefined,
   });
-  if (!parsed.success) return { error: "Invalid payment" };
+  if (!parsed.success) return { error: "Enter a valid amount in rands (e.g. 2050 or 2050.00)" };
 
   const supabase = await createClient();
   const { data, error } = await supabase

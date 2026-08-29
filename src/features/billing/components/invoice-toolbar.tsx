@@ -7,6 +7,7 @@ import {
   sendInvoiceEmailAction,
   voidInvoiceAction,
 } from "@/features/billing/actions/billing";
+import { ConfirmAction } from "@/components/ui/confirm-action";
 import { Button } from "@/components/ui/button";
 import { FormMessage } from "@/components/ui/form-message";
 
@@ -43,14 +44,6 @@ export function InvoiceDocumentToolbar({
   }
 
   function handleVoid() {
-    if (
-      !window.confirm(
-        "Void this invoice? It will be removed from billing totals and cannot be edited.",
-      )
-    ) {
-      return;
-    }
-
     startVoidTransition(async () => {
       const result = await voidInvoiceAction(invoiceId);
       if (result.error) {
@@ -74,15 +67,15 @@ export function InvoiceDocumentToolbar({
           </Button>
         ) : null}
         {canVoid ? (
-          <Button
-            type="button"
+          <ConfirmAction
+            label="Void invoice"
+            confirmLabel="Yes, void invoice"
+            description="Void this invoice? It will be removed from billing totals and cannot be edited."
+            pending={voidPending}
+            onConfirm={handleVoid}
             variant="outline"
-            loading={voidPending}
-            onClick={handleVoid}
             className="text-destructive hover:text-destructive"
-          >
-            Void invoice
-          </Button>
+          />
         ) : null}
       </div>
       {message ? <FormMessage tone={message.tone}>{message.text}</FormMessage> : null}

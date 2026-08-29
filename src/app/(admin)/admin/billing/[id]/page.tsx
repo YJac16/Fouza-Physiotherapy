@@ -9,6 +9,7 @@ import { InvoiceDocumentToolbar } from "@/features/billing/components/invoice-to
 import { InvoiceLineEditor } from "@/features/billing/components/invoice-line-editor";
 import { listActiveInvoiceServices } from "@/features/billing/actions/billing";
 import { EDITABLE_INVOICE_STATUSES } from "@/features/billing/lib/addons";
+import { totalsFromStoredInvoice } from "@/features/billing/lib/discounts";
 import {
   getInvoiceBankingSettings,
   getInvoiceForStaff,
@@ -88,10 +89,18 @@ export default async function AdminInvoiceDetailPage({ params }: PageProps) {
 
   const payments = invoice.payments ?? [];
   const amountPaidCents = invoicePaidCents(payments);
-  const outstandingCents = invoiceOutstandingCents(invoice.total_cents, amountPaidCents);
+  const computed = totalsFromStoredInvoice({
+    lines: rawLines,
+    invoiceDiscountPercent: invoice.discount_percent,
+    invoiceDiscountCents: invoice.discount_cents,
+    taxCents: invoice.tax_cents,
+    fallbackSubtotalCents: invoice.subtotal_cents,
+  });
+  const payableCents = computed.displayTotalCents;
+  const outstandingCents = invoiceOutstandingCents(payableCents, amountPaidCents);
   const displayStatus = invoiceDisplayStatus({
     status: invoice.status,
-    totalCents: invoice.total_cents,
+    totalCents: payableCents,
     paidCents: amountPaidCents,
   });
   const latestPayment = [...payments].sort((a, b) =>
@@ -184,13 +193,10 @@ export default async function AdminInvoiceDetailPage({ params }: PageProps) {
         accountHolderName={useBillingAsRecipient ? undefined : billingName}
         accountHolderEmail={useBillingAsRecipient ? undefined : patient?.billing_email}
         lines={lines}
-        subtotalCents={invoice.subtotal_cents}
+        subtotalCents={computed.displaySubtotalCents}
         taxCents={invoice.tax_cents}
-        totalCents={invoice.total_cents}
-        discountCents={
-          (invoice.discount_cents ?? 0) +
-          lines.reduce((sum, line) => sum + (line.discountCents ?? 0), 0)
-        }
+        totalCents={payableCents}
+        discountCents={computed.displayDiscountCents}
         discountNote={invoice.discount_note}
         amountPaidCents={amountPaidCents}
         balanceDueCents={outstandingCents}

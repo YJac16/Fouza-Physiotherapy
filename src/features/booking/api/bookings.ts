@@ -166,6 +166,17 @@ export async function createHold(input: HoldInput) {
   return { error: null, holdToken: token, expiresAt };
 }
 
+export async function releaseHold(holdToken: string) {
+  if (!holdToken) return { error: "Missing hold token" as string | null, released: false };
+  const admin = createServiceClient();
+  const { error, count } = await admin
+    .from("appointment_holds")
+    .delete({ count: "exact" })
+    .eq("hold_token", holdToken);
+  if (error) return { error: error.message, released: false };
+  return { error: null as string | null, released: (count ?? 0) > 0 };
+}
+
 type CreateAppointmentCoreInput = {
   patientId: string;
   practitionerId: string;

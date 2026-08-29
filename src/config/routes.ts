@@ -75,6 +75,7 @@ export const routes = {
     users: "/admin/users",
     availability: "/admin/availability",
     documents: "/admin/documents",
+    notifications: "/admin/notifications",
   },
   api: {
     health: "/api/health",

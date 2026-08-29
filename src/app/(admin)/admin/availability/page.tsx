@@ -1,4 +1,4 @@
-import { EmptyState } from "@/components/shared/states";
+import { EmptyState, ErrorState } from "@/components/shared/states";
 import {
   AddAvailabilityForm,
   AvailabilityExceptionActions,
@@ -6,29 +6,11 @@ import {
   BlockDateForm,
   formatDay,
 } from "@/features/booking/components/add-availability-form";
-import {
-  listAvailabilityExceptions,
-  listAvailabilityRules,
-  listPractitioners,
-} from "@/features/booking/actions/availability";
+import { loadAvailabilityAdminData } from "@/features/booking/api/availability";
+import { formatClockTime } from "@/features/booking/lib/practitioner-label";
 
 export default async function AdminAvailabilityPage() {
-  const [{ data: rules }, { data: practitioners }, { data: exceptions }] =
-    await Promise.all([
-      listAvailabilityRules(),
-      listPractitioners(),
-      listAvailabilityExceptions(),
-    ]);
-
-  const practitionerOptions =
-    practitioners?.map((p) => {
-      const profile = (Array.isArray(p.profiles) ? p.profiles[0] : p.profiles) as
-        | { full_name: string | null }
-        | null
-        | undefined;
-      const name = profile?.full_name ?? "Practitioner";
-      return { id: p.id, label: p.title ? `${name} (${p.title})` : name };
-    }) ?? [];
+  const { rules, practitioners, exceptions, error } = await loadAvailabilityAdminData();
 
   return (
     <div className="space-y-8">
@@ -39,7 +21,14 @@ export default async function AdminAvailabilityPage() {
         </p>
       </div>
 
-      {!rules?.length ? (
+      {error ? (
+        <ErrorState
+          title="Could not load availability"
+          description={error}
+        />
+      ) : null}
+
+      {!rules.length ? (
         <EmptyState
           title="No availability rules"
           description="Add weekly hours for each practitioner."
@@ -58,51 +47,36 @@ export default async function AdminAvailabilityPage() {
               </tr>
             </thead>
             <tbody>
-              {rules.map((rule) => {
-                const practitioner = rule.practitioners as
-                  | {
-                      title: string | null;
-                      profiles: { full_name: string | null } | null;
-                    }
-                  | null
-                  | undefined;
-                const profileName =
-                  practitioner?.profiles?.full_name ?? "Practitioner";
-
-                return (
-                  <tr key={rule.id} className="border-b last:border-0">
-                    <td className="px-4 py-3">
-                      {profileName}
-                      {practitioner?.title ? ` · ${practitioner.title}` : ""}
-                    </td>
-                    <td className="px-4 py-3">{formatDay(rule.day_of_week)}</td>
-                    <td className="px-4 py-3">
-                      {rule.start_time.slice(0, 5)} – {rule.end_time.slice(0, 5)}
-                    </td>
-                    <td className="px-4 py-3">{rule.slot_minutes} min</td>
-                    <td className="px-4 py-3">{rule.is_active ? "Yes" : "No"}</td>
-                    <td className="px-4 py-3">
-                      <AvailabilityRuleActions
-                        ruleId={rule.id}
-                        isActive={Boolean(rule.is_active)}
-                      />
-                    </td>
-                  </tr>
-                );
-              })}
+              {rules.map((rule) => (
+                <tr key={rule.id} className="border-b last:border-0">
+                  <td className="px-4 py-3">{rule.practitionerLabel}</td>
+                  <td className="px-4 py-3">{formatDay(rule.day_of_week)}</td>
+                  <td className="px-4 py-3">
+                    {formatClockTime(rule.start_time)} – {formatClockTime(rule.end_time)}
+                  </td>
+                  <td className="px-4 py-3">{rule.slot_minutes} min</td>
+                  <td className="px-4 py-3">{rule.is_active ? "Yes" : "No"}</td>
+                  <td className="px-4 py-3">
+                    <AvailabilityRuleActions
+                      ruleId={rule.id}
+                      isActive={Boolean(rule.is_active)}
+                    />
+                  </td>
+                </tr>
+              ))}
             </tbody>
           </table>
         </div>
       )}
 
       <div className="grid gap-6 lg:grid-cols-2">
-        <AddAvailabilityForm practitioners={practitionerOptions} />
-        <BlockDateForm practitioners={practitionerOptions} />
+        <AddAvailabilityForm practitioners={practitioners} />
+        <BlockDateForm practitioners={practitioners} />
       </div>
 
       <div className="space-y-3">
         <h2 className="font-display text-lg font-semibold">Date exceptions</h2>
-        {!exceptions?.length ? (
+        {!exceptions.length ? (
           <EmptyState
             title="No exceptions"
             description="Blocked dates and custom open hours will appear here."
@@ -120,32 +94,21 @@ export default async function AdminAvailabilityPage() {
                 </tr>
               </thead>
               <tbody>
-                {exceptions.map((ex) => {
-                  const practitioner = ex.practitioners as
-                    | {
-                        title: string | null;
-                        profiles: { full_name: string | null } | null;
-                      }
-                    | null
-                    | undefined;
-                  const profileName =
-                    practitioner?.profiles?.full_name ?? "Practitioner";
-                  return (
-                    <tr key={ex.id} className="border-b last:border-0">
-                      <td className="px-4 py-3">{ex.exception_date}</td>
-                      <td className="px-4 py-3">{profileName}</td>
-                      <td className="px-4 py-3">
-                        {ex.is_available
-                          ? `Open ${ex.start_time?.slice(0, 5) ?? "?"}–${ex.end_time?.slice(0, 5) ?? "?"}`
-                          : "Blocked"}
-                      </td>
-                      <td className="px-4 py-3">{ex.reason ?? "—"}</td>
-                      <td className="px-4 py-3">
-                        <AvailabilityExceptionActions exceptionId={ex.id} />
-                      </td>
-                    </tr>
-                  );
-                })}
+                {exceptions.map((ex) => (
+                  <tr key={ex.id} className="border-b last:border-0">
+                    <td className="px-4 py-3">{ex.exception_date}</td>
+                    <td className="px-4 py-3">{ex.practitionerLabel}</td>
+                    <td className="px-4 py-3">
+                      {ex.is_available
+                        ? `Open ${formatClockTime(ex.start_time)}–${formatClockTime(ex.end_time)}`
+                        : "Blocked"}
+                    </td>
+                    <td className="px-4 py-3">{ex.reason ?? "—"}</td>
+                    <td className="px-4 py-3">
+                      <AvailabilityExceptionActions exceptionId={ex.id} />
+                    </td>
+                  </tr>
+                ))}
               </tbody>
             </table>
           </div>

@@ -26,35 +26,6 @@ const exceptionSchema = z.object({
 
 export type AvailabilityActionState = { error?: string; success?: string };
 
-export async function listAvailabilityRules() {
-  await requireStaff();
-  const supabase = await createClient();
-  return supabase
-    .from("availability_rules")
-    .select("*, practitioners(id, title, profile_id, profiles(full_name))")
-    .order("day_of_week")
-    .order("start_time");
-}
-
-export async function listAvailabilityExceptions() {
-  await requireStaff();
-  const supabase = await createClient();
-  return supabase
-    .from("availability_exceptions")
-    .select("*, practitioners(id, title, profile_id, profiles(full_name))")
-    .order("exception_date", { ascending: false });
-}
-
-export async function listPractitioners() {
-  await requireStaff();
-  const supabase = await createClient();
-  return supabase
-    .from("practitioners")
-    .select("id, title, profile_id, profiles(full_name)")
-    .eq("is_active", true)
-    .order("title");
-}
-
 export async function createAvailabilityRuleAction(
   _prev: AvailabilityActionState,
   formData: FormData,

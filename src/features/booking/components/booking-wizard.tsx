@@ -3,7 +3,7 @@
 import Link from "next/link";
 import { useRouter } from "next/navigation";
 import { useActionState, useCallback, useEffect, useMemo, useRef, useState } from "react";
-import { Calendar, MessageCircle } from "lucide-react";
+import { Calendar, MessageCircle, Phone } from "lucide-react";
 
 import {
   BookingProgressIndicator,
@@ -19,7 +19,7 @@ import { Input } from "@/components/ui/input";
 import { Label } from "@/components/ui/label";
 import { Typography } from "@/components/ui/typography";
 import { routes } from "@/config/routes";
-import { siteConfig } from "@/config/site";
+import { siteConfig, telHref } from "@/config/site";
 import {
   type BookingActionState,
   confirmBookingAction,
@@ -117,20 +117,21 @@ function formatBookingDate(iso: string) {
   });
 }
 
-function SetmoreFallback({ message }: { message?: string }) {
+function ContactPracticeFallback({ message }: { message?: string }) {
   return (
     <div className="rounded-xl border border-border bg-secondary/40 p-4 text-sm">
       {message ? <p className="text-muted-foreground">{message}</p> : null}
       <div className="mt-3 flex flex-col gap-2 sm:flex-row">
         <Button asChild size="sm" variant="outline">
-          <a href={siteConfig.bookingExternalUrl} target="_blank" rel="noopener noreferrer">
-            Book via Setmore
-          </a>
-        </Button>
-        <Button asChild size="sm" variant="ghost">
           <a href={siteConfig.whatsappUrl} target="_blank" rel="noopener noreferrer">
             <MessageCircle className="size-4" aria-hidden />
             WhatsApp us
+          </a>
+        </Button>
+        <Button asChild size="sm" variant="ghost">
+          <a href={telHref()}>
+            <Phone className="size-4" aria-hidden />
+            Call {siteConfig.phoneDisplay}
           </a>
         </Button>
       </div>
@@ -504,7 +505,7 @@ export function BookingWizard({
               ) : slotsError ? (
                 <div className="space-y-4">
                   <FormMessage tone="error">{slotsError}</FormMessage>
-                  <SetmoreFallback message="Try another date, book via Setmore, or call the practice." />
+                  <ContactPracticeFallback message="Try another date, or contact the practice to schedule." />
                 </div>
               ) : (
                 <>
@@ -524,7 +525,7 @@ export function BookingWizard({
                   {holdError ? (
                     <div className="mt-4 space-y-3">
                       <FormMessage tone="error">{holdError}</FormMessage>
-                      <SetmoreFallback />
+                      <ContactPracticeFallback message="This slot could not be reserved. Try another time, or contact the practice." />
                     </div>
                   ) : null}
                   {selectedSlot ? (

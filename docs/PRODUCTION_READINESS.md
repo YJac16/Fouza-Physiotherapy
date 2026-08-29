@@ -22,7 +22,7 @@
 ## Product cutover
 
 - [ ] Native booking tested for double-book prevention
-- [ ] Setmore kept as fallback during first week (optional)
+- [ ] Public Book / Book now CTAs go to `/book` only (no external scheduler)
 - [ ] Staff trained on AdminShell modules
 - [ ] Patient portal empty states reviewed
 - [ ] Invoice numbering sequence seeded for current year

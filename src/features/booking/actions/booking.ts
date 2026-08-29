@@ -153,7 +153,7 @@ export async function confirmBookingAction(
       bookingReference: result.bookingReference ?? undefined,
     };
   } catch {
-    return { error: "Booking unavailable. Try Setmore or call the practice." };
+    return { error: "Booking unavailable. Please try again or contact the practice." };
   }
 }
 

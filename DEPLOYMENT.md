@@ -101,7 +101,7 @@ Authentication → URL Configuration (preview project `raxwortsxirulebexxgp`):
 - [ ] Auth callback works (sign-in / register / reset)
 - [ ] Booking confirmation emails send via Resend (`booking.confirmed`, `portal.invite` magic link to `/portal/forms`)
 - [ ] Supabase Auth redirect URLs include production `/auth/callback`
-- [ ] Native `/book` wizard or Setmore fallback works
+- [ ] Native `/book` wizard works (the only public booking path)
 - [ ] Patient portal + admin shells load for correct roles
 - [ ] RLS verified with patient vs staff test users
 - [ ] Resend test email delivers
@@ -134,6 +134,6 @@ Never commit `.env.local`. Rotate `SUPABASE_SERVICE_ROLE_KEY`, `RESEND_API_KEY`,
 
 - Vercel → Deployments → Promote a previous production deployment.
 - Database rollbacks require careful forward-fix migrations; prefer additive migrations.
-- Soft-launch: keep Setmore as booking fallback for one week after native booking goes live.
+- Soft-launch: native `/book` is the only public booking path. Do not send visitors to an external scheduler.
 
 See also: `docs/PRODUCTION_READINESS.md`, `docs/architecture/threat-model.md`.

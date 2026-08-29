@@ -23,7 +23,6 @@ export const siteConfig = {
   },
   whatsapp: "27645136210",
   whatsappUrl: "https://wa.me/27645136210",
-  bookingExternalUrl: "https://fouzaphysiotherapy.setmore.com/",
   social: {
     instagram: "",
     facebook: "",

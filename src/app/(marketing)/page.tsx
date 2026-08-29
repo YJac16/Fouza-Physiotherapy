@@ -30,6 +30,7 @@ import { conditions } from "@/content/conditions";
 import { faqPreviewIds, faqs } from "@/content/faqs";
 import { services, trustItems } from "@/content/services";
 import { getPublicGoogleReviews } from "@/features/reviews";
+import { marketingImageSizes } from "@/lib/images";
 import { buildMetadata } from "@/lib/seo/metadata";
 
 export const metadata: Metadata = buildMetadata({
@@ -141,6 +142,7 @@ export default async function HomePage() {
                 alt="Physiotherapy care at Fouza Physiotherapy"
                 width={900}
                 height={1100}
+                sizes={marketingImageSizes.hero}
                 className="aspect-[4/5] w-full object-cover"
                 priority
               />
@@ -183,6 +185,7 @@ export default async function HomePage() {
               alt={siteConfig.founder.name}
               width={800}
               height={1000}
+              sizes={marketingImageSizes.portrait}
               className="aspect-[4/5] w-full object-cover"
             />
           </div>

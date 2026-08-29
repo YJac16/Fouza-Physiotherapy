@@ -1,10 +1,12 @@
 import { ArrowRight, Star } from "lucide-react";
+import Image from "next/image";
 import type { HTMLAttributes, ReactNode } from "react";
 
 import { Avatar, AvatarFallback, AvatarImage } from "@/components/ui/avatar";
 import { Badge } from "@/components/ui/badge";
 import { Card, CardContent, CardFooter, CardHeader, CardTitle } from "@/components/ui/card";
 import { Typography } from "@/components/ui/typography";
+import { marketingImageSizes } from "@/lib/images";
 import { cn } from "@/lib/utils";
 
 /* ── DoctorCard ── */
@@ -98,13 +100,13 @@ export function ServiceCard({
   const content = (
     <>
       {imageSrc ? (
-        <div className="aspect-[16/10] overflow-hidden rounded-t-2xl bg-secondary">
-          {/* eslint-disable-next-line @next/next/no-img-element */}
-          <img
+        <div className="relative aspect-[16/10] overflow-hidden rounded-t-2xl bg-secondary">
+          <Image
             src={imageSrc}
             alt={imageAlt ?? title}
-            className="size-full object-cover transition-transform duration-350 ease-premium group-hover:scale-[1.03]"
-            loading="lazy"
+            fill
+            sizes={marketingImageSizes.card}
+            className="object-cover transition-transform duration-350 ease-premium group-hover:scale-[1.03]"
           />
         </div>
       ) : null}

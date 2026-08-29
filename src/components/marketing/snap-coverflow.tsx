@@ -23,6 +23,38 @@ export const COVERFLOW_SLIDE_MS = 780;
 export const COVERFLOW_ACTIVE_SCALE = 1.18;
 export const COVERFLOW_SIDE_SCALE = 0.9;
 
+export type CoverflowAutoplayGate = {
+  reduceMotion: boolean;
+  paused: boolean;
+  inView: boolean;
+  pageVisible: boolean;
+  count: number;
+  dragging: boolean;
+};
+
+/** Shared gate so autoplay only runs when the strip is on-screen and idle. */
+export function shouldRunCoverflowAutoplay(state: CoverflowAutoplayGate) {
+  return (
+    !state.reduceMotion &&
+    !state.paused &&
+    state.inView &&
+    state.pageVisible &&
+    state.count >= 2 &&
+    !state.dragging
+  );
+}
+
+/**
+ * Triple-band track: [clones] [real] [clones].
+ * After sliding onto a clone, rewind to the matching real card with no animation.
+ */
+export function rewindLoopedCoverflowIndex(absolute: number, count: number): number | null {
+  if (count < 2) return null;
+  if (absolute === count * 2) return count;
+  if (absolute === count - 1) return count * 2 - 1;
+  return null;
+}
+
 type SnapCoverflowProps = {
   children: ReactNode;
   dwellMs?: number;
@@ -37,7 +69,11 @@ type SnapCoverflowProps = {
 /**
  * Snap-to-centre coverflow adapted from Move in Africa’s catalogue motion,
  * restyled with Fouza defaults (teal focus, modest scale, 5–6s dwell).
- * Autoplay is disabled when `prefers-reduced-motion: reduce`.
+ *
+ * Autoplay starts when the strip enters the viewport. Hover-pause is limited
+ * to fine pointers (mouse); tap-focus and iOS sticky hover must not freeze it.
+ * The track is tripled so last→first and first→last slide onto a clone, then
+ * the index rewinds silently. `prefers-reduced-motion` disables autoplay.
  */
 export function SnapCoverflow({
   children,
@@ -56,9 +92,17 @@ export function SnapCoverflow({
   const resumeTimerRef = useRef<ReturnType<typeof setTimeout> | null>(null);
   const wrapTimerRef = useRef<ReturnType<typeof setTimeout> | null>(null);
   const pausedRef = useRef(false);
-  const inViewRef = useRef(true);
+  const inViewRef = useRef(false);
+  const pageVisibleRef = useRef(true);
+  const hoverCapableRef = useRef(false);
+  const keyboardFocusRef = useRef(false);
   const reduceMotionRef = useRef(false);
-  const indexRef = useRef(0);
+  const items = Children.toArray(children);
+  const count = items.length;
+  const looped = count >= 2;
+  const startIndex = looped ? count : 0;
+
+  const indexRef = useRef(startIndex);
   const dragOffsetRef = useRef(0);
   const stepRef = useRef(280);
   const suppressClickRef = useRef(false);
@@ -70,14 +114,11 @@ export function SnapCoverflow({
     originIndex: number;
   } | null>(null);
 
-  const [index, setIndex] = useState(0);
+  const [index, setIndex] = useState(startIndex);
   const [dragOffset, setDragOffset] = useState(0);
   const [motionOk, setMotionOk] = useState(true);
   const [step, setStep] = useState(280);
   const [animating, setAnimating] = useState(true);
-
-  const items = Children.toArray(children);
-  const count = items.length;
 
   const clearDwell = () => {
     if (dwellTimerRef.current) {
@@ -119,12 +160,15 @@ export function SnapCoverflow({
     return stepRef.current;
   }, []);
 
-  const jumpToLogical = useCallback((logical: number) => {
+  const jumpTo = useCallback((absolute: number) => {
+    // Drop transitions first, then change index, so the rewind is not interpolated.
     setAnimating(false);
-    indexRef.current = logical;
-    setIndex(logical);
     requestAnimationFrame(() => {
-      requestAnimationFrame(() => setAnimating(true));
+      indexRef.current = absolute;
+      setIndex(absolute);
+      requestAnimationFrame(() => {
+        requestAnimationFrame(() => setAnimating(true));
+      });
     });
   }, []);
 
@@ -132,9 +176,19 @@ export function SnapCoverflow({
     (next: number, withAnim: boolean) => {
       if (count === 0) return;
 
+      if (wrapTimerRef.current) {
+        clearTimeout(wrapTimerRef.current);
+        wrapTimerRef.current = null;
+      }
+
       let absolute = next;
-      if (absolute < 0) absolute = count - 1;
-      if (absolute > count) absolute = absolute % count;
+      if (looped) {
+        if (absolute < count - 1) absolute = count - 1;
+        if (absolute > count * 2) absolute = count * 2;
+      } else {
+        if (absolute < 0) absolute = count - 1;
+        if (absolute >= count) absolute = 0;
+      }
 
       indexRef.current = absolute;
       setAnimating(withAnim && !reduceMotionRef.current);
@@ -142,14 +196,14 @@ export function SnapCoverflow({
       setDragOffset(0);
       dragOffsetRef.current = 0;
 
-      if (withAnim && absolute === count) {
-        if (wrapTimerRef.current) clearTimeout(wrapTimerRef.current);
+      const rewindTo = looped && withAnim ? rewindLoopedCoverflowIndex(absolute, count) : null;
+      if (rewindTo !== null) {
         wrapTimerRef.current = setTimeout(() => {
-          jumpToLogical(0);
-        }, slideMs + 30);
+          jumpTo(rewindTo);
+        }, slideMs + 50);
       }
     },
-    [count, jumpToLogical, slideMs],
+    [count, jumpTo, looped, slideMs],
   );
 
   const goBy = useCallback(
@@ -160,21 +214,28 @@ export function SnapCoverflow({
     [applyIndex, count],
   );
 
+  const canRun = useCallback(() => {
+    return shouldRunCoverflowAutoplay({
+      reduceMotion: reduceMotionRef.current,
+      paused: pausedRef.current,
+      inView: inViewRef.current,
+      pageVisible: pageVisibleRef.current,
+      count,
+      dragging: dragRef.current !== null,
+    });
+  }, [count]);
+
   const scheduleAdvance = useCallback(() => {
     clearDwell();
-    if (pausedRef.current || reduceMotionRef.current || !inViewRef.current || count < 2) {
-      return;
-    }
+    if (!canRun()) return;
     dwellTimerRef.current = setTimeout(() => {
-      if (pausedRef.current || reduceMotionRef.current || !inViewRef.current) {
-        return;
-      }
+      if (!canRun()) return;
       goBy(1);
       dwellTimerRef.current = setTimeout(() => {
         scheduleRef.current();
       }, slideMs + 50);
     }, dwellMs);
-  }, [count, dwellMs, goBy, slideMs]);
+  }, [canRun, dwellMs, goBy, slideMs]);
 
   useEffect(() => {
     scheduleRef.current = scheduleAdvance;
@@ -190,15 +251,21 @@ export function SnapCoverflow({
   }, []);
 
   useEffect(() => {
-    const mq = window.matchMedia("(prefers-reduced-motion: reduce)");
+    const motionMq = window.matchMedia("(prefers-reduced-motion: reduce)");
+    const hoverMq = window.matchMedia("(hover: hover) and (pointer: fine)");
     const apply = () => {
-      reduceMotionRef.current = mq.matches;
-      setMotionOk(!mq.matches);
-      if (mq.matches) pause();
+      hoverCapableRef.current = hoverMq.matches;
+      reduceMotionRef.current = motionMq.matches;
+      setMotionOk(!motionMq.matches);
+      if (motionMq.matches) pause();
     };
     apply();
-    mq.addEventListener("change", apply);
-    return () => mq.removeEventListener("change", apply);
+    motionMq.addEventListener("change", apply);
+    hoverMq.addEventListener("change", apply);
+    return () => {
+      motionMq.removeEventListener("change", apply);
+      hoverMq.removeEventListener("change", apply);
+    };
   }, [pause]);
 
   useEffect(() => {
@@ -208,17 +275,42 @@ export function SnapCoverflow({
       (entries) => {
         const entry = entries[0];
         if (!entry) return;
-        inViewRef.current = entry.isIntersecting;
-        if (entry.isIntersecting && !pausedRef.current) {
+        const nowInView = entry.isIntersecting;
+        const entered = nowInView && !inViewRef.current;
+        inViewRef.current = nowInView;
+        if (entered) {
+          // Recover from a stale mobile pause (sticky hover / leftover tap focus).
+          if (!dragRef.current && !keyboardFocusRef.current) {
+            pausedRef.current = false;
+          }
           scheduleRef.current();
-        } else {
+        } else if (!nowInView) {
           clearDwell();
         }
       },
-      { threshold: 0.15 },
+      { threshold: 0, rootMargin: "0px" },
     );
     io.observe(root);
     return () => io.disconnect();
+  }, []);
+
+  useEffect(() => {
+    const syncVisibility = () => {
+      pageVisibleRef.current = document.visibilityState === "visible";
+      if (pageVisibleRef.current && inViewRef.current && !dragRef.current) {
+        if (!keyboardFocusRef.current) pausedRef.current = false;
+        scheduleRef.current();
+      } else {
+        clearDwell();
+      }
+    };
+    pageVisibleRef.current = document.visibilityState === "visible";
+    document.addEventListener("visibilitychange", syncVisibility);
+    window.addEventListener("pageshow", syncVisibility);
+    return () => {
+      document.removeEventListener("visibilitychange", syncVisibility);
+      window.removeEventListener("pageshow", syncVisibility);
+    };
   }, []);
 
   useEffect(() => {
@@ -232,7 +324,7 @@ export function SnapCoverflow({
   }, [measureStep, count]);
 
   useEffect(() => {
-    if (!pausedRef.current && motionOk) scheduleAdvance();
+    if (motionOk) scheduleAdvance();
     return () => {
       clearDwell();
       clearResume();
@@ -240,13 +332,15 @@ export function SnapCoverflow({
     };
   }, [scheduleAdvance, motionOk]);
 
-  const onPointerEnter = () => {
-    if (!motionOk) return;
+  const onPointerEnter = (event: PointerEvent<HTMLDivElement>) => {
+    if (!motionOk || !hoverCapableRef.current) return;
+    if (event.pointerType && event.pointerType !== "mouse") return;
     pause();
   };
 
-  const onPointerLeave = () => {
-    if (!motionOk) return;
+  const onPointerLeave = (event: PointerEvent<HTMLDivElement>) => {
+    if (!motionOk || !hoverCapableRef.current) return;
+    if (event.pointerType && event.pointerType !== "mouse") return;
     if (dragRef.current) return;
     scheduleResume();
   };
@@ -260,7 +354,7 @@ export function SnapCoverflow({
     dragRef.current = {
       pointerId: event.pointerId,
       startX: event.clientX,
-      originIndex: indexRef.current >= count ? 0 : indexRef.current,
+      originIndex: indexRef.current,
     };
   };
 
@@ -334,20 +428,15 @@ export function SnapCoverflow({
   if (count === 0) return null;
 
   const trackOffset = -index * step + dragOffset;
-  const focusLogical = index >= count ? 0 : index;
+  const bands = looped && motionOk ? ([-1, 0, 1] as const) : ([0] as const);
 
-  const renderBand = (band: 0 | 1) =>
+  const renderBand = (band: -1 | 0 | 1) =>
     items.map((child, i) => {
       if (!isValidElement(child)) return child;
       const element = child as ReactElement<{ className?: string }>;
-      const showingActive =
-        (index < count && band === 0 && i === index) ||
-        (index === count && band === 1 && i === 0);
-
-      const distance = Math.min(
-        Math.abs(i - focusLogical),
-        count - Math.abs(i - focusLogical),
-      );
+      const absolute = looped && motionOk ? (band + 1) * count + i : i;
+      const showingActive = absolute === index;
+      const distance = Math.abs(absolute - index);
 
       const scale = motionOk
         ? showingActive
@@ -365,14 +454,16 @@ export function SnapCoverflow({
           }}
           className={cn(
             "shrink-0 origin-center will-change-transform",
-            motionOk ? "transition-[transform,opacity] duration-500 ease-premium" : "",
+            motionOk && animating
+              ? "transition-[transform,opacity] duration-500 ease-premium"
+              : "",
           )}
           style={{
             transform: `scale(${scale})`,
             opacity: motionOk ? (showingActive ? 1 : distance === 1 ? 0.9 : 0.78) : 1,
             zIndex: showingActive ? 3 : distance === 1 ? 2 : 1,
           }}
-          aria-hidden={band === 1 || !showingActive}
+          aria-hidden={!showingActive}
         >
           {cloneElement(element, {
             className: cn(
@@ -409,9 +500,15 @@ export function SnapCoverflow({
         onPointerCancel={endDrag}
         onKeyDown={onKeyDown}
         onClickCapture={onClickCapture}
-        onFocus={() => pause()}
+        onFocus={(event) => {
+          if (event.currentTarget.matches(":focus-visible")) {
+            keyboardFocusRef.current = true;
+            pause();
+          }
+        }}
         onBlur={(event) => {
           if (!event.currentTarget.contains(event.relatedTarget as Node | null)) {
+            keyboardFocusRef.current = false;
             scheduleResume();
           }
         }}
@@ -435,8 +532,7 @@ export function SnapCoverflow({
             willChange: "transform",
           }}
         >
-          {renderBand(0)}
-          {motionOk ? renderBand(1) : null}
+          {bands.map((band) => renderBand(band))}
         </div>
       </div>
     </div>

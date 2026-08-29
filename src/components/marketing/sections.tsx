@@ -29,19 +29,19 @@ export function Hero({
       {...props}
     >
       <Container>
-        <div className="grid items-center gap-10 tablet:grid-cols-2 tablet:gap-12">
-          <div className="mx-auto max-w-xl space-y-6 text-center tablet:mx-0 tablet:text-left">
+        <div className="grid min-w-0 items-center gap-10 tablet:grid-cols-2 tablet:gap-12">
+          <div className="mx-auto min-w-0 max-w-xl space-y-6 text-center tablet:mx-0 tablet:text-left">
             <h1
               id="hero-headline"
-              className="font-display text-display text-balance tracking-tight text-foreground"
+              className="font-display text-display text-pretty tracking-tight text-foreground [overflow-wrap:anywhere]"
             >
               {headline}
             </h1>
-            <p className="text-body-lg text-balance text-muted-foreground">
+            <p className="text-body-lg text-pretty text-muted-foreground [overflow-wrap:anywhere]">
               {supportingText}
             </p>
             {cta ? (
-              <div className="flex flex-col items-center gap-3 sm:flex-row tablet:justify-start">
+              <div className="flex w-full min-w-0 flex-col items-stretch gap-3 sm:items-center tablet:flex-row tablet:items-center tablet:justify-start [&_a]:w-full [&_a]:justify-center tablet:[&_a]:w-auto">
                 {cta}
               </div>
             ) : null}

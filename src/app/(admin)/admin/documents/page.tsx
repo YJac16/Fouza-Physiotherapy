@@ -9,11 +9,14 @@ import { createSignedDownloadUrl } from "@/lib/supabase/storage";
 export default async function AdminDocumentsPage() {
   await requireStaff();
   const supabase = await createClient();
-  const { data: documents } = await supabase
-    .from("documents")
-    .select("id, title, doc_type, created_at, patient_id, is_patient_visible, storage_path")
-    .order("created_at", { ascending: false })
-    .limit(40);
+  const [{ data: documents }, { data: patients }] = await Promise.all([
+    supabase
+      .from("documents")
+      .select("id, title, doc_type, created_at, patient_id, is_patient_visible, storage_path")
+      .order("created_at", { ascending: false })
+      .limit(40),
+    supabase.from("patients").select("id, first_name, last_name").order("last_name").limit(400),
+  ]);
 
   const withUrls = await Promise.all(
     (documents ?? []).map(async (doc) => {
@@ -65,7 +68,12 @@ export default async function AdminDocumentsPage() {
         </div>
       )}
 
-      <RegisterDocumentForm />
+      <RegisterDocumentForm
+        patients={(patients ?? []).map((patient) => ({
+          id: patient.id,
+          label: `${patient.first_name} ${patient.last_name}`,
+        }))}
+      />
     </div>
   );
 }

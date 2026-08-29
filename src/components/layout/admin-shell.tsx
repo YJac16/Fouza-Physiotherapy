@@ -2,6 +2,7 @@
 
 import {
   Activity,
+  Bell,
   BookOpen,
   Calendar,
   CalendarClock,
@@ -39,6 +40,7 @@ const adminNav = [
   { label: "Programmes", href: routes.admin.programmes, icon: Dumbbell },
   { label: "Billing", href: routes.admin.billing, icon: FileText },
   { label: "Documents", href: routes.admin.documents, icon: FileText },
+  { label: "Notifications", href: routes.admin.notifications, icon: Bell },
   { label: "Informed consent", href: routes.admin.consentForms, icon: ClipboardList },
   { label: "Availability", href: routes.admin.availability, icon: CalendarClock },
   { label: "Users", href: routes.admin.users, icon: Users, adminOnly: true },

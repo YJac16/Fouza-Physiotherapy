@@ -38,6 +38,15 @@ const portalNav = [
   { label: "Notifications", href: routes.portal.notifications, icon: Bell },
 ];
 
+function titleFromPath(pathname: string) {
+  const match = portalNav.find(
+    (item) =>
+      pathname === item.href ||
+      (item.href !== routes.portal.root && pathname.startsWith(item.href)),
+  );
+  return match?.label ?? "Dashboard";
+}
+
 export interface PortalSidebarProps {
   className?: string;
   onNavigate?: () => void;
@@ -173,6 +182,7 @@ export function PortalShell({
 }: PortalShellProps) {
   const pathname = usePathname();
   const [mobileOpen, setMobileOpen] = React.useState(false);
+  const resolvedTitle = title ?? titleFromPath(pathname);
 
   React.useEffect(() => {
     setMobileOpen(false);
@@ -211,7 +221,7 @@ export function PortalShell({
 
       <div className="flex min-w-0 flex-1 flex-col">
         <PortalHeader
-          title={title}
+          title={resolvedTitle}
           userName={userName}
           onMenuClick={() => setMobileOpen(true)}
           patients={patients}

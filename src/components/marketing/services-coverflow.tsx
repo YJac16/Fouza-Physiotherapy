@@ -67,9 +67,6 @@ export function ServicesCoverflow({
             />
           ))}
         </SnapCoverflow>
-        <p className="mt-1 px-5 text-center text-xs text-muted-foreground sm:px-6">
-          Hover to pause · drag or swipe · arrow keys
-        </p>
       </div>
     </Section>
   );

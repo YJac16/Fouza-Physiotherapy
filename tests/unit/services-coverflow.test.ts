@@ -7,6 +7,7 @@ import {
   COVERFLOW_DWELL_MS,
   COVERFLOW_SIDE_SCALE,
   COVERFLOW_SLIDE_MS,
+  shouldRunCoverflowAutoplay,
 } from "@/components/marketing/snap-coverflow";
 
 const clinicImagePaths = new Set<string>(Object.values(siteConfig.images));
@@ -58,5 +59,24 @@ describe("services coverflow catalogue", () => {
     expect(COVERFLOW_DWELL_MS).toBeGreaterThanOrEqual(5000);
     expect(COVERFLOW_DWELL_MS).toBeLessThanOrEqual(6000);
     expect(COVERFLOW_SLIDE_MS).toBeGreaterThanOrEqual(600);
+  });
+
+  it("autoplays only when the catalogue is visible, idle, and motion is allowed", () => {
+    const ready = {
+      reduceMotion: false,
+      paused: false,
+      inView: true,
+      pageVisible: true,
+      count: 5,
+      dragging: false,
+    };
+
+    expect(shouldRunCoverflowAutoplay(ready)).toBe(true);
+    expect(shouldRunCoverflowAutoplay({ ...ready, reduceMotion: true })).toBe(false);
+    expect(shouldRunCoverflowAutoplay({ ...ready, paused: true })).toBe(false);
+    expect(shouldRunCoverflowAutoplay({ ...ready, inView: false })).toBe(false);
+    expect(shouldRunCoverflowAutoplay({ ...ready, pageVisible: false })).toBe(false);
+    expect(shouldRunCoverflowAutoplay({ ...ready, dragging: true })).toBe(false);
+    expect(shouldRunCoverflowAutoplay({ ...ready, count: 1 })).toBe(false);
   });
 });

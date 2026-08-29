@@ -23,6 +23,27 @@ export const COVERFLOW_SLIDE_MS = 780;
 export const COVERFLOW_ACTIVE_SCALE = 1.18;
 export const COVERFLOW_SIDE_SCALE = 0.9;
 
+export type CoverflowAutoplayGate = {
+  reduceMotion: boolean;
+  paused: boolean;
+  inView: boolean;
+  pageVisible: boolean;
+  count: number;
+  dragging: boolean;
+};
+
+/** Shared gate so autoplay only runs when the strip is on-screen and idle. */
+export function shouldRunCoverflowAutoplay(state: CoverflowAutoplayGate) {
+  return (
+    !state.reduceMotion &&
+    !state.paused &&
+    state.inView &&
+    state.pageVisible &&
+    state.count >= 2 &&
+    !state.dragging
+  );
+}
+
 type SnapCoverflowProps = {
   children: ReactNode;
   dwellMs?: number;
@@ -37,7 +58,10 @@ type SnapCoverflowProps = {
 /**
  * Snap-to-centre coverflow adapted from Move in Africa’s catalogue motion,
  * restyled with Fouza defaults (teal focus, modest scale, 5–6s dwell).
- * Autoplay is disabled when `prefers-reduced-motion: reduce`.
+ *
+ * Autoplay starts when the strip enters the viewport. Hover-pause is limited
+ * to fine pointers (mouse); tap-focus and iOS sticky hover must not freeze it.
+ * `prefers-reduced-motion: reduce` disables autoplay (parent shows a grid).
  */
 export function SnapCoverflow({
   children,
@@ -56,7 +80,10 @@ export function SnapCoverflow({
   const resumeTimerRef = useRef<ReturnType<typeof setTimeout> | null>(null);
   const wrapTimerRef = useRef<ReturnType<typeof setTimeout> | null>(null);
   const pausedRef = useRef(false);
-  const inViewRef = useRef(true);
+  const inViewRef = useRef(false);
+  const pageVisibleRef = useRef(true);
+  const hoverCapableRef = useRef(false);
+  const keyboardFocusRef = useRef(false);
   const reduceMotionRef = useRef(false);
   const indexRef = useRef(0);
   const dragOffsetRef = useRef(0);
@@ -160,21 +187,28 @@ export function SnapCoverflow({
     [applyIndex, count],
   );
 
+  const canRun = useCallback(() => {
+    return shouldRunCoverflowAutoplay({
+      reduceMotion: reduceMotionRef.current,
+      paused: pausedRef.current,
+      inView: inViewRef.current,
+      pageVisible: pageVisibleRef.current,
+      count,
+      dragging: dragRef.current !== null,
+    });
+  }, [count]);
+
   const scheduleAdvance = useCallback(() => {
     clearDwell();
-    if (pausedRef.current || reduceMotionRef.current || !inViewRef.current || count < 2) {
-      return;
-    }
+    if (!canRun()) return;
     dwellTimerRef.current = setTimeout(() => {
-      if (pausedRef.current || reduceMotionRef.current || !inViewRef.current) {
-        return;
-      }
+      if (!canRun()) return;
       goBy(1);
       dwellTimerRef.current = setTimeout(() => {
         scheduleRef.current();
       }, slideMs + 50);
     }, dwellMs);
-  }, [count, dwellMs, goBy, slideMs]);
+  }, [canRun, dwellMs, goBy, slideMs]);
 
   useEffect(() => {
     scheduleRef.current = scheduleAdvance;
@@ -190,15 +224,21 @@ export function SnapCoverflow({
   }, []);
 
   useEffect(() => {
-    const mq = window.matchMedia("(prefers-reduced-motion: reduce)");
+    const motionMq = window.matchMedia("(prefers-reduced-motion: reduce)");
+    const hoverMq = window.matchMedia("(hover: hover) and (pointer: fine)");
     const apply = () => {
-      reduceMotionRef.current = mq.matches;
-      setMotionOk(!mq.matches);
-      if (mq.matches) pause();
+      hoverCapableRef.current = hoverMq.matches;
+      reduceMotionRef.current = motionMq.matches;
+      setMotionOk(!motionMq.matches);
+      if (motionMq.matches) pause();
     };
     apply();
-    mq.addEventListener("change", apply);
-    return () => mq.removeEventListener("change", apply);
+    motionMq.addEventListener("change", apply);
+    hoverMq.addEventListener("change", apply);
+    return () => {
+      motionMq.removeEventListener("change", apply);
+      hoverMq.removeEventListener("change", apply);
+    };
   }, [pause]);
 
   useEffect(() => {
@@ -208,17 +248,42 @@ export function SnapCoverflow({
       (entries) => {
         const entry = entries[0];
         if (!entry) return;
-        inViewRef.current = entry.isIntersecting;
-        if (entry.isIntersecting && !pausedRef.current) {
+        const nowInView = entry.isIntersecting;
+        const entered = nowInView && !inViewRef.current;
+        inViewRef.current = nowInView;
+        if (entered) {
+          // Recover from a stale mobile pause (sticky hover / leftover tap focus).
+          if (!dragRef.current && !keyboardFocusRef.current) {
+            pausedRef.current = false;
+          }
           scheduleRef.current();
-        } else {
+        } else if (!nowInView) {
           clearDwell();
         }
       },
-      { threshold: 0.15 },
+      { threshold: 0, rootMargin: "0px" },
     );
     io.observe(root);
     return () => io.disconnect();
+  }, []);
+
+  useEffect(() => {
+    const syncVisibility = () => {
+      pageVisibleRef.current = document.visibilityState === "visible";
+      if (pageVisibleRef.current && inViewRef.current && !dragRef.current) {
+        if (!keyboardFocusRef.current) pausedRef.current = false;
+        scheduleRef.current();
+      } else {
+        clearDwell();
+      }
+    };
+    pageVisibleRef.current = document.visibilityState === "visible";
+    document.addEventListener("visibilitychange", syncVisibility);
+    window.addEventListener("pageshow", syncVisibility);
+    return () => {
+      document.removeEventListener("visibilitychange", syncVisibility);
+      window.removeEventListener("pageshow", syncVisibility);
+    };
   }, []);
 
   useEffect(() => {
@@ -232,7 +297,7 @@ export function SnapCoverflow({
   }, [measureStep, count]);
 
   useEffect(() => {
-    if (!pausedRef.current && motionOk) scheduleAdvance();
+    if (motionOk) scheduleAdvance();
     return () => {
       clearDwell();
       clearResume();
@@ -240,13 +305,15 @@ export function SnapCoverflow({
     };
   }, [scheduleAdvance, motionOk]);
 
-  const onPointerEnter = () => {
-    if (!motionOk) return;
+  const onPointerEnter = (event: PointerEvent<HTMLDivElement>) => {
+    if (!motionOk || !hoverCapableRef.current) return;
+    if (event.pointerType && event.pointerType !== "mouse") return;
     pause();
   };
 
-  const onPointerLeave = () => {
-    if (!motionOk) return;
+  const onPointerLeave = (event: PointerEvent<HTMLDivElement>) => {
+    if (!motionOk || !hoverCapableRef.current) return;
+    if (event.pointerType && event.pointerType !== "mouse") return;
     if (dragRef.current) return;
     scheduleResume();
   };
@@ -409,9 +476,15 @@ export function SnapCoverflow({
         onPointerCancel={endDrag}
         onKeyDown={onKeyDown}
         onClickCapture={onClickCapture}
-        onFocus={() => pause()}
+        onFocus={(event) => {
+          if (event.currentTarget.matches(":focus-visible")) {
+            keyboardFocusRef.current = true;
+            pause();
+          }
+        }}
         onBlur={(event) => {
           if (!event.currentTarget.contains(event.relatedTarget as Node | null)) {
+            keyboardFocusRef.current = false;
             scheduleResume();
           }
         }}

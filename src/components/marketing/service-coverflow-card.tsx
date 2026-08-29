@@ -44,14 +44,18 @@ export function ServiceCoverflowCard({
         draggable={false}
       />
       <div
-        className="pointer-events-none absolute inset-x-0 bottom-0 h-[56%] bg-gradient-to-t from-black/92 via-black/52 to-transparent"
+        className="pointer-events-none absolute inset-x-0 bottom-0 h-[70%] bg-gradient-to-t from-black via-black/78 to-transparent"
+        aria-hidden
+      />
+      <div
+        className="pointer-events-none absolute inset-x-0 bottom-0 h-36 bg-gradient-to-t from-black/90 to-transparent"
         aria-hidden
       />
       <div className="absolute inset-x-0 bottom-0 p-5 sm:p-6">
-        <h3 className="font-display text-[1.05rem] font-semibold leading-snug tracking-tight text-white [text-shadow:0_2px_12px_rgba(0,0,0,0.55)] sm:text-xl">
+        <h3 className="font-display text-[1.05rem] font-semibold leading-snug tracking-tight text-white [text-shadow:0_2px_18px_rgba(0,0,0,0.85)] sm:text-xl">
           {title}
         </h3>
-        <p className="mt-1.5 text-sm font-medium leading-snug tracking-[0.03em] text-white/92 [text-shadow:0_1px_8px_rgba(0,0,0,0.45)]">
+        <p className="mt-1.5 text-sm font-medium leading-snug tracking-[0.02em] text-white [text-shadow:0_2px_14px_rgba(0,0,0,0.8)]">
           {qualifier}
         </p>
       </div>

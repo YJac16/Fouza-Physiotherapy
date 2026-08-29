@@ -25,6 +25,17 @@ test.describe("marketing smoke", () => {
     );
   });
 
+  test("coverflow autoplays to the next service and has no helper line", async ({ page }) => {
+    await page.goto("/");
+    await expect(page.getByText(/hover to pause/i)).toHaveCount(0);
+    const catalogue = page.getByRole("region", { name: /physiotherapy services/i });
+    await catalogue.scrollIntoViewIfNeeded();
+    await expect(catalogue.getByRole("link", { name: /dry needling/i })).toBeVisible();
+    await expect(catalogue.getByRole("link", { name: /manual therapy/i })).toBeVisible({
+      timeout: 9000,
+    });
+  });
+
   test("reduced motion falls back to a static services grid", async ({ page }) => {
     await page.emulateMedia({ reducedMotion: "reduce" });
     await page.goto("/");

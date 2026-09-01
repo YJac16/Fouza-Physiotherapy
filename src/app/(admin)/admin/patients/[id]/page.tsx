@@ -65,6 +65,14 @@ export default async function PatientDetailPage({
 
   const fullName = `${patient.first_name} ${patient.last_name}`;
 
+  const missingDetailLabels = [
+    !patient.email?.trim() ? "email" : null,
+    !patient.phone?.trim() ? "phone" : null,
+    !patient.date_of_birth ? "date of birth" : null,
+    !patient.id_number?.trim() ? "ID number" : null,
+    !patient.postal_address?.trim() ? "postal address" : null,
+  ].filter(Boolean) as string[];
+
   const timelineEntries: Array<TimelineItem & { sortKey: string }> = [
     ...timeline.appointments.map((appt) => ({
       id: `appt-${appt.id}`,
@@ -128,6 +136,9 @@ export default async function PatientDetailPage({
           <p className="text-sm text-muted-foreground">Patient record</p>
         </div>
         <div className="flex flex-wrap gap-2">
+          <Button asChild size="sm" variant="secondary">
+            <Link href="#patient-details">Edit details</Link>
+          </Button>
           <Button asChild size="sm">
             <Link href={`${routes.admin.newInitialAssessment}?patientId=${patient.id}`}>
               New assessment
@@ -146,6 +157,26 @@ export default async function PatientDetailPage({
           </Button>
         </div>
       </div>
+
+      {missingDetailLabels.length ? (
+        <Card className="border-warning/40 bg-warning/5">
+          <CardContent className="flex flex-wrap items-start justify-between gap-4 pt-6">
+            <div className="space-y-1">
+              <p className="font-medium">Patient details incomplete</p>
+              <p className="text-sm text-muted-foreground">
+                Missing: {missingDetailLabels.join(", ")}. Scroll to{" "}
+                <Link href="#patient-details" className="font-medium text-foreground underline-offset-4 hover:underline">
+                  Patient and account details
+                </Link>{" "}
+                below to add contact, ID, and billing information.
+              </p>
+            </div>
+            <Button asChild size="sm" variant="outline">
+              <Link href="#patient-details">Add details</Link>
+            </Button>
+          </CardContent>
+        </Card>
+      ) : null}
 
       <Card>
         <CardHeader className="flex flex-row flex-wrap items-center justify-between gap-3 space-y-0">
@@ -204,8 +235,11 @@ export default async function PatientDetailPage({
       </div>
 
       <Card>
-        <CardHeader>
+        <CardHeader className="flex flex-row flex-wrap items-center justify-between gap-3 space-y-0">
           <CardTitle className="text-h5">Demographics</CardTitle>
+          <Button asChild variant="ghost" size="sm">
+            <Link href="#patient-details">Update</Link>
+          </Button>
         </CardHeader>
         <CardContent className="grid gap-3 text-sm sm:grid-cols-2">
           <div>
@@ -217,6 +251,10 @@ export default async function PatientDetailPage({
             </p>
           </div>
           <div>
+            <span className="text-muted-foreground">ID number</span>
+            <p className="font-medium">{patient.id_number ?? "—"}</p>
+          </div>
+          <div>
             <span className="text-muted-foreground">Email</span>
             <p className="font-medium">{patient.email ?? "—"}</p>
           </div>
@@ -224,12 +262,26 @@ export default async function PatientDetailPage({
             <span className="text-muted-foreground">Phone</span>
             <p className="font-medium">{patient.phone ?? "—"}</p>
           </div>
-          {patient.notes ? (
-            <div className="sm:col-span-2">
-              <span className="text-muted-foreground">Notes</span>
-              <p className="font-medium">{patient.notes}</p>
-            </div>
-          ) : null}
+          <div className="sm:col-span-2">
+            <span className="text-muted-foreground">Postal address</span>
+            <p className="font-medium whitespace-pre-wrap">{patient.postal_address ?? "—"}</p>
+          </div>
+          <div>
+            <span className="text-muted-foreground">Medical aid</span>
+            <p className="font-medium">{patient.medical_aid_name ?? "—"}</p>
+          </div>
+          <div>
+            <span className="text-muted-foreground">Medical aid number</span>
+            <p className="font-medium">{patient.medical_aid_number ?? "—"}</p>
+          </div>
+          <div>
+            <span className="text-muted-foreground">Dependant code</span>
+            <p className="font-medium">{patient.medical_aid_dependant_code ?? "—"}</p>
+          </div>
+          <div className="sm:col-span-2">
+            <span className="text-muted-foreground">Clinical / admin notes</span>
+            <p className="font-medium whitespace-pre-wrap">{patient.notes ?? "—"}</p>
+          </div>
         </CardContent>
       </Card>
 
@@ -267,8 +319,9 @@ export default async function PatientDetailPage({
         </CardContent>
       </Card>
 
-      <EditPatientForm
-        values={{
+      <div id="patient-details" className="scroll-mt-24">
+        <EditPatientForm
+          values={{
           id: patient.id,
           firstName: patient.first_name,
           lastName: patient.last_name,
@@ -287,7 +340,8 @@ export default async function PatientDetailPage({
           billingAddress: patient.billing_address,
           accountHolderRelationship: accountHolder?.relationship,
         }}
-      />
+        />
+      </div>
 
       <PatientClinicalRecords
         patientId={patient.id}

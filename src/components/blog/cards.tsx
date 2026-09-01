@@ -1,4 +1,5 @@
 import { ArrowRight, Clock } from "lucide-react";
+import Image from "next/image";
 import type { HTMLAttributes, ReactNode } from "react";
 
 import { Avatar, AvatarFallback, AvatarImage } from "@/components/ui/avatar";
@@ -13,6 +14,7 @@ import {
 } from "@/components/ui/card";
 import { SearchBar, type SearchBarProps } from "@/components/ui/search-bar";
 import { Typography } from "@/components/ui/typography";
+import { marketingImageSizes } from "@/lib/images";
 import { cn } from "@/lib/utils";
 
 /* ── CategoryBadge ── */
@@ -75,12 +77,13 @@ export function ArticleCard({
   const content = (
     <>
       {imageSrc ? (
-        <div className="aspect-[16/9] overflow-hidden rounded-t-2xl bg-secondary">
-          {/* eslint-disable-next-line @next/next/no-img-element */}
-          <img
+        <div className="relative aspect-[16/9] overflow-hidden rounded-t-2xl bg-secondary">
+          <Image
             src={imageSrc}
             alt={imageAlt ?? title}
-            className="size-full object-cover transition-transform duration-350 ease-premium group-hover:scale-[1.02]"
+            fill
+            sizes={marketingImageSizes.card}
+            className="object-cover transition-transform duration-350 ease-premium group-hover:scale-[1.02]"
           />
         </div>
       ) : null}
@@ -174,12 +177,13 @@ export function FeaturedArticle({
       {...props}
     >
       {imageSrc ? (
-        <div className="aspect-[16/10] bg-secondary md:aspect-auto">
-          {/* eslint-disable-next-line @next/next/no-img-element */}
-          <img
+        <div className="relative aspect-[16/10] min-h-[12rem] bg-secondary md:aspect-auto md:h-full">
+          <Image
             src={imageSrc}
             alt={imageAlt ?? title}
-            className="size-full object-cover"
+            fill
+            sizes={marketingImageSizes.detail}
+            className="object-cover"
           />
         </div>
       ) : (

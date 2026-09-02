@@ -42,10 +42,6 @@ const nextConfig: NextConfig = {
       bodySizeLimit: "5mb",
     },
   },
-  eslint: {
-    // Warnings remain in WIP admin forms; block only on TypeScript/build failures for preview.
-    ignoreDuringBuilds: true,
-  },
   async redirects() {
     return [
       {

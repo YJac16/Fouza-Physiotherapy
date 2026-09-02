@@ -212,7 +212,7 @@ export function BookingWizard({
     if (serviceId && !visibleServices.some((service) => service.id === serviceId)) {
       setServiceId(null);
     }
-  }, [selectedPatient?.patientId]);
+  }, [selectedPatient, serviceId, visibleServices]);
 
   const holdTokenRef = useRef<string | null>(null);
   holdTokenRef.current = holdToken;

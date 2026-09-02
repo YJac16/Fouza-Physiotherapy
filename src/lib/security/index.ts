@@ -47,3 +47,31 @@ export const ALLOWED_UPLOAD_MIME = [
 export function isAllowedUploadMime(mime: string) {
   return (ALLOWED_UPLOAD_MIME as readonly string[]).includes(mime);
 }
+
+/** Reject open redirects and protocol-relative paths. */
+export function isSafeAppRedirectPath(path: string | null | undefined): path is string {
+  if (!path) return false;
+  if (!path.startsWith("/") || path.startsWith("//")) return false;
+  if (path.includes("://")) return false;
+  return true;
+}
+
+/**
+ * Authorize Vercel Cron / manual cron invocations.
+ * Production and preview require `CRON_SECRET`; local dev may omit it.
+ */
+export function authorizeCronRequest(request: Request): boolean {
+  const secret = process.env.CRON_SECRET?.trim();
+  const vercelEnv = process.env.VERCEL_ENV;
+  const isDeployed = vercelEnv === "production" || vercelEnv === "preview";
+
+  if (isDeployed && !secret) {
+    return false;
+  }
+  if (!secret) {
+    return true;
+  }
+
+  const auth = request.headers.get("authorization");
+  return auth === `Bearer ${secret}`;
+}

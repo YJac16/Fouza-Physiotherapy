@@ -36,7 +36,8 @@ This checklist tracks what must be true before public launch. Automated checks r
 | Native `/book` only — no external scheduler | Code + E2E |
 | Double-book prevention (exclusion constraints + hold overlap) | DB migration + unit tests |
 | Hold expiry + purge via cron | Code |
-| Past-date / timezone validation | Unit tests |
+| Past-date / timezone validation | Unit tests + server guards (`isPastBookingDateKey`, hold `startsAt` check) |
+| Live concurrent double-book race test | **Not run** — no Supabase credentials in agent VM |
 | Confirmation emails enqueued to outbox | Code |
 | Staff + patient notification on confirm | Code |
 
@@ -67,10 +68,23 @@ npm run typecheck
 npm run lint
 npm test
 npm run build
-npm run test:e2e   # requires `npx playwright install --with-deps chromium`
+CI=true npm run test:e2e   # production server + axe a11y scans
 ```
 
+`@axe-core/playwright` runs WCAG 2.x AA scans on critical public pages. Booking conflict smoke requires live Supabase credentials (`scripts/smoke-booking-conflicts.ts`).
+
 Production builds **fail on ESLint errors** (`ignoreDuringBuilds` removed).
+
+### Lighthouse (local production build, homepage)
+
+| Category | Score |
+|----------|-------|
+| Performance | 67 (large `/public` JPEGs — see [PERF_PUBLIC_ASSETS.md](PERF_PUBLIC_ASSETS.md)) |
+| Accessibility | 98 |
+| Best practices | 100 |
+| SEO | 100 |
+
+Re-run against `https://fouzaphysiotherapy.co.za` after deploy and image optimization.
 
 ## SEO
 

@@ -758,8 +758,9 @@ export function BookingWizard({
                   name="website"
                   tabIndex={-1}
                   autoComplete="off"
-                  aria-hidden
-                  className="pointer-events-none absolute left-[-9999px] h-0 w-0 opacity-0"
+                  hidden
+                  aria-hidden="true"
+                  className="hidden"
                 />
 
                 <div className="rounded-xl border border-border/70 bg-muted/20 p-4 text-sm">

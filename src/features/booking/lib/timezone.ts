@@ -16,6 +16,11 @@ export function toDateKey(date: Date = new Date()) {
   }).format(date);
 }
 
+/** True when the SAST calendar date is strictly before today in Johannesburg. */
+export function isPastBookingDateKey(dateKey: string, now: Date = new Date()) {
+  return dateKey < toDateKey(now);
+}
+
 export function combineDateAndTime(dateKey: string, timeHHmm: string) {
   // Interpret wall clock in SAST (UTC+2, no DST)
   return new Date(`${dateKey}T${timeHHmm}:00${SAST_OFFSET}`);

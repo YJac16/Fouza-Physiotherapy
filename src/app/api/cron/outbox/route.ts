@@ -1,17 +1,11 @@
 import { NextResponse } from "next/server";
 
-import { drainEmailOutbox } from "@/features/notifications";
 import { purgeExpiredHolds } from "@/features/booking/api/bookings";
-
-function authorize(request: Request) {
-  const secret = process.env.CRON_SECRET;
-  if (!secret) return true;
-  const auth = request.headers.get("authorization");
-  return auth === `Bearer ${secret}`;
-}
+import { drainEmailOutbox } from "@/features/notifications";
+import { authorizeCronRequest } from "@/lib/cron/auth";
 
 async function handle(request: Request) {
-  if (!authorize(request)) {
+  if (!authorizeCronRequest(request)) {
     return NextResponse.json({ error: "Unauthorized" }, { status: 401 });
   }
 

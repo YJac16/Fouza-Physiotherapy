@@ -36,6 +36,8 @@ Thumbs.db
 # Testing
 coverage
 .nyc_output
+test-results
+playwright-report
 
 # Supabase
 supabase/.branches

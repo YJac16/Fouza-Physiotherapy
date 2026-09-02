@@ -19,6 +19,7 @@ import {
   rescheduleBooking,
   updateAppointmentAttendance,
 } from "@/features/booking/api/bookings";
+import { isPastBookingDateKey } from "@/features/booking/lib/timezone";
 import { extendHoldForConsent } from "@/features/consent-forms/lib/guest-booking";
 import { INTAKE_SLUG } from "@/features/consent-forms/lib/completion";
 import {
@@ -50,6 +51,9 @@ export async function fetchSlotsAction(input: unknown): Promise<BookingActionSta
   if (parsed.data.excludeAppointmentId) {
     await requireStaff();
   }
+  if (isPastBookingDateKey(parsed.data.date)) {
+    return { slots: [] };
+  }
   try {
     const slots = await listAvailableSlots(parsed.data);
     return { slots };
@@ -68,6 +72,10 @@ export async function createHoldAction(input: unknown): Promise<BookingActionSta
   const limit = rateLimit(limitKey, 20, 60_000);
   if (!limit.ok) {
     return { error: "Too many slot requests. Please wait a minute and try again." };
+  }
+
+  if (new Date(parsed.data.startsAt) <= new Date()) {
+    return { error: "Cannot book a time in the past." };
   }
 
   try {

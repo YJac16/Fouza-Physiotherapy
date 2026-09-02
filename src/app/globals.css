@@ -151,6 +151,16 @@
     min-width: 2.75rem;
   }
 
+  /* WCAG AA: brand teal is too light for small text on white/muted backgrounds. */
+  .text-accent,
+  .text-primary {
+    color: hsl(var(--accent-soft-foreground));
+  }
+
+  a[class~="text-primary"]:hover {
+    color: hsl(186 45% 22%);
+  }
+
   .text-balance {
     text-wrap: balance;
   }

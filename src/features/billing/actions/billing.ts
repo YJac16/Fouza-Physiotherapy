@@ -211,7 +211,7 @@ async function applyInvoicePaymentStatus(invoiceId: string) {
   };
 }
 
-export async function listBillableAppointmentsForInvoice(input?: {
+export async function listBillableAppointmentsForInvoice(_input?: {
   includeAppointmentId?: string | null;
 }): Promise<BillableAppointmentOption[]> {
   await requireStaff();

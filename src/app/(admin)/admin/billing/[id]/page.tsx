@@ -9,6 +9,7 @@ import { InvoiceDocumentToolbar } from "@/features/billing/components/invoice-to
 import { InvoiceLineEditor } from "@/features/billing/components/invoice-line-editor";
 import { listActiveInvoiceServices } from "@/features/billing/actions/billing";
 import { EDITABLE_INVOICE_STATUSES } from "@/features/billing/lib/addons";
+import { invoicePaymentReference } from "@/features/billing/lib/invoice-print";
 import { totalsFromStoredInvoice } from "@/features/billing/lib/discounts";
 import {
   getInvoiceBankingSettings,
@@ -135,6 +136,8 @@ export default async function AdminInvoiceDetailPage({ params }: PageProps) {
             {displayStatus === "partially_paid"
               ? ` · outstanding R ${(outstandingCents / 100).toFixed(2)}`
               : ""}
+            {" · "}
+            Payment reference: {invoicePaymentReference(invoice.invoice_number)}
           </p>
         </div>
         <InvoiceDocumentToolbar

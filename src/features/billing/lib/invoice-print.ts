@@ -1,4 +1,8 @@
-/** Default payment terms when no due date is stored on the invoice. */
+/** Payment reference for EFT — always the invoice number. */
+export function invoicePaymentReference(invoiceNumber: string): string {
+  return invoiceNumber;
+}
+
 export const INVOICE_DEFAULT_DUE_DAYS = 7;
 
 export function effectiveInvoiceDueDate(

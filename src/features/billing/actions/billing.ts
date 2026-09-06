@@ -9,6 +9,7 @@ import { createServiceClient } from "@/lib/supabase/admin";
 import { drainEmailOutbox } from "@/features/notifications/lib/outbox";
 import { resolveBillingAlertRecipients } from "@/features/notifications/lib/appointment-emails";
 import { getInvoiceBankingSettings, resolvePatientInvoiceRecipient } from "@/features/billing/lib/invoice-data";
+import { effectiveInvoiceDueDate } from "@/features/billing/lib/invoice-print";
 import { listAccessiblePatients } from "@/features/patients/api/patients";
 import { EDITABLE_INVOICE_STATUSES } from "@/features/billing/lib/addons";
 import { invoiceTotalsFromLines } from "@/features/billing/lib/discounts";
@@ -58,7 +59,12 @@ const invoiceDiscountSchema = z.object({
   note: z.string().max(200).optional().nullable(),
 });
 
-export type BillingActionState = { error?: string; success?: string; id?: string };
+export type BillingActionState = {
+  error?: string;
+  success?: string;
+  id?: string;
+  invoiceNumber?: string;
+};
 export type SendInvoiceState = { error?: string; success?: string };
 
 export type BillableAppointmentOption = {
@@ -325,15 +331,19 @@ export async function createInvoiceAction(
   const { data: numberData, error: numError } = await admin.rpc("next_invoice_number");
   if (numError) return { error: numError.message };
 
+  const issueDate = new Date().toISOString().slice(0, 10);
+  const invoiceNumber = numberData as string;
+
   const supabase = await createClient();
   const { data, error } = await supabase
     .from("invoices")
     .insert({
       patient_id: headerParsed.data.patientId,
       appointment_id: headerParsed.data.appointmentId,
-      invoice_number: numberData as string,
+      invoice_number: invoiceNumber,
       status: "draft",
-      issue_date: new Date().toISOString().slice(0, 10),
+      issue_date: issueDate,
+      due_date: effectiveInvoiceDueDate(issueDate, null),
       subtotal_cents: totals.subtotalCents,
       discount_cents: totals.invoiceDiscountCents,
       discount_percent: totals.invoiceDiscountPercent,
@@ -366,7 +376,11 @@ export async function createInvoiceAction(
   revalidatePath("/admin/analytics");
   revalidatePath("/admin/billing");
   revalidatePath(`/admin/billing/${data.id}`);
-  return { success: "Invoice created", id: data.id };
+  return {
+    success: "Invoice created",
+    id: data.id,
+    invoiceNumber,
+  };
 }
 
 export async function updateInvoiceLineItemsAction(
@@ -552,7 +566,19 @@ export async function sendInvoiceEmailAction(invoiceId: string): Promise<SendInv
   if (outboxError) return { error: outboxError.message };
 
   await drainEmailOutbox(Math.max(5, 1 + practiceRecipients.length));
+
+  if (invoice.status === "draft") {
+    const { error: statusError } = await admin
+      .from("invoices")
+      .update({ status: "sent" })
+      .eq("id", invoiceId);
+    if (statusError) return { error: statusError.message };
+  }
+
+  revalidatePath("/admin/billing");
   revalidatePath(`/admin/billing/${invoiceId}`);
+  revalidatePath("/portal/invoices");
+  revalidatePath(`/portal/invoices/${invoiceId}`);
   return {
     success: isReceipt
       ? `Receipt emailed to ${recipientEmail}`
@@ -670,6 +696,7 @@ export async function listPatientInvoices(patientId?: string | null) {
     .from("invoices")
     .select("*, payments(amount_cents), patients(first_name, last_name)")
     .in("patient_id", ids)
+    .neq("status", "draft")
     .order("issue_date", { ascending: false });
 }
 

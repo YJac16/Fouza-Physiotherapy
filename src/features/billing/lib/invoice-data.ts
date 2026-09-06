@@ -90,6 +90,9 @@ export async function getInvoiceForPatient(invoiceId: string) {
     .maybeSingle();
 
   if (error || !invoice) return { invoice: null, error: error?.message ?? "Not found" };
+  if (invoice.status === "draft") {
+    return { invoice: null, error: "Not found" };
+  }
   return { invoice, error: null };
 }
 

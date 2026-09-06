@@ -6,6 +6,7 @@ import {
   invoicePatientSlug,
   invoicePrintBasename,
   invoicePrintDocumentTitle,
+  invoicePaymentReference,
   invoicePrintFilename,
 } from "@/features/billing/lib/invoice-print";
 
@@ -59,5 +60,11 @@ describe("invoicePrintDocumentTitle", () => {
     expect(invoicePrintDocumentTitle("INV-2026-00007", "Elyaaz Jacobs")).toBe(
       "INV-2026-00007_Elyaaz-Jacobs",
     );
+  });
+});
+
+describe("invoicePaymentReference", () => {
+  it("uses the invoice number", () => {
+    expect(invoicePaymentReference("INV-2026-00007")).toBe("INV-2026-00007");
   });
 });

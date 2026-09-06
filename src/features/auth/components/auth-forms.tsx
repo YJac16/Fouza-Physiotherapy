@@ -36,6 +36,24 @@ export function LoginForm({ redirectTo }: { redirectTo?: string }) {
         autoComplete="current-password"
         required
       />
+      <div className="flex items-start gap-2">
+        <input
+          type="checkbox"
+          id="rememberMe"
+          name="rememberMe"
+          value="true"
+          defaultChecked
+          className="mt-1 size-4 shrink-0 rounded border border-input accent-primary"
+        />
+        <div className="space-y-1 leading-none">
+          <Label htmlFor="rememberMe" className="font-normal">
+            Remember me on this device
+          </Label>
+          <p className="text-xs text-muted-foreground">
+            Stay signed in for 30 days. Uncheck on shared clinic computers.
+          </p>
+        </div>
+      </div>
       {state.error ? <FormMessage tone="error">{state.error}</FormMessage> : null}
       <Button type="submit" className="w-full" loading={pending}>
         Sign in

@@ -2,6 +2,7 @@
 
 import { redirect } from "next/navigation";
 import { z } from "zod";
+import { cookies } from "next/headers";
 
 import {
   loginSchema,
@@ -9,6 +10,11 @@ import {
   forgotPasswordSchema,
   resetPasswordSchema,
 } from "@/features/auth/schemas/auth";
+import {
+  AUTH_REMEMBER_COOKIE,
+  AUTH_REMEMBER_MAX_AGE_SECONDS,
+  parseRememberMeFromForm,
+} from "@/lib/supabase/auth-cookies";
 import { createClient } from "@/lib/supabase/server";
 import { createServiceClient } from "@/lib/supabase/admin";
 import { isStaffRole, requireAdmin } from "@/lib/auth/guards";
@@ -32,7 +38,17 @@ export async function signInAction(
     return { error: parsed.error.errors[0]?.message ?? "Invalid credentials" };
   }
 
-  const supabase = await createClient();
+  const rememberMe = parseRememberMeFromForm(formData);
+  const cookieStore = await cookies();
+  cookieStore.set(AUTH_REMEMBER_COOKIE, rememberMe ? "1" : "0", {
+    path: "/",
+    httpOnly: true,
+    sameSite: "lax",
+    secure: process.env.NODE_ENV === "production",
+    maxAge: AUTH_REMEMBER_MAX_AGE_SECONDS,
+  });
+
+  const supabase = await createClient({ rememberMe });
   const { error } = await supabase.auth.signInWithPassword(parsed.data);
   if (error) return { error: error.message };
 

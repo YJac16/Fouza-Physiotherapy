@@ -137,6 +137,15 @@ export function InvoiceBuilderForm({
     return (
       <div className="space-y-4 rounded-2xl border border-border p-4">
         <FormMessage tone="success">Invoice created as draft.</FormMessage>
+        {state.invoiceNumber ? (
+          <p className="text-sm">
+            <span className="font-medium">{state.invoiceNumber}</span>
+            <span className="text-muted-foreground">
+              {" "}
+              · payment reference: {state.invoiceNumber}
+            </span>
+          </p>
+        ) : null}
         <p className="text-sm text-muted-foreground">
           Review the invoice before sending it to the patient.
         </p>

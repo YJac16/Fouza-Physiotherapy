@@ -9,11 +9,14 @@ import { InvoiceDocumentToolbar } from "@/features/billing/components/invoice-to
 import { InvoiceLineEditor } from "@/features/billing/components/invoice-line-editor";
 import { listActiveInvoiceServices } from "@/features/billing/actions/billing";
 import { EDITABLE_INVOICE_STATUSES } from "@/features/billing/lib/addons";
+import { invoicePaymentReference } from "@/features/billing/lib/invoice-print";
 import { totalsFromStoredInvoice } from "@/features/billing/lib/discounts";
 import {
   getInvoiceBankingSettings,
   getInvoiceForStaff,
+  getInvoicePracticeIdentifiers,
 } from "@/features/billing/lib/invoice-data";
+import { InvoicePrintTitle } from "@/features/billing/components/invoice-print-title";
 import {
   invoiceDisplayLabel,
   invoiceDisplayStatus,
@@ -28,10 +31,11 @@ type PageProps = { params: Promise<{ id: string }> };
 
 export default async function AdminInvoiceDetailPage({ params }: PageProps) {
   const { id } = await params;
-  const [{ invoice, error }, banking, services] = await Promise.all([
+  const [{ invoice, error }, banking, services, practiceIds] = await Promise.all([
     getInvoiceForStaff(id),
     getInvoiceBankingSettings(),
     listActiveInvoiceServices(),
+    getInvoicePracticeIdentifiers(),
   ]);
 
   if (error || !invoice) notFound();
@@ -132,10 +136,14 @@ export default async function AdminInvoiceDetailPage({ params }: PageProps) {
             {displayStatus === "partially_paid"
               ? ` · outstanding R ${(outstandingCents / 100).toFixed(2)}`
               : ""}
+            {" · "}
+            Payment reference: {invoicePaymentReference(invoice.invoice_number)}
           </p>
         </div>
         <InvoiceDocumentToolbar
           invoiceId={invoice.id}
+          invoiceNumber={invoice.invoice_number}
+          patientName={recipientName}
           canSend
           canVoid={canEdit && invoice.status !== "void"}
         />
@@ -179,7 +187,9 @@ export default async function AdminInvoiceDetailPage({ params }: PageProps) {
         </p>
       )}
 
-      <div id="preview">
+      <InvoicePrintTitle invoiceNumber={invoice.invoice_number} patientName={recipientName} />
+
+      <div id="preview" className="invoice-print-root">
         <InvoiceReceiptDocument
         variant={isReceipt ? "receipt" : "invoice"}
         invoiceNumber={invoice.invoice_number}
@@ -188,8 +198,12 @@ export default async function AdminInvoiceDetailPage({ params }: PageProps) {
         dueDate={invoice.due_date}
         practiceName={siteConfig.practiceName}
         practiceAddress={`${siteConfig.address}, ${siteConfig.region}`}
+        practiceNumber={practiceIds.practiceNumber}
+        ptNumber={practiceIds.ptNumber}
+        practiceVatNumber={practiceIds.vatNumber}
         patientName={recipientName}
-        patientAddress={patient?.billing_address || patient?.postal_address}
+        patientPostalAddress={patient?.postal_address}
+        patientPhysicalAddress={patient?.billing_address}
         accountHolderName={useBillingAsRecipient ? undefined : billingName}
         accountHolderEmail={useBillingAsRecipient ? undefined : patient?.billing_email}
         lines={lines}
@@ -197,7 +211,6 @@ export default async function AdminInvoiceDetailPage({ params }: PageProps) {
         taxCents={invoice.tax_cents}
         totalCents={payableCents}
         discountCents={computed.displayDiscountCents}
-        discountNote={invoice.discount_note}
         amountPaidCents={amountPaidCents}
         balanceDueCents={outstandingCents}
         paymentMethod={latestPayment?.method}

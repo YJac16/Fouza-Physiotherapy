@@ -1,6 +1,12 @@
 import { createServerClient } from "@supabase/ssr";
 import { type NextRequest, NextResponse } from "next/server";
 
+import {
+  applyRememberMeCookieOptions,
+  rememberMeFromCookieValue,
+  AUTH_REMEMBER_COOKIE,
+} from "@/lib/supabase/auth-cookies";
+
 /**
  * Refreshes the Supabase auth session from middleware cookies.
  */
@@ -8,6 +14,8 @@ export async function updateSession(request: NextRequest) {
   let supabaseResponse = NextResponse.next({
     request,
   });
+
+  const rememberMe = rememberMeFromCookieValue(request.cookies.get(AUTH_REMEMBER_COOKIE)?.value);
 
   const supabase = createServerClient(
     process.env.NEXT_PUBLIC_SUPABASE_URL!,
@@ -31,7 +39,13 @@ export async function updateSession(request: NextRequest) {
             request,
           });
           cookiesToSet.forEach(({ name, value, options }) => {
-            supabaseResponse.cookies.set(name, value, options);
+            supabaseResponse.cookies.set(
+              name,
+              value,
+              applyRememberMeCookieOptions(name, options, rememberMe) as Parameters<
+                typeof supabaseResponse.cookies.set
+              >[2],
+            );
           });
         },
       },

@@ -14,6 +14,30 @@ function asString(value: unknown, fallback: string) {
   return typeof value === "string" && value.trim() ? value : fallback;
 }
 
+export type InvoicePracticeIdentifiers = {
+  practiceNumber: string | null;
+  ptNumber: string | null;
+  vatNumber: string | null;
+};
+
+export async function getInvoicePracticeIdentifiers(): Promise<InvoicePracticeIdentifiers> {
+  const [practiceNumberSetting, ptNumberSetting, vatNumberSetting] = await Promise.all([
+    getPracticeSetting("practice.number"),
+    getPracticeSetting("practice.pt_number"),
+    getPracticeSetting("practice.vat_number"),
+  ]);
+
+  const practiceNumberFromDb =
+    typeof practiceNumberSetting === "string" ? practiceNumberSetting.trim() : null;
+  const envPracticeNumber = siteConfig.founder.practiceNumber?.trim() || null;
+
+  return {
+    practiceNumber: envPracticeNumber || practiceNumberFromDb,
+    ptNumber: typeof ptNumberSetting === "string" ? ptNumberSetting.trim() || null : null,
+    vatNumber: typeof vatNumberSetting === "string" ? vatNumberSetting.trim() || null : null,
+  };
+}
+
 export async function getInvoiceBankingSettings(): Promise<InvoiceDocumentBanking> {
   const [bankName, accountName, accountNumber, branchCode, accountType, proofEmail] =
     await Promise.all([
@@ -66,6 +90,9 @@ export async function getInvoiceForPatient(invoiceId: string) {
     .maybeSingle();
 
   if (error || !invoice) return { invoice: null, error: error?.message ?? "Not found" };
+  if (invoice.status === "draft") {
+    return { invoice: null, error: "Not found" };
+  }
   return { invoice, error: null };
 }
 

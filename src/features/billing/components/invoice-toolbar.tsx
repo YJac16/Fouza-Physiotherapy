@@ -7,16 +7,21 @@ import {
   sendInvoiceEmailAction,
   voidInvoiceAction,
 } from "@/features/billing/actions/billing";
+import { invoicePrintFilename } from "@/features/billing/lib/invoice-print";
 import { ConfirmAction } from "@/components/ui/confirm-action";
 import { Button } from "@/components/ui/button";
 import { FormMessage } from "@/components/ui/form-message";
 
 export function InvoiceDocumentToolbar({
   invoiceId,
+  invoiceNumber,
+  patientName,
   canSend = false,
   canVoid = false,
 }: {
   invoiceId: string;
+  invoiceNumber: string;
+  patientName: string;
   canSend?: boolean;
   canVoid?: boolean;
 }) {
@@ -28,6 +33,7 @@ export function InvoiceDocumentToolbar({
   );
 
   function handlePrint() {
+    document.title = invoicePrintFilename(invoiceNumber, patientName);
     window.print();
   }
 

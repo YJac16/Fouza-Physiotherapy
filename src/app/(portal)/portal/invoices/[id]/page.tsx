@@ -9,7 +9,9 @@ import { InvoiceDocumentToolbar } from "@/features/billing/components/invoice-to
 import {
   getInvoiceBankingSettings,
   getInvoiceForPatient,
+  getInvoicePracticeIdentifiers,
 } from "@/features/billing/lib/invoice-data";
+import { InvoicePrintTitle } from "@/features/billing/components/invoice-print-title";
 import { totalsFromStoredInvoice } from "@/features/billing/lib/discounts";
 import {
   invoiceDisplayStatus,
@@ -24,9 +26,10 @@ type PageProps = { params: Promise<{ id: string }> };
 
 export default async function PortalInvoiceDetailPage({ params }: PageProps) {
   const { id } = await params;
-  const [{ invoice, error }, banking] = await Promise.all([
+  const [{ invoice, error }, banking, practiceIds] = await Promise.all([
     getInvoiceForPatient(id),
     getInvoiceBankingSettings(),
+    getInvoicePracticeIdentifiers(),
   ]);
 
   if (error || !invoice) notFound();
@@ -111,9 +114,16 @@ export default async function PortalInvoiceDetailPage({ params }: PageProps) {
             {isReceipt ? "Receipt" : "Invoice"} {invoice.invoice_number}
           </h1>
         </div>
-        <InvoiceDocumentToolbar invoiceId={invoice.id} />
+        <InvoiceDocumentToolbar
+          invoiceId={invoice.id}
+          invoiceNumber={invoice.invoice_number}
+          patientName={recipientName}
+        />
       </div>
 
+      <InvoicePrintTitle invoiceNumber={invoice.invoice_number} patientName={recipientName} />
+
+      <div className="invoice-print-root">
       <InvoiceReceiptDocument
         variant={isReceipt ? "receipt" : "invoice"}
         invoiceNumber={invoice.invoice_number}
@@ -121,8 +131,12 @@ export default async function PortalInvoiceDetailPage({ params }: PageProps) {
         dueDate={invoice.due_date}
         practiceName={siteConfig.practiceName}
         practiceAddress={`${siteConfig.address}, ${siteConfig.region}`}
+        practiceNumber={practiceIds.practiceNumber}
+        ptNumber={practiceIds.ptNumber}
+        practiceVatNumber={practiceIds.vatNumber}
         patientName={recipientName}
-        patientAddress={patient?.billing_address || patient?.postal_address}
+        patientPostalAddress={patient?.postal_address}
+        patientPhysicalAddress={patient?.billing_address}
         accountHolderName={useBillingAsRecipient ? undefined : billingName}
         accountHolderEmail={useBillingAsRecipient ? undefined : patient?.billing_email}
         lines={lines}
@@ -130,13 +144,13 @@ export default async function PortalInvoiceDetailPage({ params }: PageProps) {
         taxCents={invoice.tax_cents}
         totalCents={payableCents}
         discountCents={computed.displayDiscountCents}
-        discountNote={invoice.discount_note}
         amountPaidCents={amountPaidCents}
         balanceDueCents={outstandingCents}
         paymentMethod={latestPayment?.method}
         paidAt={latestPayment?.paid_at}
         banking={banking}
       />
+      </div>
     </div>
   );
 }

@@ -58,7 +58,7 @@ export function PortalSidebar({ className, onNavigate }: PortalSidebarProps) {
   return (
     <aside
       className={cn(
-        "flex h-full w-64 flex-col border-r border-border/70 bg-card",
+        "flex h-full w-64 flex-col border-r border-border/70 bg-card print:hidden",
         className,
       )}
     >
@@ -114,7 +114,7 @@ export function PortalHeader({
   return (
     <header
       className={cn(
-        "flex h-16 items-center justify-between gap-4 border-b border-border/70 bg-card/80 px-4 backdrop-blur-xl md:px-6",
+        "flex h-16 items-center justify-between gap-4 border-b border-border/70 bg-card/80 px-4 backdrop-blur-xl md:px-6 print:hidden",
         className,
       )}
     >
@@ -190,7 +190,7 @@ export function PortalShell({
 
   return (
     <div className="flex min-h-screen bg-background">
-      <div className="hidden md:block">
+      <div className="hidden md:block print:hidden">
         <PortalSidebar />
       </div>
 

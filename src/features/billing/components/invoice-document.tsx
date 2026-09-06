@@ -1,6 +1,7 @@
 import Image from "next/image";
 
 import { siteConfig } from "@/config/site";
+import { effectiveInvoiceDueDate } from "@/features/billing/lib/invoice-print";
 import { cn } from "@/lib/utils";
 
 export type InvoiceDocumentLine = {
@@ -32,8 +33,12 @@ export type InvoiceDocumentProps = {
   salesRep?: string;
   practiceName?: string;
   practiceAddress?: string;
+  practiceNumber?: string | null;
+  ptNumber?: string | null;
+  practiceVatNumber?: string | null;
   patientName: string;
-  patientAddress?: string | null;
+  patientPostalAddress?: string | null;
+  patientPhysicalAddress?: string | null;
   accountHolderName?: string | null;
   accountHolderEmail?: string | null;
   lines: InvoiceDocumentLine[];
@@ -41,7 +46,6 @@ export type InvoiceDocumentProps = {
   taxCents: number;
   totalCents: number;
   discountCents?: number;
-  discountNote?: string | null;
   balanceDueCents?: number;
   amountPaidCents?: number;
   paymentMethod?: string | null;
@@ -63,6 +67,10 @@ function formatDate(value: string) {
   return d.toLocaleDateString("en-ZA");
 }
 
+function hasText(value?: string | null) {
+  return Boolean(value?.trim());
+}
+
 export const DEFAULT_BANKING: InvoiceDocumentBanking = {
   bankName: "FNB",
   accountName: "Fouza Abrahams",
@@ -81,8 +89,12 @@ export function InvoiceReceiptDocument({
   salesRep = siteConfig.founder.name.toUpperCase(),
   practiceName = siteConfig.practiceName,
   practiceAddress = `${siteConfig.address}, ${siteConfig.region}`,
+  practiceNumber,
+  ptNumber,
+  practiceVatNumber,
   patientName,
-  patientAddress,
+  patientPostalAddress,
+  patientPhysicalAddress,
   accountHolderName,
   accountHolderEmail,
   lines,
@@ -90,7 +102,6 @@ export function InvoiceReceiptDocument({
   taxCents,
   totalCents,
   discountCents = 0,
-  discountNote,
   balanceDueCents,
   amountPaidCents,
   paymentMethod,
@@ -105,6 +116,8 @@ export function InvoiceReceiptDocument({
   const balance =
     balanceDueCents ?? (isReceipt ? 0 : Math.max(grandTotal - (amountPaidCents ?? 0), 0));
   const showLineDiscounts = lines.some((line) => (line.discountCents ?? 0) > 0);
+  const effectiveDueDate = effectiveInvoiceDueDate(issueDate, dueDate);
+  const isVatRegistered = Boolean(practiceVatNumber?.trim()) || taxCents > 0;
 
   return (
     <article
@@ -114,7 +127,7 @@ export function InvoiceReceiptDocument({
       )}
     >
       <div className="space-y-6 p-6 sm:p-8 print:p-0">
-        <header className="flex flex-col gap-6 border-b border-[#d8d8d8] pb-6 sm:flex-row sm:items-start sm:justify-between">
+        <div className="invoice-doc-header flex flex-col gap-6 border-b border-[#d8d8d8] pb-6 sm:flex-row sm:items-start sm:justify-between">
           <div className="shrink-0">
             <Image
               src="/fouza-physiotherapy-logo-no-background.png"
@@ -129,11 +142,8 @@ export function InvoiceReceiptDocument({
             <h1 className="text-3xl font-bold tracking-wide text-[#111]">
               {isReceipt ? "RECEIPT" : "INVOICE"}
             </h1>
+            <p className="mt-1 text-xl font-bold tracking-wide text-[#111]">{invoiceNumber}</p>
             <dl className="mt-3 space-y-1 text-sm">
-              <div className="flex gap-2 sm:justify-end">
-                <dt className="text-[#666]">Number:</dt>
-                <dd className="font-medium">{invoiceNumber}</dd>
-              </div>
               {reference ? (
                 <div className="flex gap-2 sm:justify-end">
                   <dt className="text-[#666]">Reference:</dt>
@@ -141,26 +151,28 @@ export function InvoiceReceiptDocument({
                 </div>
               ) : null}
               <div className="flex gap-2 sm:justify-end">
-                <dt className="text-[#666]">Date:</dt>
+                <dt className="text-[#666]">Invoice Date:</dt>
                 <dd className="font-medium">{formatDate(issueDate)}</dd>
               </div>
-              {dueDate ? (
+              {!isReceipt ? (
                 <div className="flex gap-2 sm:justify-end">
                   <dt className="text-[#666]">Due Date:</dt>
-                  <dd className="font-medium">{formatDate(dueDate)}</dd>
+                  <dd className="font-medium">{formatDate(effectiveDueDate)}</dd>
+                </div>
+              ) : null}
+              {isReceipt && paidAt ? (
+                <div className="flex gap-2 sm:justify-end">
+                  <dt className="text-[#666]">Paid on:</dt>
+                  <dd className="font-medium">{formatDate(paidAt)}</dd>
                 </div>
               ) : null}
               <div className="flex gap-2 sm:justify-end">
                 <dt className="text-[#666]">Sales Rep:</dt>
                 <dd className="font-medium">{salesRep}</dd>
               </div>
-              <div className="flex gap-2 sm:justify-end">
-                <dt className="text-[#666]">Page:</dt>
-                <dd className="font-medium">1/1</dd>
-              </div>
             </dl>
           </div>
-        </header>
+        </div>
 
         <div className="grid gap-6 sm:grid-cols-2">
           <section>
@@ -176,8 +188,24 @@ export function InvoiceReceiptDocument({
               <br />
               {practiceAddress}
             </p>
+            {practiceNumber ? (
+              <p className="mt-2 text-sm text-[#444]">
+                <span className="font-medium text-[#666]">HPCSA Practice No:</span> {practiceNumber}
+              </p>
+            ) : null}
+            {ptNumber ? (
+              <p className="mt-1 text-sm text-[#444]">
+                <span className="font-medium text-[#666]">PT No:</span> {ptNumber}
+              </p>
+            ) : null}
             <p className="mt-2 text-sm text-[#444]">
-              <span className="font-medium text-[#666]">VAT NO:</span>
+              {practiceVatNumber ? (
+                <>
+                  <span className="font-medium text-[#666]">VAT NO:</span> {practiceVatNumber}
+                </>
+              ) : (
+                <span className="italic text-[#666]">Not VAT registered</span>
+              )}
             </p>
           </section>
           <section>
@@ -190,19 +218,20 @@ export function InvoiceReceiptDocument({
                 {[accountHolderName, accountHolderEmail].filter(Boolean).join(" · ")}
               </p>
             ) : null}
-            <p className="mt-2 text-sm text-[#444]">
-              <span className="font-medium text-[#666]">Customer VAT NO:</span>
-            </p>
-            <p className="mt-2 text-sm text-[#444]">
-              <span className="font-medium text-[#666]">Postal Address:</span>
-              <br />
-              {patientAddress || "—"}
-            </p>
-            <p className="mt-2 text-sm text-[#444]">
-              <span className="font-medium text-[#666]">Physical Address:</span>
-              <br />
-              {patientAddress || "—"}
-            </p>
+            {hasText(patientPostalAddress) ? (
+              <p className="mt-2 text-sm text-[#444]">
+                <span className="font-medium text-[#666]">Postal Address:</span>
+                <br />
+                {patientPostalAddress}
+              </p>
+            ) : null}
+            {hasText(patientPhysicalAddress) ? (
+              <p className="mt-2 text-sm text-[#444]">
+                <span className="font-medium text-[#666]">Physical Address:</span>
+                <br />
+                {patientPhysicalAddress}
+              </p>
+            ) : null}
           </section>
         </div>
 
@@ -214,9 +243,11 @@ export function InvoiceReceiptDocument({
                 <th className="px-3 py-2 font-medium">Quantity</th>
                 <th className="px-3 py-2 font-medium">Unit Price</th>
                 {showLineDiscounts ? <th className="px-3 py-2 font-medium">Discount</th> : null}
-                {taxCents > 0 ? <th className="px-3 py-2 font-medium">VAT %</th> : null}
-                <th className="px-3 py-2 font-medium">{taxCents > 0 ? "Excl. Total" : "Amount"}</th>
-                {taxCents > 0 ? <th className="px-3 py-2 font-medium">Incl. Total</th> : null}
+                {isVatRegistered ? <th className="px-3 py-2 font-medium">VAT %</th> : null}
+                <th className="px-3 py-2 font-medium">
+                  {isVatRegistered ? "Excl. Total" : "Amount"}
+                </th>
+                {isVatRegistered ? <th className="px-3 py-2 font-medium">Incl. Total</th> : null}
               </tr>
             </thead>
             <tbody>
@@ -241,9 +272,11 @@ export function InvoiceReceiptDocument({
                           : "—"}
                       </td>
                     ) : null}
-                    {taxCents > 0 ? <td className="px-3 py-2.5">{vatPct.toFixed(2)}%</td> : null}
+                    {isVatRegistered ? (
+                      <td className="px-3 py-2.5">{vatPct.toFixed(2)}%</td>
+                    ) : null}
                     <td className="px-3 py-2.5">{money(excl)}</td>
-                    {taxCents > 0 ? (
+                    {isVatRegistered ? (
                       <td className="px-3 py-2.5 font-medium">{money(excl)}</td>
                     ) : null}
                   </tr>
@@ -272,6 +305,16 @@ export function InvoiceReceiptDocument({
               <span className="text-[#666]">Account Type:</span> {banking.accountType}
             </p>
             <p className="pt-3 text-[#444]">
+              Please use <span className="font-semibold">{invoiceNumber}</span>
+              {patientName ? (
+                <>
+                  {" "}
+                  or <span className="font-semibold">{patientName}</span>
+                </>
+              ) : null}{" "}
+              as your payment reference.
+            </p>
+            <p className="text-[#444]">
               Kindly send proof of payment to {banking.proofEmail}
             </p>
             {isReceipt && (paymentMethod || paidAt) ? (
@@ -291,10 +334,7 @@ export function InvoiceReceiptDocument({
               <span className="text-[#666]">Total Discount</span>
               <span>{discountCents > 0 ? `−${money(discountCents)}` : money(0)}</span>
             </div>
-            {discountNote ? (
-              <p className="text-xs text-[#666] sm:text-right">{discountNote}</p>
-            ) : null}
-            {taxCents > 0 ? (
+            {isVatRegistered ? (
               <>
                 <div className="flex justify-between gap-6 sm:justify-end">
                   <span className="text-[#666]">Total Exclusive</span>
@@ -305,12 +345,7 @@ export function InvoiceReceiptDocument({
                   <span>{money(taxCents)}</span>
                 </div>
               </>
-            ) : (
-              <div className="flex justify-between gap-6 sm:justify-end">
-                <span className="text-[#666]">VAT</span>
-                <span>{money(0)}</span>
-              </div>
-            )}
+            ) : null}
             <div className="flex justify-between gap-6 border-t border-[#ddd] pt-2 text-base font-semibold sm:justify-end">
               <span>Grand Total</span>
               <span>{money(grandTotal)}</span>

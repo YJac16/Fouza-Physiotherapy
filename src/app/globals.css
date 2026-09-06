@@ -176,23 +176,47 @@
 }
 
 @media print {
+  @page {
+    margin: 12mm;
+    size: A4;
+  }
+
+  html,
   body {
     background: white !important;
+    height: auto !important;
   }
 
-  .invoice-document {
-    box-shadow: none !important;
-    max-width: none !important;
-  }
-
-  header,
-  nav,
   aside,
+  nav,
   .print\:hidden {
     display: none !important;
   }
 
   main {
     padding: 0 !important;
+  }
+
+  .invoice-document {
+    box-shadow: none !important;
+    max-width: none !important;
+    margin: 0 !important;
+  }
+
+  /* Print only the invoice preview — hides admin/portal chrome still in DOM */
+  body * {
+    visibility: hidden;
+  }
+
+  .invoice-print-root,
+  .invoice-print-root * {
+    visibility: visible;
+  }
+
+  .invoice-print-root {
+    position: absolute;
+    left: 0;
+    top: 0;
+    width: 100%;
   }
 }

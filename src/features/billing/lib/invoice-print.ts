@@ -12,15 +12,45 @@ export function effectiveInvoiceDueDate(
   return d.toISOString().slice(0, 10);
 }
 
-/** Human-readable default filename for Print → Save as PDF. */
-export function invoicePrintFilename(invoiceNumber: string, patientName: string): string {
-  const slug = patientName
+/** ASCII patient slug for filenames: hyphens, no spaces. */
+export function invoicePatientSlug(patientName?: string | null): string | null {
+  const slug = (patientName ?? "")
     .trim()
+    .normalize("NFKD")
+    .replace(/[\u0300-\u036f]/g, "")
     .replace(/[^a-zA-Z0-9\s-]/g, "")
     .split(/\s+/)
     .filter(Boolean)
-    .map((part) => part.charAt(0).toUpperCase() + part.slice(1).toLowerCase())
     .join("-");
 
-  return slug ? `${invoiceNumber}-${slug}` : `Fouza-${invoiceNumber}`;
+  return slug || null;
+}
+
+/**
+ * Base name for invoice print/download (no extension).
+ * Primary: INV-2026-00007
+ * With patient: INV-2026-00007_Elyaaz-Jacobs
+ */
+export function invoicePrintBasename(
+  invoiceNumber: string,
+  patientName?: string | null,
+): string {
+  const slug = invoicePatientSlug(patientName);
+  return slug ? `${invoiceNumber}_${slug}` : invoiceNumber;
+}
+
+/** Full filename for Save as PDF / Content-Disposition. */
+export function invoicePrintFilename(
+  invoiceNumber: string,
+  patientName?: string | null,
+): string {
+  return `${invoicePrintBasename(invoiceNumber, patientName)}.pdf`;
+}
+
+/** document.title for Print → Save as PDF (browsers append .pdf when saving). */
+export function invoicePrintDocumentTitle(
+  invoiceNumber: string,
+  patientName?: string | null,
+): string {
+  return invoicePrintBasename(invoiceNumber, patientName);
 }

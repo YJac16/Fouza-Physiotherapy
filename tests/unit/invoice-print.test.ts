@@ -3,6 +3,9 @@ import { describe, expect, it } from "vitest";
 import {
   INVOICE_DEFAULT_DUE_DAYS,
   effectiveInvoiceDueDate,
+  invoicePatientSlug,
+  invoicePrintBasename,
+  invoicePrintDocumentTitle,
   invoicePrintFilename,
 } from "@/features/billing/lib/invoice-print";
 
@@ -16,14 +19,45 @@ describe("effectiveInvoiceDueDate", () => {
   });
 });
 
-describe("invoicePrintFilename", () => {
-  it("builds a human-readable save-as name", () => {
-    expect(invoicePrintFilename("INV-2026-00007", "Elyaaz Jacobs")).toBe(
-      "INV-2026-00007-Elyaaz-Jacobs",
-    );
+describe("invoicePatientSlug", () => {
+  it("builds an ASCII hyphenated slug", () => {
+    expect(invoicePatientSlug("Elyaaz Jacobs")).toBe("Elyaaz-Jacobs");
   });
 
-  it("falls back when patient name is empty", () => {
-    expect(invoicePrintFilename("INV-2026-00007", "   ")).toBe("Fouza-INV-2026-00007");
+  it("returns null for empty names", () => {
+    expect(invoicePatientSlug("   ")).toBeNull();
+  });
+});
+
+describe("invoicePrintBasename", () => {
+  it("uses invoice number only when patient name is missing", () => {
+    expect(invoicePrintBasename("INV-2026-00007")).toBe("INV-2026-00007");
+    expect(invoicePrintBasename("INV-2026-00007", "   ")).toBe("INV-2026-00007");
+  });
+
+  it("appends patient slug when present", () => {
+    expect(invoicePrintBasename("INV-2026-00007", "Elyaaz Jacobs")).toBe(
+      "INV-2026-00007_Elyaaz-Jacobs",
+    );
+  });
+});
+
+describe("invoicePrintFilename", () => {
+  it("uses invoice number for the primary filename", () => {
+    expect(invoicePrintFilename("INV-2026-00007")).toBe("INV-2026-00007.pdf");
+  });
+
+  it("includes patient slug when available", () => {
+    expect(invoicePrintFilename("INV-2026-00007", "Elyaaz Jacobs")).toBe(
+      "INV-2026-00007_Elyaaz-Jacobs.pdf",
+    );
+  });
+});
+
+describe("invoicePrintDocumentTitle", () => {
+  it("matches basename for browser print save-as", () => {
+    expect(invoicePrintDocumentTitle("INV-2026-00007", "Elyaaz Jacobs")).toBe(
+      "INV-2026-00007_Elyaaz-Jacobs",
+    );
   });
 });

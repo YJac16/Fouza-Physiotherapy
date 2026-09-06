@@ -2,16 +2,16 @@
 
 import { useEffect } from "react";
 
-import { invoicePrintFilename } from "@/features/billing/lib/invoice-print";
+import { invoicePrintDocumentTitle } from "@/features/billing/lib/invoice-print";
 
 export function InvoicePrintTitle({
   invoiceNumber,
   patientName,
 }: {
   invoiceNumber: string;
-  patientName: string;
+  patientName?: string | null;
 }) {
-  const title = invoicePrintFilename(invoiceNumber, patientName);
+  const title = invoicePrintDocumentTitle(invoiceNumber, patientName);
 
   useEffect(() => {
     const previous = document.title;

@@ -7,7 +7,7 @@ import {
   sendInvoiceEmailAction,
   voidInvoiceAction,
 } from "@/features/billing/actions/billing";
-import { invoicePrintFilename } from "@/features/billing/lib/invoice-print";
+import { invoicePrintDocumentTitle } from "@/features/billing/lib/invoice-print";
 import { ConfirmAction } from "@/components/ui/confirm-action";
 import { Button } from "@/components/ui/button";
 import { FormMessage } from "@/components/ui/form-message";
@@ -33,7 +33,7 @@ export function InvoiceDocumentToolbar({
   );
 
   function handlePrint() {
-    document.title = invoicePrintFilename(invoiceNumber, patientName);
+    document.title = invoicePrintDocumentTitle(invoiceNumber, patientName);
     window.print();
   }
 

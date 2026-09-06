@@ -203,6 +203,12 @@
     margin: 0 !important;
   }
 
+  .invoice-doc-logo,
+  .invoice-doc-logo img {
+    background: transparent !important;
+    box-shadow: none !important;
+  }
+
   /* Print only the invoice preview — hides admin/portal chrome still in DOM */
   body * {
     visibility: hidden;

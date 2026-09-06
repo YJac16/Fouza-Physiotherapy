@@ -128,14 +128,15 @@ export function InvoiceReceiptDocument({
     >
       <div className="space-y-6 p-6 sm:p-8 print:p-0">
         <div className="invoice-doc-header flex flex-col gap-6 border-b border-[#d8d8d8] pb-6 sm:flex-row sm:items-start sm:justify-between">
-          <div className="shrink-0">
+          <div className="invoice-doc-logo shrink-0 bg-transparent">
             <Image
-              src="/fouza-physiotherapy-logo-no-background.png"
+              src={siteConfig.images.logoWordmark}
               alt={practiceName}
-              width={220}
-              height={64}
-              className="h-14 w-auto object-contain"
+              width={252}
+              height={131}
+              className="h-14 w-auto max-w-[16rem] bg-transparent object-contain object-left print:bg-transparent"
               priority
+              unoptimized
             />
           </div>
           <div className="min-w-0 text-left sm:text-right">

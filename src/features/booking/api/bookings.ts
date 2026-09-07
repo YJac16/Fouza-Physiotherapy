@@ -547,7 +547,7 @@ export async function confirmBooking(input: ConfirmBookingInput) {
   if (isFollowUpServiceSlug(service.slug) && !canBookFollowUpServices(flags)) {
     return {
       error:
-        "Follow-up bookings are available after your account is verified and informed consent is on file. Please book an Initial Consultation or Injury Prevention Assessment.",
+        "Follow-up bookings are available after your account is verified and informed consent is on file. Please book an Initial Consultation first.",
       appointmentId: null,
     };
   }

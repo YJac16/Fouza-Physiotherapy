@@ -401,7 +401,7 @@ export function BookingWizard({
         <FormMessage tone="info">
           {selectedPatient?.access === "contact"
             ? "Follow-up bookings for this patient unlock once the practice has verified informed consent on file."
-            : "New patients can book an Initial Consultation or Injury Prevention Assessment. Follow-up appointments unlock after verified account status and informed consent."}
+            : "New patients can book an Initial Consultation. Follow-up appointments unlock after verified account status and informed consent."}
         </FormMessage>
       ) : null}
 

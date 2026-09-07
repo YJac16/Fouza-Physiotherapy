@@ -53,6 +53,10 @@ export interface StaffCreateAppointmentProps {
   practitioners: CatalogPractitioner[];
   initialDate?: string;
   initialPractitionerId?: string;
+  initialPatientId?: string;
+  initialPatientLabel?: string;
+  initialServiceSlug?: string;
+  triggerLabel?: string;
   open?: boolean;
   onOpenChange?: (open: boolean) => void;
   className?: string;
@@ -63,6 +67,10 @@ export function StaffCreateAppointment({
   practitioners,
   initialDate,
   initialPractitionerId,
+  initialPatientId,
+  initialPatientLabel,
+  initialServiceSlug,
+  triggerLabel = "New appointment",
   open: controlledOpen,
   onOpenChange,
   className,
@@ -77,17 +85,30 @@ export function StaffCreateAppointment({
     if (controlledOpen === undefined) setInternalOpen(next);
   }
 
-  const [step, setStep] = useState(1);
+  const [step, setStep] = useState(initialPatientId ? 2 : 1);
   const [patientQuery, setPatientQuery] = useState("");
-  const [patients, setPatients] = useState<PatientOption[]>([]);
-  const [patientId, setPatientId] = useState<string>("");
+  const [patients, setPatients] = useState<PatientOption[]>(
+    initialPatientId && initialPatientLabel
+      ? [
+          {
+            id: initialPatientId,
+            label: initialPatientLabel,
+            verifiedAccount: true,
+            informedConsentSigned: true,
+          },
+        ]
+      : [],
+  );
+  const [patientId, setPatientId] = useState<string>(initialPatientId ?? "");
   const [creatingPatient, setCreatingPatient] = useState(false);
   const [newFirstName, setNewFirstName] = useState("");
   const [newLastName, setNewLastName] = useState("");
   const [newEmail, setNewEmail] = useState("");
   const [newPhone, setNewPhone] = useState("");
 
-  const [serviceId, setServiceId] = useState(services[0]?.id ?? "");
+  const defaultService =
+    services.find((service) => service.slug === initialServiceSlug) ?? services[0];
+  const [serviceId, setServiceId] = useState(defaultService?.id ?? "");
   const [practitionerId, setPractitionerId] = useState(
     initialPractitionerId ?? practitioners[0]?.id ?? "",
   );
@@ -109,9 +130,27 @@ export function StaffCreateAppointment({
     startTransition(async () => {
       const result = await searchPatientsAction(patientQuery);
       if (result.error) return;
-      setPatients(result.patients);
+      setPatients((current) => {
+        const next = result.patients;
+        if (!initialPatientId) return next;
+        const seeded =
+          current.find((patient) => patient.id === initialPatientId) ??
+          next.find((patient) => patient.id === initialPatientId) ??
+          (initialPatientLabel
+            ? {
+                id: initialPatientId,
+                label: initialPatientLabel,
+                verifiedAccount: true,
+                informedConsentSigned: true,
+              }
+            : null);
+        if (!seeded || next.some((patient) => patient.id === initialPatientId)) {
+          return next;
+        }
+        return [seeded, ...next];
+      });
     });
-  }, [open, patientQuery]);
+  }, [open, patientQuery, initialPatientId, initialPatientLabel]);
 
   useEffect(() => {
     if (!open || !serviceId || !practitionerId || !date) return;
@@ -132,11 +171,12 @@ export function StaffCreateAppointment({
   }, [open, serviceId, practitionerId, date]);
 
   function reset() {
-    setStep(1);
-    setPatientId("");
+    setStep(initialPatientId ? 2 : 1);
+    setPatientId(initialPatientId ?? "");
     setCreatingPatient(false);
     setSelectedSlot(null);
     setMessage(null);
+    setServiceId(defaultService?.id ?? "");
   }
 
   function handleCreatePatient() {
@@ -193,7 +233,7 @@ export function StaffCreateAppointment({
   if (!open) {
     return (
       <Button type="button" onClick={() => setOpen(true)} className={className}>
-        New appointment
+        {triggerLabel}
       </Button>
     );
   }

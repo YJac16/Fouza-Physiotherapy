@@ -33,13 +33,11 @@ describe("booking eligibility", () => {
       { slug: "initial-consultation" },
       { slug: "follow-up-consultation" },
       { slug: "double-follow-up" },
-      { slug: "injury-prevention" },
     ];
     expect(filterBookableServices(services, false).map((s) => s.slug)).toEqual([
       "initial-consultation",
-      "injury-prevention",
     ]);
-    expect(filterBookableServices(services, true)).toHaveLength(4);
+    expect(filterBookableServices(services, true)).toHaveLength(3);
   });
 
   it("detects follow-up slugs", () => {

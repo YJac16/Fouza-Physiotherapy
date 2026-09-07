@@ -1,8 +1,5 @@
 /** Service slugs bookable without verified + consent. */
-export const NEW_PATIENT_SERVICE_SLUGS = [
-  "initial-consultation",
-  "injury-prevention",
-] as const;
+export const NEW_PATIENT_SERVICE_SLUGS = ["initial-consultation"] as const;
 
 /** Service slugs that require verified_account + informed_consent_signed. */
 export const VERIFIED_ONLY_SERVICE_SLUGS = [

@@ -367,6 +367,7 @@ export async function listStaffBookingCatalog() {
       .from("services")
       .select("id, name, slug, description, duration_minutes, price_cents")
       .eq("is_active", true)
+      .eq("is_bookable_online", true)
       .order("name"),
     supabase
       .from("practitioners")

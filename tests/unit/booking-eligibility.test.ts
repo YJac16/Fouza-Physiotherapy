@@ -4,6 +4,7 @@ import {
   canBookFollowUpServices,
   filterBookableServices,
   isFollowUpServiceSlug,
+  isRetiredServiceSlug,
 } from "@/features/booking/lib/eligibility";
 
 describe("booking eligibility", () => {
@@ -33,17 +34,28 @@ describe("booking eligibility", () => {
       { slug: "initial-consultation" },
       { slug: "follow-up-consultation" },
       { slug: "double-follow-up" },
-      { slug: "injury-prevention" },
     ];
     expect(filterBookableServices(services, false).map((s) => s.slug)).toEqual([
       "initial-consultation",
-      "injury-prevention",
     ]);
-    expect(filterBookableServices(services, true)).toHaveLength(4);
+    expect(filterBookableServices(services, true)).toHaveLength(3);
   });
 
   it("detects follow-up slugs", () => {
     expect(isFollowUpServiceSlug("follow-up-consultation")).toBe(true);
     expect(isFollowUpServiceSlug("initial-consultation")).toBe(false);
+  });
+
+  it("excludes retired services from all catalogues", () => {
+    expect(isRetiredServiceSlug("injury-prevention")).toBe(true);
+    const services = [
+      { slug: "initial-consultation" },
+      { slug: "injury-prevention" },
+      { slug: "follow-up-consultation" },
+    ];
+    expect(filterBookableServices(services, true).map((s) => s.slug)).toEqual([
+      "initial-consultation",
+      "follow-up-consultation",
+    ]);
   });
 });

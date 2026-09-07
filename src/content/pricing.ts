@@ -51,19 +51,6 @@ export const pricingPlans: PricingPlan[] = [
       "Ideal for multi-site issues",
     ],
   },
-  {
-    id: "injury-prevention",
-    title: "Injury Prevention Assessment",
-    price: "R600",
-    period: "45–60 min",
-    description: "Movement screening and prevention strategies for active people.",
-    features: [
-      "Movement and load review",
-      "Risk factor identification",
-      "Prevention exercise guidance",
-      "Training advice",
-    ],
-  },
 ];
 
 export const pricingNotices = {

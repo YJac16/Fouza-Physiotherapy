@@ -4,7 +4,6 @@ values
   ('Initial Consultation', 'initial-consultation', 'Comprehensive assessment and first treatment.', 60, 100000, 'ZAR', true, true),
   ('Follow-up Consultation', 'follow-up-consultation', 'Focused follow-up for one joint or region.', 45, 60000, 'ZAR', true, true),
   ('Double Follow-up', 'double-follow-up', 'Extended session for two regions.', 90, 80000, 'ZAR', true, true),
-  ('Injury Prevention Assessment', 'injury-prevention', 'Movement screening and prevention plan.', 60, 60000, 'ZAR', true, true),
   ('Dry Needling', 'dry-needling', 'Targeted dry needling per unit.', 15, 10000, 'ZAR', false, true),
   ('Referral', 'referral', 'Referral letter or referral service.', 15, 10000, 'ZAR', false, true),
   ('Individualised Home Exercise Program', 'home-exercise-program', 'Personalised home exercise programme.', 15, 10000, 'ZAR', false, true),

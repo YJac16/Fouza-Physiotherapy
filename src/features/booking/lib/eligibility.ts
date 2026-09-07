@@ -1,7 +1,11 @@
 /** Service slugs bookable without verified + consent. */
-export const NEW_PATIENT_SERVICE_SLUGS = [
-  "initial-consultation",
+export const NEW_PATIENT_SERVICE_SLUGS = ["initial-consultation"] as const;
+
+/** Retired bookable services — kept out of all catalogues even if DB rows linger. */
+export const RETIRED_SERVICE_SLUGS = [
   "injury-prevention",
+  "sports-injury-prevention",
+  "sports-and-injury-prevention",
 ] as const;
 
 /** Service slugs that require verified_account + informed_consent_signed. */
@@ -35,12 +39,17 @@ export function isFollowUpServiceSlug(slug: string) {
   return (VERIFIED_ONLY_SERVICE_SLUGS as readonly string[]).includes(slug);
 }
 
+export function isRetiredServiceSlug(slug: string) {
+  return (RETIRED_SERVICE_SLUGS as readonly string[]).includes(slug);
+}
+
 export function filterBookableServices<T extends { slug: string }>(
   services: T[],
   canBookFollowUps: boolean,
 ): T[] {
-  if (canBookFollowUps) return services;
-  return services.filter((s) =>
+  const active = services.filter((service) => !isRetiredServiceSlug(service.slug));
+  if (canBookFollowUps) return active;
+  return active.filter((s) =>
     (NEW_PATIENT_SERVICE_SLUGS as readonly string[]).includes(s.slug),
   );
 }

@@ -9,6 +9,9 @@ import { Badge } from "@/components/ui/badge";
 import { Button } from "@/components/ui/button";
 import { Card, CardContent, CardHeader, CardTitle } from "@/components/ui/card";
 import { getPatientConsentCompletionAdmin } from "@/features/consent-forms/lib/completion";
+import { StaffCreateAppointment } from "@/features/booking/components/staff-create-appointment";
+import { listStaffBookingCatalog } from "@/features/booking/actions/booking";
+import { canBookFollowUpServices } from "@/features/booking/lib/eligibility";
 import { listStaffDocuments } from "@/features/documents/actions/documents";
 import { PatientClinicalRecords } from "@/features/patients/components/patient-clinical-records";
 import { PatientVerificationControls } from "@/features/patients/components/patient-verification-controls";
@@ -28,13 +31,15 @@ export default async function PatientDetailPage({
   const { data: patient } = await getPatient(id);
   if (!patient) notFound();
 
-  const [timeline, consent, documentsResult, contactsResult, relatedCounts, profile] = await Promise.all([
+  const [timeline, consent, documentsResult, contactsResult, relatedCounts, profile, bookingCatalog] =
+    await Promise.all([
     getPatientTimeline(id),
     getPatientConsentCompletionAdmin(id),
     listStaffDocuments(id),
     listPatientContacts(id),
     getPatientRelatedCounts(id),
     getSessionProfile(),
+    listStaffBookingCatalog(),
   ]);
   const accountHolder = (contactsResult.data ?? []).find((contact) => contact.is_account_holder);
 
@@ -64,6 +69,21 @@ export default async function PatientDetailPage({
     0;
 
   const fullName = `${patient.first_name} ${patient.last_name}`;
+  const practitionerOptions = bookingCatalog.practitioners.map((p) => {
+    const profileRow = (Array.isArray(p.profiles) ? p.profiles[0] : p.profiles) as
+      | { full_name: string | null }
+      | null
+      | undefined;
+    const name = profileRow?.full_name ?? "Practitioner";
+    return {
+      id: p.id,
+      label: p.title ? `${name} (${p.title})` : name,
+    };
+  });
+  const canBookFollowUp = canBookFollowUpServices({
+    verified_account: patient.verified_account,
+    informed_consent_signed: patient.informed_consent_signed || consent.complete,
+  });
 
   const missingDetailLabels = [
     !patient.email?.trim() ? "email" : null,
@@ -144,6 +164,16 @@ export default async function PatientDetailPage({
               New assessment
             </Link>
           </Button>
+          <StaffCreateAppointment
+            services={bookingCatalog.services}
+            practitioners={practitionerOptions}
+            initialPatientId={patient.id}
+            initialPatientLabel={fullName}
+            initialServiceSlug={
+              canBookFollowUp ? "follow-up-consultation" : "initial-consultation"
+            }
+            triggerLabel={canBookFollowUp ? "Book follow-up" : "Book appointment"}
+          />
           <Button asChild variant="outline" size="sm">
             <Link href={`${routes.admin.newClinicalNote}?patientId=${patient.id}`}>
               New clinical note

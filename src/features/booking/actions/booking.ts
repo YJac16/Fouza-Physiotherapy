@@ -23,6 +23,7 @@ import { extendHoldForConsent } from "@/features/consent-forms/lib/guest-booking
 import { INTAKE_SLUG } from "@/features/consent-forms/lib/completion";
 import {
   canBookFollowUpServices,
+  isRetiredServiceSlug,
   type BookingPatientContext,
 } from "@/features/booking/lib/eligibility";
 import { requireStaff, getSessionProfile } from "@/lib/auth/guards";
@@ -367,13 +368,17 @@ export async function listStaffBookingCatalog() {
       .from("services")
       .select("id, name, slug, description, duration_minutes, price_cents")
       .eq("is_active", true)
+      .eq("is_bookable_online", true)
       .order("name"),
     supabase
       .from("practitioners")
       .select("id, title, profile_id, profiles(full_name)")
       .eq("is_active", true),
   ]);
-  return { services: services ?? [], practitioners: practitioners ?? [] };
+  return {
+    services: (services ?? []).filter((service) => !isRetiredServiceSlug(service.slug)),
+    practitioners: practitioners ?? [],
+  };
 }
 
 export type BookableCatalog = {
@@ -450,7 +455,7 @@ export async function listBookableCatalog(): Promise<BookableCatalog> {
   const patientContext = bookablePatients[0] ?? null;
 
   return {
-    services: services ?? [],
+    services: (services ?? []).filter((service) => !isRetiredServiceSlug(service.slug)),
     practitioners: practitioners ?? [],
     patientContext,
     bookablePatients,

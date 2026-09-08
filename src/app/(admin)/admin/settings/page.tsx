@@ -1,7 +1,12 @@
-import { PracticeSettingsForm } from "@/features/practice/components/settings-form";
-import { getPracticeSetting } from "@/features/practice/api/settings";
-import { DEFAULT_BANKING } from "@/features/billing/components/invoice-document";
+import { LogOut } from "lucide-react";
+
+import { Button } from "@/components/ui/button";
+import { Card, CardContent, CardHeader, CardTitle } from "@/components/ui/card";
 import { siteConfig } from "@/config/site";
+import { DEFAULT_BANKING } from "@/features/billing/components/invoice-document";
+import { signOutAction } from "@/features/auth";
+import { getPracticeSetting } from "@/features/practice/api/settings";
+import { PracticeSettingsForm } from "@/features/practice/components/settings-form";
 
 function asString(value: unknown, fallback = "") {
   return typeof value === "string" ? value : fallback;
@@ -52,6 +57,20 @@ export default async function AdminSettingsPage() {
           proofEmail: asString(proofEmail, DEFAULT_BANKING.proofEmail),
         }}
       />
+
+      <Card>
+        <CardHeader>
+          <CardTitle className="text-h5">Account</CardTitle>
+        </CardHeader>
+        <CardContent>
+          <form action={signOutAction}>
+            <Button type="submit" variant="outline">
+              <LogOut className="size-4" aria-hidden />
+              Sign out
+            </Button>
+          </form>
+        </CardContent>
+      </Card>
     </div>
   );
 }

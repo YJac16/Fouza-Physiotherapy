@@ -10,7 +10,6 @@ import {
   Dumbbell,
   FileText,
   LayoutDashboard,
-  LogOut,
   Menu,
   Settings,
   Star,
@@ -27,7 +26,6 @@ import { Avatar, AvatarFallback } from "@/components/ui/avatar";
 import { Button } from "@/components/ui/button";
 import { Separator } from "@/components/ui/separator";
 import { routes } from "@/config/routes";
-import { signOutAction } from "@/features/auth";
 import { cn } from "@/lib/utils";
 import type { AppRole } from "@/types/auth";
 
@@ -124,7 +122,7 @@ export function AdminHeader({
   return (
     <header
       className={cn(
-        "flex h-16 items-center justify-between gap-4 border-b border-border/70 bg-card/80 px-4 backdrop-blur-xl md:px-6 print:hidden",
+        "flex h-16 items-center justify-between gap-4 bg-card/80 px-4 backdrop-blur-xl md:px-6 print:hidden",
         className,
       )}
     >
@@ -145,30 +143,16 @@ export function AdminHeader({
       </div>
       <div className="flex shrink-0 items-center gap-2">
         <ThemeToggle />
-        <div className="flex max-w-[40vw] items-center gap-2 rounded-xl border border-border/70 px-2 py-1.5 sm:max-w-none">
-          <Avatar className="size-8 shrink-0">
-            <AvatarFallback className="bg-primary/10 text-xs text-primary">
-              {userName
-                .split(" ")
-                .map((p) => p[0])
-                .join("")
-                .slice(0, 2)
-                .toUpperCase()}
-            </AvatarFallback>
-          </Avatar>
-          <span className="hidden truncate text-sm font-medium sm:inline">{userName}</span>
-        </div>
-        <form action={signOutAction}>
-          <Button
-            type="submit"
-            variant="ghost"
-            size="icon-sm"
-            aria-label="Sign out"
-            title="Sign out"
-          >
-            <LogOut />
-          </Button>
-        </form>
+        <Avatar className="size-8 shrink-0">
+          <AvatarFallback className="bg-primary/10 text-xs text-primary">
+            {userName
+              .split(" ")
+              .map((p) => p[0])
+              .join("")
+              .slice(0, 2)
+              .toUpperCase()}
+          </AvatarFallback>
+        </Avatar>
       </div>
     </header>
   );

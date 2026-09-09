@@ -6,8 +6,8 @@ import {
   listActiveInvoiceServices,
   listBillableAppointmentsForInvoice,
 } from "@/features/billing/actions/billing";
+import { getPatient, searchPatients } from "@/features/patients/api/patients";
 import { requireStaff } from "@/lib/auth/guards";
-import { createClient } from "@/lib/supabase/server";
 
 export default async function NewInvoicePage({
   searchParams,
@@ -16,12 +16,26 @@ export default async function NewInvoicePage({
 }) {
   await requireStaff();
   const params = await searchParams;
-  const supabase = await createClient();
-  const [{ data: patients }, appointments, services] = await Promise.all([
-    supabase.from("patients").select("id, first_name, last_name").order("last_name").limit(200),
+  const [{ data: patients }, appointments, services, defaultPatient] = await Promise.all([
+    searchPatients(),
     listBillableAppointmentsForInvoice({ includeAppointmentId: params.appointmentId }),
     listActiveInvoiceServices(),
+    params.patientId ? getPatient(params.patientId) : Promise.resolve({ data: null }),
   ]);
+
+  const patientOptions = (patients ?? []).map((patient) => ({
+    id: patient.id,
+    label: `${patient.first_name} ${patient.last_name}`,
+  }));
+  if (
+    defaultPatient.data &&
+    !patientOptions.some((patient) => patient.id === defaultPatient.data?.id)
+  ) {
+    patientOptions.unshift({
+      id: defaultPatient.data.id,
+      label: `${defaultPatient.data.first_name} ${defaultPatient.data.last_name}`,
+    });
+  }
 
   return (
     <div className="mx-auto max-w-xl space-y-6 pb-6">
@@ -37,10 +51,7 @@ export default async function NewInvoicePage({
         </Button>
       </div>
       <InvoiceBuilderForm
-        patients={(patients ?? []).map((patient) => ({
-          id: patient.id,
-          label: `${patient.first_name} ${patient.last_name}`,
-        }))}
+        patients={patientOptions}
         appointments={appointments}
         services={services}
         defaultPatientId={params.patientId}

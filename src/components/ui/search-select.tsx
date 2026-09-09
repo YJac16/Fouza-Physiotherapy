@@ -24,6 +24,7 @@ export interface SearchSelectProps {
   className?: string;
   id?: string;
   "aria-label"?: string;
+  onQueryChange?: (query: string) => void;
 }
 
 function SearchSelect({
@@ -37,6 +38,7 @@ function SearchSelect({
   className,
   id,
   "aria-label": ariaLabel,
+  onQueryChange,
 }: SearchSelectProps) {
   const [open, setOpen] = React.useState(false);
   const [query, setQuery] = React.useState("");
@@ -83,7 +85,11 @@ function SearchSelect({
         >
           <Input
             value={query}
-            onChange={(e) => setQuery(e.target.value)}
+            onChange={(e) => {
+              const next = e.target.value;
+              setQuery(next);
+              onQueryChange?.(next);
+            }}
             placeholder={searchPlaceholder}
             className="mb-2 h-9"
             autoFocus

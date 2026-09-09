@@ -12,6 +12,7 @@ import { Typography } from "@/components/ui/typography";
 import { routes } from "@/config/routes";
 import { blogPosts, getBlogPost, getRelatedPosts } from "@/content/blog";
 import { JsonLd, breadcrumbJsonLd } from "@/lib/seo/json-ld";
+import { marketingImageSizes } from "@/lib/images";
 import { buildMetadata } from "@/lib/seo/metadata";
 
 interface BlogPostPageProps {
@@ -90,6 +91,7 @@ export default async function BlogPostPage({ params }: BlogPostPageProps) {
               alt={post.title}
               width={1100}
               height={620}
+              sizes={marketingImageSizes.article}
               priority
               className="aspect-[16/9] w-full object-cover"
             />

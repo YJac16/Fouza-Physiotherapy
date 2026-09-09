@@ -1,5 +1,7 @@
 import type { NextConfig } from "next";
 
+import { marketingDeviceSizes } from "./src/lib/images";
+
 const securityHeaders = [
   { key: "X-DNS-Prefetch-Control", value: "on" },
   { key: "X-Frame-Options", value: "SAMEORIGIN" },
@@ -29,6 +31,9 @@ const nextConfig: NextConfig = {
   reactStrictMode: true,
   poweredByHeader: false,
   images: {
+    deviceSizes: [...marketingDeviceSizes],
+    imageSizes: [16, 32, 48, 64, 96, 128, 256, 384],
+    formats: ["image/avif", "image/webp"],
     remotePatterns: [
       {
         protocol: "https",

@@ -119,6 +119,33 @@ describe("invoice builder acceptance scenarios", () => {
     });
     expect(totals.totalCents).toBe(90000);
   });
+
+  it("Aadam Samuels — Initial Consultation R800 billed at R500", () => {
+    const totals = invoiceTotalsFromLines({
+      lines: [
+        {
+          quantity: 1,
+          unitPriceCents: 80000,
+          discount: { mode: "amount", amountCents: 30000 },
+        },
+      ],
+    });
+    expect(totals.subtotalCents).toBe(50000);
+    expect(totals.totalCents).toBe(50000);
+  });
+
+  it("Zulfah Boltman — R1050 less 15%", () => {
+    const totals = invoiceTotalsFromLines({
+      lines: [
+        { quantity: 1, unitPriceCents: 80000 },
+        { quantity: 1, unitPriceCents: 25000 },
+      ],
+      invoiceDiscount: { mode: "percent", percent: 15 },
+    });
+    expect(totals.subtotalCents).toBe(105000);
+    expect(totals.invoiceDiscountCents).toBe(15750);
+    expect(totals.totalCents).toBe(89250);
+  });
 });
 
 describe("invoice service catalogue fixtures", () => {

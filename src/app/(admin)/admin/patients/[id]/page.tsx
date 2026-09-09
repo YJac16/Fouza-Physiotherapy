@@ -65,7 +65,8 @@ export default async function PatientDetailPage({
     timeline.appointments.length +
       timeline.notes.length +
       timeline.invoices.length +
-      timeline.assessments.length >
+      timeline.assessments.length +
+      timeline.letters.length >
     0;
 
   const fullName = `${patient.first_name} ${patient.last_name}`;
@@ -130,6 +131,15 @@ export default async function PatientDetailPage({
       sortKey: assessment.created_at,
       href: routes.admin.initialAssessment(assessment.id),
     })),
+    ...timeline.letters.map((letter) => ({
+      id: `letter-${letter.id}`,
+      title: letter.letter_type === "medical_referral" ? "Medical referral" : "Proof of attendance",
+      description: `${letter.status}${letter.subject_line ? ` · ${letter.subject_line}` : ""}`,
+      meta: new Date(`${letter.letter_date}T12:00:00`).toLocaleDateString("en-ZA"),
+      icon: <FileText className="size-4" />,
+      sortKey: letter.created_at,
+      href: routes.admin.letter(letter.id),
+    })),
     ...timeline.invoices.map((invoice) => ({
       id: `invoice-${invoice.id}`,
       title: `Invoice ${invoice.invoice_number}`,
@@ -183,7 +193,14 @@ export default async function PatientDetailPage({
             <Link href={routes.admin.newInvoice}>New invoice</Link>
           </Button>
           <Button asChild variant="outline" size="sm">
-            <Link href="#documents">Documents</Link>
+            <Link href={`${routes.admin.newLetter}?patientId=${patient.id}&type=proof_of_attendance`}>
+              Proof of attendance
+            </Link>
+          </Button>
+          <Button asChild variant="outline" size="sm">
+            <Link href={`${routes.admin.newLetter}?patientId=${patient.id}&type=medical_referral`}>
+              Medical referral
+            </Link>
           </Button>
         </div>
       </div>
@@ -378,6 +395,7 @@ export default async function PatientDetailPage({
         assessments={timeline.assessments}
         notes={timeline.notes}
         documents={documents}
+        letters={timeline.letters}
       />
 
       {profile?.role === "admin" ? (
@@ -393,7 +411,7 @@ export default async function PatientDetailPage({
         {!hasTimeline ? (
           <EmptyState
             title="No activity yet"
-            description="Appointments, notes, assessments, and invoices will appear here."
+            description="Appointments, notes, assessments, letters, and invoices will appear here."
           />
         ) : (
           <Card>

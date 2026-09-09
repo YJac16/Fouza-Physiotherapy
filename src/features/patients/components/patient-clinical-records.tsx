@@ -21,6 +21,20 @@ type NoteRow = {
   is_locked: boolean;
 };
 
+type LetterRow = {
+  id: string;
+  letter_type: "proof_of_attendance" | "medical_referral";
+  status: "draft" | "signed" | "sent";
+  letter_date: string;
+  created_at: string;
+  subject_line: string | null;
+};
+
+const LETTER_LABELS = {
+  proof_of_attendance: "Proof of attendance",
+  medical_referral: "Medical referral",
+} as const;
+
 type DocumentRow = {
   id: string;
   title: string;
@@ -44,11 +58,13 @@ export function PatientClinicalRecords({
   assessments,
   notes,
   documents,
+  letters,
 }: {
   patientId: string;
   assessments: AssessmentRow[];
   notes: NoteRow[];
   documents: DocumentRow[];
+  letters: LetterRow[];
 }) {
   return (
     <section className="space-y-4">
@@ -143,6 +159,54 @@ export function PatientClinicalRecords({
                   </div>
                   <Button asChild size="sm" variant="ghost">
                     <Link href={routes.admin.clinicalNote(note.id)}>Open</Link>
+                  </Button>
+                </div>
+              ))
+            )}
+          </CardContent>
+        </Card>
+
+        <Card id="letters">
+          <CardHeader className="flex flex-row flex-wrap items-center justify-between gap-2 space-y-0">
+            <CardTitle className="text-h5">Letters</CardTitle>
+            <div className="flex flex-wrap gap-2">
+              <Button asChild size="sm" variant="outline">
+                <Link href={`${routes.admin.newLetter}?patientId=${patientId}&type=proof_of_attendance`}>
+                  Proof
+                </Link>
+              </Button>
+              <Button asChild size="sm" variant="outline">
+                <Link href={`${routes.admin.newLetter}?patientId=${patientId}&type=medical_referral`}>
+                  Referral
+                </Link>
+              </Button>
+            </div>
+          </CardHeader>
+          <CardContent className="space-y-3">
+            {!letters.length ? (
+              <p className="text-sm text-muted-foreground">No letters yet.</p>
+            ) : (
+              letters.map((letter) => (
+                <div
+                  key={letter.id}
+                  className="flex items-start justify-between gap-3 border-b border-border/60 pb-3 last:border-0 last:pb-0"
+                >
+                  <div className="min-w-0 space-y-1">
+                    <div className="flex flex-wrap items-center gap-2">
+                      <Link
+                        href={routes.admin.letter(letter.id)}
+                        className="text-sm font-medium underline-offset-4 hover:underline"
+                      >
+                        {letter.subject_line || LETTER_LABELS[letter.letter_type]}
+                      </Link>
+                      <Badge variant={letter.status === "draft" ? "warning" : "secondary"}>
+                        {letter.status}
+                      </Badge>
+                    </div>
+                    <p className="text-xs text-muted-foreground">{formatDate(letter.letter_date)}</p>
+                  </div>
+                  <Button asChild size="sm" variant="ghost">
+                    <Link href={routes.admin.letter(letter.id)}>Open</Link>
                   </Button>
                 </div>
               ))

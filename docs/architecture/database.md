@@ -15,6 +15,7 @@ profiles   1──0..1 practitioners
 
 patients 1──* appointments *──1 practitioners
 patients 1──* clinical_notes
+patients 1──* clinical_letters
 patients 1──* exercise_programmes 1──* programme_exercises
 patients 1──* consent_signatures *──1 consent_forms
 patients 1──* invoices 1──* invoice_line_items
@@ -32,7 +33,7 @@ practice_settings (key/value jsonb)
 | Identity | `profiles` | `auth` |
 | CRM | `patients`, `practitioners` | `patients`, `practice` |
 | Scheduling | `services`, `appointments` | `booking`, `practice` |
-| Clinical | `clinical_notes` | `clinical-notes` |
+| Clinical | `clinical_notes`, `clinical_letters`, `clinical_letter_templates` | `clinical-notes`, `clinical-letters` |
 | Programmes | `exercise_programmes`, `programme_exercises` | `exercise-programmes` |
 | Consent | `consent_forms`, `consent_signatures` | `consent-forms` |
 | Billing | `invoices`, `invoice_line_items` | `billing` |

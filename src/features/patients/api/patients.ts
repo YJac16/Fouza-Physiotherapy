@@ -344,7 +344,7 @@ export async function getPatientTimeline(patientId: string) {
   await requireStaff();
   const supabase = await createClient();
 
-  const [appointments, notes, invoices, assessments] = await Promise.all([
+  const [appointments, notes, invoices, assessments, letters] = await Promise.all([
     supabase
       .from("appointments")
       .select("id, starts_at, ends_at, status, notes")
@@ -369,6 +369,12 @@ export async function getPatientTimeline(patientId: string) {
       .eq("patient_id", patientId)
       .order("created_at", { ascending: false })
       .limit(20),
+    supabase
+      .from("clinical_letters")
+      .select("id, letter_type, status, letter_date, created_at, subject_line")
+      .eq("patient_id", patientId)
+      .order("created_at", { ascending: false })
+      .limit(20),
   ]);
 
   return {
@@ -376,6 +382,7 @@ export async function getPatientTimeline(patientId: string) {
     notes: notes.data ?? [],
     invoices: invoices.data ?? [],
     assessments: assessments.data ?? [],
+    letters: letters.data ?? [],
   };
 }
 

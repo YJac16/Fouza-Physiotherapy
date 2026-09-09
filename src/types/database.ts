@@ -913,6 +913,126 @@ export type Database = {
         };
         Relationships: [];
       };
+      clinical_letter_templates: {
+        Row: {
+          id: string;
+          letter_type: "proof_of_attendance" | "medical_referral";
+          title: string;
+          body: string;
+          physiotherapist_name: string;
+          qualifications: string;
+          contact: string | null;
+          updated_at: string;
+          created_at: string;
+        };
+        Insert: {
+          id?: string;
+          letter_type: "proof_of_attendance" | "medical_referral";
+          title: string;
+          body: string;
+          physiotherapist_name?: string;
+          qualifications?: string;
+          contact?: string | null;
+          updated_at?: string;
+          created_at?: string;
+        };
+        Update: {
+          id?: string;
+          letter_type?: "proof_of_attendance" | "medical_referral";
+          title?: string;
+          body?: string;
+          physiotherapist_name?: string;
+          qualifications?: string;
+          contact?: string | null;
+          updated_at?: string;
+          created_at?: string;
+        };
+        Relationships: [];
+      };
+      clinical_letters: {
+        Row: {
+          id: string;
+          patient_id: string;
+          appointment_id: string | null;
+          letter_type: "proof_of_attendance" | "medical_referral";
+          status: "draft" | "signed" | "sent";
+          letter_date: string;
+          attendance_date: string | null;
+          recipient_name: string | null;
+          recipient_email: string | null;
+          patient_age: string | null;
+          patient_sex: string | null;
+          subject_line: string | null;
+          body: string;
+          physiotherapist_name: string;
+          qualifications: string | null;
+          practice_name: string | null;
+          contact: string | null;
+          signature_data: string | null;
+          signed_at: string | null;
+          signed_by: string | null;
+          sent_at: string | null;
+          sent_to: string | null;
+          created_by: string | null;
+          created_at: string;
+          updated_at: string;
+        };
+        Insert: {
+          id?: string;
+          patient_id: string;
+          appointment_id?: string | null;
+          letter_type: "proof_of_attendance" | "medical_referral";
+          status?: "draft" | "signed" | "sent";
+          letter_date?: string;
+          attendance_date?: string | null;
+          recipient_name?: string | null;
+          recipient_email?: string | null;
+          patient_age?: string | null;
+          patient_sex?: string | null;
+          subject_line?: string | null;
+          body: string;
+          physiotherapist_name: string;
+          qualifications?: string | null;
+          practice_name?: string | null;
+          contact?: string | null;
+          signature_data?: string | null;
+          signed_at?: string | null;
+          signed_by?: string | null;
+          sent_at?: string | null;
+          sent_to?: string | null;
+          created_by?: string | null;
+          created_at?: string;
+          updated_at?: string;
+        };
+        Update: {
+          id?: string;
+          patient_id?: string;
+          appointment_id?: string | null;
+          letter_type?: "proof_of_attendance" | "medical_referral";
+          status?: "draft" | "signed" | "sent";
+          letter_date?: string;
+          attendance_date?: string | null;
+          recipient_name?: string | null;
+          recipient_email?: string | null;
+          patient_age?: string | null;
+          patient_sex?: string | null;
+          subject_line?: string | null;
+          body?: string;
+          physiotherapist_name?: string;
+          qualifications?: string | null;
+          practice_name?: string | null;
+          contact?: string | null;
+          signature_data?: string | null;
+          signed_at?: string | null;
+          signed_by?: string | null;
+          sent_at?: string | null;
+          sent_to?: string | null;
+          created_by?: string | null;
+          created_at?: string;
+          updated_at?: string;
+        };
+        Relationships: [];
+      };
       availability_rules: {
         Row: {
           id: string;
@@ -1301,6 +1421,10 @@ export type Database = {
       [_ in never]: never;
     };
     Functions: {
+      is_letter_author: {
+        Args: Record<string, never>;
+        Returns: boolean;
+      };
       is_portal_contact: {
         Args: { p_patient_id: string };
         Returns: boolean;
@@ -1334,6 +1458,8 @@ export type Database = {
       programme_status: "draft" | "active" | "completed" | "archived";
       invoice_status: "draft" | "sent" | "paid" | "void" | "overdue";
       blog_status: "draft" | "published" | "archived";
+      clinical_letter_type: "proof_of_attendance" | "medical_referral";
+      clinical_letter_status: "draft" | "signed" | "sent";
     };
     CompositeTypes: {
       [_ in never]: never;

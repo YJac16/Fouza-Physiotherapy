@@ -399,6 +399,44 @@ export function renderEmailTemplate(
     };
   }
 
+  if (templateKey === "letter.sent" || templateKey === "letter.sent.copy") {
+    const letterTitle =
+      typeof payload.letterTitle === "string" ? payload.letterTitle : "a letter";
+    const letterId = typeof payload.letterId === "string" ? payload.letterId : null;
+    const letterHref = letterId ? `${appUrl}/portal/letters/${letterId}` : `${appUrl}/portal/documents`;
+    const bodyText = typeof payload.body === "string" ? payload.body : "";
+    const isCopy = templateKey === "letter.sent.copy";
+    const letterPatientName =
+      typeof payload.patientName === "string" ? payload.patientName : "the patient";
+    const bodyHtml = bodyText
+      .split(/\n{2,}/)
+      .map((block) => block.trim())
+      .filter(Boolean)
+      .map(
+        (block) =>
+          `<p style="margin:12px 0 0;font-size:14px;line-height:1.6;white-space:pre-wrap;">${escapeHtml(block)}</p>`,
+      )
+      .join("");
+
+    return {
+      subject: isCopy
+        ? `${letterTitle} — ${letterPatientName}`
+        : `${letterTitle} from ${siteConfig.practiceName}`,
+      html: wrap(`
+        <h1 style="margin:0 0 12px;font-size:22px;color:#3a3a3c;">${escapeHtml(letterTitle)}</h1>
+        <p style="margin:0;font-size:15px;line-height:1.6;">
+          Hi ${escapeHtml(firstName)}, ${
+            isCopy
+              ? `please find a letter from ${escapeHtml(siteConfig.practiceName)} regarding ${escapeHtml(letterPatientName)}.`
+              : `a letter from ${escapeHtml(siteConfig.practiceName)} is ready to view in your patient portal.`
+          }
+        </p>
+        ${isCopy ? bodyHtml : ""}
+        ${isCopy ? "" : cta(letterHref, "View letter")}
+      `),
+    };
+  }
+
   return {
     subject: `Fouza Physiotherapy — ${templateKey}`,
     html: wrap(

@@ -41,6 +41,8 @@ export const routes = {
     invoice: (id: string) => `/portal/invoices/${id}` as const,
     forms: "/portal/forms",
     documents: "/portal/documents",
+    letters: "/portal/documents",
+    letter: (id: string) => `/portal/letters/${id}` as const,
     notifications: "/portal/notifications",
     profile: "/portal/profile",
   },
@@ -75,6 +77,9 @@ export const routes = {
     users: "/admin/users",
     availability: "/admin/availability",
     documents: "/admin/documents",
+    letters: "/admin/letters",
+    letter: (id: string) => `/admin/letters/${id}` as const,
+    newLetter: "/admin/letters/new",
     notifications: "/admin/notifications",
   },
   api: {

@@ -7,12 +7,18 @@ import { DEFAULT_BANKING } from "@/features/billing/components/invoice-document"
 import { signOutAction } from "@/features/auth";
 import { getPracticeSetting } from "@/features/practice/api/settings";
 import { PracticeSettingsForm } from "@/features/practice/components/settings-form";
+import { listLetterTemplates } from "@/features/clinical-letters/api/letters";
+import { LetterTemplateForm } from "@/features/clinical-letters/components/letter-template-form";
+import { canAuthorClinicalLetters } from "@/features/clinical-letters/lib/auth";
+import { getSessionProfile } from "@/lib/auth/guards";
+import type { ClinicalLetterType } from "@/features/clinical-letters/types/letter";
 
 function asString(value: unknown, fallback = "") {
   return typeof value === "string" ? value : fallback;
 }
 
 export default async function AdminSettingsPage() {
+  const profile = await getSessionProfile();
   const [
     practiceName,
     contactEmail,
@@ -23,6 +29,7 @@ export default async function AdminSettingsPage() {
     branchCode,
     accountType,
     proofEmail,
+    templatesResult,
   ] = await Promise.all([
     getPracticeSetting("practice_name"),
     getPracticeSetting("contact_email"),
@@ -33,14 +40,17 @@ export default async function AdminSettingsPage() {
     getPracticeSetting("banking.branch_code"),
     getPracticeSetting("banking.account_type"),
     getPracticeSetting("banking.proof_email"),
+    listLetterTemplates(),
   ]);
+
+  const canAuthor = profile ? canAuthorClinicalLetters(profile.role) : false;
 
   return (
     <div className="space-y-8">
       <div>
         <h1 className="font-display text-2xl font-semibold">Settings</h1>
         <p className="text-sm text-muted-foreground">
-          Practice-wide configuration for branding, contact, and invoice banking details.
+          Practice-wide configuration for branding, contact, invoice banking, and letter templates.
         </p>
       </div>
 
@@ -57,6 +67,31 @@ export default async function AdminSettingsPage() {
           proofEmail: asString(proofEmail, DEFAULT_BANKING.proofEmail),
         }}
       />
+
+      {canAuthor ? (
+        <section className="space-y-4">
+          <div>
+            <h2 className="font-display text-xl font-semibold">Letter templates</h2>
+            <p className="text-sm text-muted-foreground">
+              Default wording for new proof of attendance and referral letters. Each letter can still be
+              edited before it is signed.
+            </p>
+          </div>
+          {(templatesResult.data ?? []).map((template) => (
+            <LetterTemplateForm
+              key={template.letter_type}
+              letterType={template.letter_type as ClinicalLetterType}
+              defaults={{
+                title: template.title,
+                body: template.body,
+                physiotherapistName: template.physiotherapist_name,
+                qualifications: template.qualifications,
+                contact: template.contact,
+              }}
+            />
+          ))}
+        </section>
+      ) : null}
 
       <Card>
         <CardHeader>

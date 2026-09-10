@@ -23,7 +23,7 @@ const buttonVariants = cva(
           "bg-destructive text-destructive-foreground shadow-sm hover:bg-destructive/90 active:scale-[0.98]",
         success:
           "bg-success text-success-foreground shadow-sm hover:bg-success/90 active:scale-[0.98]",
-        link: "text-primary underline-offset-4 hover:underline",
+        link: "text-accent-soft-foreground underline-offset-4 hover:underline hover:opacity-90",
       },
       size: {
         default: "h-11 min-h-11 px-5 py-2.5",

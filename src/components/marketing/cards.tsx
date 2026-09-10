@@ -198,7 +198,7 @@ export function ConditionCard({
           {summary}
         </Typography>
         {href ? (
-          <span className="mt-4 inline-flex items-center gap-1.5 text-sm font-medium text-accent transition-colors group-hover:text-primary">
+          <span className="mt-4 inline-flex items-center gap-1.5 text-sm font-medium text-accent-soft-foreground transition-colors group-hover:text-accent-soft-foreground/80">
             View treatment
             <ArrowRight className="size-4" aria-hidden />
           </span>

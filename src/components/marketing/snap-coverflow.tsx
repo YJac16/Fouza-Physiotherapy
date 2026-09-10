@@ -433,7 +433,7 @@ export function SnapCoverflow({
   const renderBand = (band: -1 | 0 | 1) =>
     items.map((child, i) => {
       if (!isValidElement(child)) return child;
-      const element = child as ReactElement<{ className?: string }>;
+      const element = child as ReactElement<{ className?: string; tabIndex?: number }>;
       const absolute = looped && motionOk ? (band + 1) * count + i : i;
       const showingActive = absolute === index;
       const distance = Math.abs(absolute - index);
@@ -473,6 +473,7 @@ export function SnapCoverflow({
                 ? "shadow-[0_18px_40px_hsl(186_30%_8%/0.32)]"
                 : "shadow-[0_10px_24px_hsl(186_30%_8%/0.18)]",
             ),
+            tabIndex: showingActive ? undefined : -1,
           })}
         </div>
       );

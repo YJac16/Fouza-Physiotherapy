@@ -1,6 +1,7 @@
 import { createServiceClient } from "@/lib/supabase/admin";
 import { siteConfig } from "@/config/site";
 import { drainEmailOutbox } from "@/features/notifications/lib/outbox";
+import type { Json } from "@/types/database";
 
 const PATIENT_REMINDER = "booking.reminder.patient";
 const PRACTITIONER_REMINDER = "booking.reminder.practitioner";
@@ -132,7 +133,7 @@ export async function enqueueAppointmentReminders() {
     const { error: insertError } = await admin.from("notification_outbox").insert(
       inserts.map((row) => ({
         ...row,
-        payload: row.payload as import("@/types/database").Json,
+        payload: row.payload as Json,
       })),
     );
     if (insertError) {

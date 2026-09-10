@@ -6,6 +6,7 @@ import { requireStaff } from "@/lib/auth/guards";
 import { createServiceClient } from "@/lib/supabase/admin";
 import { siteConfig } from "@/config/site";
 import { renderEmailTemplate } from "@/features/notifications/lib/email-templates";
+import type { Json } from "@/types/database";
 
 function getResend() {
   const key = process.env.RESEND_API_KEY?.trim();
@@ -25,7 +26,7 @@ export async function enqueueNotification(input: {
     channel: input.channel ?? "email",
     template_key: input.templateKey,
     recipient: input.recipient,
-    payload: (input.payload ?? {}) as import("@/types/database").Json,
+    payload: (input.payload ?? {}) as Json,
     scheduled_for: input.scheduledFor ?? new Date().toISOString(),
   });
 }

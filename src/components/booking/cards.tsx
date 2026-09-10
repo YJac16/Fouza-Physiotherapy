@@ -350,9 +350,12 @@ export function BookingProgressIndicator({
                   isActive && "bg-primary/10 text-primary ring-2 ring-primary",
                   !isComplete && !isActive && "bg-secondary text-muted-foreground",
                 )}
-                aria-hidden
               >
-                {isComplete ? <CheckCircle2 className="size-4" /> : stepNumber}
+                <span className="sr-only">
+                  {step.label}
+                  {isComplete ? ", completed" : isActive ? ", current step" : ""}
+                </span>
+                <span aria-hidden>{isComplete ? <CheckCircle2 className="size-4" /> : stepNumber}</span>
               </span>
               <span
                 className={cn(

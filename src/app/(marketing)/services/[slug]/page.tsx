@@ -14,6 +14,7 @@ import { Typography } from "@/components/ui/typography";
 import { routes } from "@/config/routes";
 import { getService, serviceHref, services } from "@/content/services";
 import { JsonLd, breadcrumbJsonLd, faqJsonLd } from "@/lib/seo/json-ld";
+import { marketingImageSizes } from "@/lib/images";
 import { buildMetadata } from "@/lib/seo/metadata";
 import { TrackViewItem } from "@/components/analytics/marketing-tracker";
 
@@ -100,6 +101,7 @@ export default async function ServiceDetailPage({ params }: ServicePageProps) {
                 alt={service.name}
                 width={900}
                 height={720}
+                sizes={marketingImageSizes.detail}
                 priority
                 className="aspect-[5/4] w-full object-cover"
               />

@@ -13,6 +13,7 @@ import { Typography } from "@/components/ui/typography";
 import { routes } from "@/config/routes";
 import { conditionHref, conditions, getCondition } from "@/content/conditions";
 import { JsonLd, breadcrumbJsonLd, faqJsonLd } from "@/lib/seo/json-ld";
+import { marketingImageSizes } from "@/lib/images";
 import { buildMetadata } from "@/lib/seo/metadata";
 import { TrackViewItem } from "@/components/analytics/marketing-tracker";
 
@@ -102,6 +103,7 @@ export default async function ConditionDetailPage({ params }: ConditionPageProps
                 alt={`${condition.name} physiotherapy treatment`}
                 width={900}
                 height={720}
+                sizes={marketingImageSizes.detail}
                 priority
                 className="aspect-[5/4] w-full object-cover"
               />

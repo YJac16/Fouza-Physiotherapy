@@ -1,6 +1,7 @@
 import Image from "next/image";
 import Link from "next/link";
 
+import { marketingImageSizes } from "@/lib/images";
 import { cn } from "@/lib/utils";
 
 export type ServiceCoverflowCardProps = {
@@ -24,7 +25,7 @@ export function ServiceCoverflowCard({
   title,
   qualifier,
   className,
-  sizes = "(max-width: 640px) 68vw, 300px",
+  sizes = marketingImageSizes.coverflow,
 }: ServiceCoverflowCardProps) {
   return (
     <Link

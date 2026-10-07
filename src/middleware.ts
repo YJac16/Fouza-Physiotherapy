@@ -1,6 +1,7 @@
 import { type NextRequest, NextResponse } from "next/server";
 
 import { updateSession } from "@/lib/supabase/middleware";
+import { isSafeAppRedirectPath } from "@/lib/security";
 import type { AppRole } from "@/types/auth";
 
 /**
@@ -65,7 +66,7 @@ export async function middleware(request: NextRequest) {
     const role = (profile?.role ?? "patient") as AppRole;
     const url = request.nextUrl.clone();
     const redirectTo = request.nextUrl.searchParams.get("redirectTo");
-    if (redirectTo && redirectTo.startsWith("/") && !redirectTo.startsWith("//")) {
+    if (isSafeAppRedirectPath(redirectTo)) {
       // Preserve query string on absolute app paths (e.g. /portal/forms?returnTo=...)
       return NextResponse.redirect(new URL(redirectTo, request.url));
     }

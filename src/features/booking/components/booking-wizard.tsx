@@ -212,7 +212,7 @@ export function BookingWizard({
     if (serviceId && !visibleServices.some((service) => service.id === serviceId)) {
       setServiceId(null);
     }
-  }, [selectedPatient?.patientId]);
+  }, [selectedPatient, serviceId, visibleServices]);
 
   const holdTokenRef = useRef<string | null>(null);
   holdTokenRef.current = holdToken;
@@ -758,8 +758,9 @@ export function BookingWizard({
                   name="website"
                   tabIndex={-1}
                   autoComplete="off"
-                  aria-hidden
-                  className="pointer-events-none absolute left-[-9999px] h-0 w-0 opacity-0"
+                  hidden
+                  aria-hidden="true"
+                  className="hidden"
                 />
 
                 <div className="rounded-xl border border-border/70 bg-muted/20 p-4 text-sm">

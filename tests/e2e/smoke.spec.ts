@@ -84,6 +84,7 @@ test.describe("marketing smoke", () => {
 
     await page.goto("/book");
     await expect(page).toHaveURL(/\/book\/?$/);
+    await expect(page.getByRole("heading", { level: 1 })).toBeVisible();
 
     const bookHtml = await page.content();
     expect(bookHtml).not.toMatch(/setmore\.com/i);
@@ -94,5 +95,42 @@ test.describe("marketing smoke", () => {
     const termsHtml = await page.content();
     expect(termsHtml).not.toMatch(/setmore\.com/i);
     expect(termsHtml).not.toMatch(/external scheduling partner/i);
+  });
+
+  test("booking page exposes native booking or fallback contact", async ({ page }) => {
+    await page.goto("/book");
+    await expect(
+      page.getByRole("heading", { level: 1, name: /book your appointment/i }),
+    ).toBeVisible();
+    const wizard = page.getByText(/select a service/i);
+    const fallback = page.getByText(/online booking is temporarily unavailable/i);
+    await expect(wizard.or(fallback).first()).toBeVisible();
+  });
+
+  test("contact page loads", async ({ page }) => {
+    await page.goto("/contact");
+    await expect(page.getByRole("heading", { level: 1, name: /get in touch/i })).toBeVisible();
+  });
+
+  test("forgot password page loads", async ({ page }) => {
+    await page.goto("/forgot-password");
+    await expect(page.getByRole("heading", { name: /forgot password/i })).toBeVisible();
+  });
+
+  test("404 page offers home and booking links", async ({ page }) => {
+    await page.goto("/this-route-does-not-exist");
+    await expect(page.getByRole("heading", { name: /not found/i })).toBeVisible();
+    await expect(page.getByRole("link", { name: /back to home/i })).toBeVisible();
+    await expect(page.getByRole("link", { name: /book an appointment/i })).toHaveAttribute(
+      "href",
+      "/book",
+    );
+  });
+
+  test("mobile nav opens from header menu button", async ({ page }) => {
+    await page.setViewportSize({ width: 390, height: 844 });
+    await page.goto("/");
+    await page.getByRole("button", { name: /open menu/i }).click();
+    await expect(page.getByRole("navigation", { name: /mobile/i }).getByRole("link", { name: "Services" })).toBeVisible();
   });
 });

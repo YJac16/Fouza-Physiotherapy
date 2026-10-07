@@ -1,6 +1,6 @@
 import { describe, expect, it } from "vitest";
 
-import { isAllowedUploadMime, isHoneypotFilled, rateLimit } from "@/lib/security";
+import { isAllowedUploadMime, isHoneypotFilled, isSafeAppRedirectPath, rateLimit } from "@/lib/security";
 
 describe("security helpers", () => {
   it("detects honeypot fills", () => {
@@ -18,5 +18,12 @@ describe("security helpers", () => {
   it("allows safe upload mime types", () => {
     expect(isAllowedUploadMime("application/pdf")).toBe(true);
     expect(isAllowedUploadMime("application/x-msdownload")).toBe(false);
+  });
+
+  it("rejects unsafe redirect paths", () => {
+    expect(isSafeAppRedirectPath("/portal")).toBe(true);
+    expect(isSafeAppRedirectPath("//evil.com")).toBe(false);
+    expect(isSafeAppRedirectPath("https://evil.com")).toBe(false);
+    expect(isSafeAppRedirectPath(null)).toBe(false);
   });
 });

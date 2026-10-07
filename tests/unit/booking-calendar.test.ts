@@ -12,6 +12,7 @@ import {
 import {
   addSastDays,
   combineDateAndTime,
+  isPastBookingDateKey,
   overlaps,
   sastMonthRange,
   sastWeekRange,
@@ -65,6 +66,11 @@ describe("SAST timezone helpers", () => {
     // 2026-03-09 22:30 UTC = 2026-03-10 00:30 SAST — must be the 10th, not UTC 9th
     const nearMidnightUtc = new Date("2026-03-09T22:30:00.000Z");
     expect(toDateKey(nearMidnightUtc)).toBe("2026-03-10");
+  });
+
+  it("detects past booking dates in SAST", () => {
+    expect(isPastBookingDateKey("2020-01-01")).toBe(true);
+    expect(isPastBookingDateKey(toDateKey(new Date()))).toBe(false);
   });
 
   it("builds Monday-start week ranges", () => {

@@ -26,7 +26,7 @@ function invoiceCardStatus(status: string): "paid" | "pending" | "overdue" {
 
 export default async function PortalHomePage() {
   const profile = await requireUser();
-  const { patients, selected } = await getPortalView();
+  const { selected } = await getPortalView();
   const patient = selected;
 
   const [appointmentsResult, programmesResult, invoicesResult, documentsResult] = patient

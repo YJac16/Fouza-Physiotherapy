@@ -33,7 +33,11 @@ export function buildConsentSignatureRows(input: {
   });
 }
 
-export async function loadActiveConsentForms(admin: ReturnType<typeof import("@/lib/supabase/admin").createServiceClient>) {
+import type { createServiceClient } from "@/lib/supabase/admin";
+
+type AdminClient = ReturnType<typeof createServiceClient>;
+
+export async function loadActiveConsentForms(admin: AdminClient) {
   const { data } = await admin
     .from("consent_forms")
     .select("id, slug, version, body_md")

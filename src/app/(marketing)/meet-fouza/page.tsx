@@ -14,6 +14,7 @@ import { routes } from "@/config/routes";
 import { siteConfig } from "@/config/site";
 import { fouzaBio } from "@/content/fouza";
 import { JsonLd, breadcrumbJsonLd } from "@/lib/seo/json-ld";
+import { marketingImageSizes } from "@/lib/images";
 import { buildMetadata } from "@/lib/seo/metadata";
 
 export const metadata: Metadata = buildMetadata({
@@ -57,6 +58,7 @@ export default function MeetFouzaPage() {
                     alt={fouzaBio.name}
                     width={800}
                     height={1000}
+                    sizes={marketingImageSizes.portrait}
                     priority
                     className="aspect-[4/5] w-full object-cover"
                   />
@@ -202,6 +204,7 @@ export default function MeetFouzaPage() {
                   alt={image.alt}
                   width={700}
                   height={560}
+                  sizes={marketingImageSizes.gallery}
                   className="aspect-[5/4] w-full object-cover transition-transform duration-350 ease-premium hover:scale-[1.03]"
                 />
               </div>

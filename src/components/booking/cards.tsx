@@ -345,7 +345,7 @@ export function BookingProgressIndicator({
             >
               <span
                 className={cn(
-                  "flex size-8 shrink-0 items-center justify-center rounded-full text-xs font-semibold transition-colors",
+                  "flex size-10 shrink-0 items-center justify-center rounded-full text-sm font-semibold transition-colors",
                   isComplete && "bg-primary text-primary-foreground",
                   isActive && "bg-primary/10 text-primary ring-2 ring-primary",
                   !isComplete && !isActive && "bg-secondary text-muted-foreground",

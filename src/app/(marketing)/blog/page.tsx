@@ -15,7 +15,7 @@ import { JsonLd, breadcrumbJsonLd } from "@/lib/seo/json-ld";
 import { buildMetadata } from "@/lib/seo/metadata";
 
 export const metadata: Metadata = buildMetadata({
-  title: "Blog | Fouza Physiotherapy",
+  title: "Blog",
   description:
     "Physiotherapy tips, recovery guidance, and evidence-based insight from Fouza Physiotherapy in Walmer Estate, Cape Town.",
   path: routes.marketing.blog,
@@ -51,11 +51,7 @@ export default async function BlogPage() {
 
   const featuredStatic = getFeaturedPost();
   const featured = cmsPosts[0] ?? featuredStatic;
-
-  const latest =
-    cmsPosts.length > 0
-      ? cmsPosts.slice(1)
-      : blogPosts.filter((post) => post.slug !== featuredStatic?.slug);
+  const explorerPosts = cmsPosts.length > 0 ? cmsPosts : blogPosts;
 
   return (
     <>
@@ -109,7 +105,8 @@ export default async function BlogPage() {
             description="Search or filter by category to find guidance relevant to you."
           />
           <BlogExplorer
-            posts={latest.length ? latest : blogPosts}
+            posts={explorerPosts}
+            featuredSlug={featured?.slug}
             categories={blogCategories}
           />
         </Container>
@@ -117,7 +114,23 @@ export default async function BlogPage() {
 
       <Section spacing="md">
         <Container size="sm">
-          <div className="rounded-2xl border border-border/80 bg-card p-8 shadow-sm tablet:p-10">
+          <div className="rounded-2xl border border-border/80 bg-card p-8 text-center shadow-sm md:hidden">
+            <p className="font-display text-h4 tracking-tight text-foreground">Ready to book?</p>
+            <p className="mx-auto mt-2 max-w-sm text-sm leading-relaxed text-muted-foreground">
+              Choose a time online, or message us on WhatsApp.
+            </p>
+            <div className="mt-5 flex flex-col gap-2">
+              <Button asChild className="w-full">
+                <Link href={routes.booking.root}>Book appointment</Link>
+              </Button>
+              <Button asChild variant="outline" className="w-full">
+                <a href={siteConfig.whatsappUrl} target="_blank" rel="noopener noreferrer">
+                  WhatsApp us
+                </a>
+              </Button>
+            </div>
+          </div>
+          <div className="hidden rounded-2xl border border-border/80 bg-card p-8 shadow-sm tablet:p-10 md:block">
             <Newsletter className="mx-auto max-w-sm" />
           </div>
         </Container>

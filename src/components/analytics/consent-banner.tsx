@@ -31,7 +31,7 @@ export function AnalyticsConsentBanner() {
   }
 
   return (
-    <div className="fixed inset-x-0 bottom-0 z-[60] border-t border-border bg-background/95 p-4 shadow-soft-lg backdrop-blur">
+    <div className="fixed inset-x-0 z-[60] border-t border-border bg-background/95 p-4 shadow-soft-lg backdrop-blur bottom-[calc(var(--mobile-action-offset,0px)+env(safe-area-inset-bottom))] md:bottom-0">
       <div className="mx-auto flex max-w-4xl flex-col gap-3 sm:flex-row sm:items-center sm:justify-between">
         <p className="text-sm text-muted-foreground">
           We use optional Google Analytics cookies to understand anonymous website use. No

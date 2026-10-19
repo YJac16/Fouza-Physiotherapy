@@ -46,6 +46,16 @@ export function medicalBusinessJsonLd() {
       jobTitle: siteConfig.founder.title,
     },
     medicalSpecialty: "Physiotherapy",
+    ...(siteConfig.founder.practiceNumber
+      ? {
+          identifier: {
+            "@type": "PropertyValue",
+            propertyID: "PCNS",
+            name: "Practice number",
+            value: siteConfig.founder.practiceNumber,
+          },
+        }
+      : {}),
     sameAs: [siteConfig.whatsappUrl].filter(Boolean),
   };
 }

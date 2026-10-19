@@ -40,6 +40,11 @@ export default function FaqPage() {
 
       <Section spacing="md">
         <Container size="md">
+          <SectionHeader
+            title="Browse common questions"
+            description="Search or choose a topic. Each answer sits under this heading."
+            className="mb-6"
+          />
           <FaqSearch />
         </Container>
       </Section>
@@ -56,11 +61,11 @@ export default function FaqPage() {
             <Typography variant="small" className="mb-6">
               {siteConfig.email}
             </Typography>
-            <div className="flex flex-col items-center justify-center gap-3 sm:flex-row">
-              <Button asChild size="lg">
+            <div className="flex w-full flex-col gap-3 md:flex-row md:justify-center">
+              <Button asChild size="lg" className="w-full md:w-auto">
                 <Link href={routes.marketing.contact}>Contact us</Link>
               </Button>
-              <Button asChild variant="outline" size="lg">
+              <Button asChild variant="outline" size="lg" className="w-full md:w-auto">
                 <Link href={routes.booking.root}>Book appointment</Link>
               </Button>
             </div>

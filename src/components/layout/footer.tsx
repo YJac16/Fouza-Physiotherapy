@@ -3,6 +3,8 @@ import Link from "next/link";
 
 import { Logo } from "@/components/shared/logo";
 import { Newsletter } from "@/components/shared/newsletter";
+import { RegistrationDetails } from "@/components/marketing/registration-details";
+import { Button } from "@/components/ui/button";
 import { Separator } from "@/components/ui/separator";
 import { routes } from "@/config/routes";
 import { mapsQueryUrl, siteConfig, telHref } from "@/config/site";
@@ -50,12 +52,12 @@ export function Footer({ className, showNewsletter = true, auth = null }: Footer
   ];
 
   return (
-    <footer className={cn("border-t border-border/70 bg-secondary/40", className)}>
-      <div className="mx-auto max-w-7xl px-5 py-14 sm:px-6 lg:px-8">
+    <footer className={cn("border-t border-border/70 bg-secondary/40 pb-[calc(4.75rem+var(--install-hint-offset,0px)+env(safe-area-inset-bottom))] md:pb-0", className)}>
+      <div className="mx-auto max-w-7xl px-5 py-10 sm:px-6 md:py-14 lg:px-8">
         <div className="grid gap-10 lg:grid-cols-12">
           <div className="space-y-5 lg:col-span-4">
             <Logo />
-            <p className="max-w-sm text-sm leading-relaxed text-muted-foreground">
+            <p className="hidden max-w-sm text-sm leading-relaxed text-muted-foreground md:block">
               {siteConfig.description}
             </p>
             <ul className="space-y-2.5 text-sm text-muted-foreground">
@@ -98,9 +100,10 @@ export function Footer({ className, showNewsletter = true, auth = null }: Footer
                 <span>{siteConfig.hoursSummary}</span>
               </li>
             </ul>
+            <RegistrationDetails />
           </div>
 
-          <div className="grid gap-8 tablet:grid-cols-3 lg:col-span-4">
+          <div className="grid grid-cols-2 gap-x-6 gap-y-8 md:grid-cols-3 lg:col-span-4">
             <div>
               <p className="mb-3 text-sm font-semibold text-foreground">Explore</p>
               <ul className="space-y-2">
@@ -150,22 +153,34 @@ export function Footer({ className, showNewsletter = true, auth = null }: Footer
 
           {showNewsletter ? (
             <div className="lg:col-span-4">
-              <Newsletter />
+              <div className="rounded-2xl border border-border/80 bg-card p-5 shadow-sm md:hidden">
+                <p className="font-display text-h5 tracking-tight text-foreground">Book a visit</p>
+                <p className="mt-1.5 text-sm leading-relaxed text-muted-foreground">
+                  Choose a time online, or message us on WhatsApp.
+                </p>
+                <div className="mt-4 flex flex-col gap-2">
+                  <Button asChild className="w-full">
+                    <Link href={routes.booking.root}>Book appointment</Link>
+                  </Button>
+                  <Button asChild variant="outline" className="w-full">
+                    <a href={siteConfig.whatsappUrl} target="_blank" rel="noopener noreferrer">
+                      WhatsApp us
+                    </a>
+                  </Button>
+                </div>
+              </div>
+              <div className="hidden md:block">
+                <Newsletter />
+              </div>
             </div>
           ) : null}
         </div>
 
-        <Separator className="my-10" />
+        <Separator className="my-8 md:my-10" />
 
-        <div className="flex flex-col gap-3 text-xs text-muted-foreground sm:flex-row sm:items-center sm:justify-between">
-          <p>
-            © {year} {siteConfig.practiceName}. All rights reserved.
-          </p>
-          <p>
-            Add to Home Screen: iPhone Share → Add to Home Screen · Android/Chrome menu → Install
-            app
-          </p>
-        </div>
+        <p className="text-xs text-muted-foreground">
+          © {year} {siteConfig.practiceName}. All rights reserved.
+        </p>
       </div>
     </footer>
   );

@@ -53,8 +53,13 @@ export const siteConfig = {
     title: "Founder & Physiotherapist",
     credentials: "BSc Physiotherapy (UCT)",
     registration: "HPCSA Registered Physiotherapist",
-    /** Update when confirmed publicly; do not invent registration numbers. */
-    practiceNumber: process.env.NEXT_PUBLIC_PRACTICE_NUMBER ?? "",
+    /** PCNS practice number. Override with NEXT_PUBLIC_PRACTICE_NUMBER. */
+    practiceNumber: process.env.NEXT_PUBLIC_PRACTICE_NUMBER?.trim() || "0932469",
+    /**
+     * HPCSA registration number. Stays hidden until NEXT_PUBLIC_HPCSA_NUMBER
+     * is set. Never invent a placeholder.
+     */
+    hpcsaNumber: process.env.NEXT_PUBLIC_HPCSA_NUMBER?.trim() || "",
   },
   links: {
     book: "/book",
@@ -64,10 +69,10 @@ export const siteConfig = {
     login: "/login",
   },
   images: {
-    logo: "/fouza-physiotherapy-logo.png",
-    logoWordmark: "/fouza-physiotherapy-logo-wordmark.png",
+    logo: "/fouza-physiotherapy-logo.webp",
+    logoWordmark: "/fouza-physiotherapy-logo-wordmark.webp",
     /** Light lettering for dark backgrounds — same layout as `logoWordmark`. */
-    logoWordmarkDark: "/fouza-physiotherapy-logo-wordmark-dark.png",
+    logoWordmarkDark: "/fouza-physiotherapy-logo-wordmark-dark.webp",
     favicon: "/favicon-32x32.png",
     appleTouchIcon: "/apple-touch-icon.png",
     hpcsa: "/hpcsa-logo.png",
@@ -81,14 +86,15 @@ export const siteConfig = {
     sports: "/rehab-03.jpg",
     manualTherapy: "/rehab-02.jpg",
     softTissue: "/rehab-08.jpg",
-    dryNeedling: "/dry-needling.png",
-    backRehab: "/rehab-05.jpg",
+    dryNeedling: "/dry-needling.jpg",
+    /** Lumbar hands-on care. rehab-05 is a shoulder exercise, so it is not used here. */
+    backRehab: "/rehab-02.jpg",
     posture: "/rehab-06.jpg",
     shoulderRehab: "/shoulder-pain.jpg",
     kneeAnkle: "/rehab-04.jpg",
     postOp: "/rehab-10.jpg",
     assessment: "/rehab-09.jpg",
-    og: "/practice-2.jpg",
+    og: "/og-fouza.jpg",
   },
 } as const;
 

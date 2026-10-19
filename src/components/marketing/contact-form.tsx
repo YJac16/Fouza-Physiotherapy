@@ -99,7 +99,7 @@ export function ContactForm() {
         </FormMessage>
       ) : null}
       {error ? <FormMessage tone="error">{error}</FormMessage> : null}
-      <Button type="submit" className="w-full sm:w-auto" loading={status === "loading"}>
+      <Button type="submit" className="w-full md:w-auto" loading={status === "loading"}>
         Send message
       </Button>
     </form>

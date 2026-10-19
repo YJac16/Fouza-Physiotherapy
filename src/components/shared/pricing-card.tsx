@@ -8,7 +8,6 @@ import {
   CardDescription,
   CardFooter,
   CardHeader,
-  CardTitle,
 } from "@/components/ui/card";
 import { Typography } from "@/components/ui/typography";
 import { cn } from "@/lib/utils";
@@ -51,7 +50,9 @@ export function PricingCard({
             {badge}
           </Badge>
         ) : null}
-        <CardTitle>{title}</CardTitle>
+        <Typography as="h2" variant="h5" className="leading-snug">
+          {title}
+        </Typography>
         {description ? <CardDescription>{description}</CardDescription> : null}
         <div className="pt-2">
           <Typography as="p" variant="h3" className="inline text-primary">

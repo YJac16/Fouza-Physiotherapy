@@ -1,7 +1,7 @@
 import {
   Activity,
   Armchair,
-  Bone,
+  IdCard,
   Dumbbell,
   Hand,
   HeartPulse,
@@ -19,6 +19,8 @@ export type ServiceContent = {
   /** Short second-line caption for catalogue tiles (sentence case). */
   qualifier: string;
   shortDescription: string;
+  /** 140–155 characters, including the suburb, for the page meta description. */
+  metaDescription: string;
   overview: string;
   whoItHelps: string[];
   benefits: string[];
@@ -37,6 +39,8 @@ export const services: ServiceContent[] = [
     qualifier: "Targeted trigger-point care",
     shortDescription:
       "Targeted needling to ease muscle tension and support pain relief as part of a broader plan.",
+    metaDescription:
+      "Dry needling in Walmer Estate, Cape Town eases muscle tension and supports pain relief as part of your broader physiotherapy treatment plan.",
     overview:
       "Dry needling uses fine filament needles to address myofascial trigger points and muscle tension. It is used alongside manual therapy and exercise — never as a standalone cure-all.",
     whoItHelps: [
@@ -78,6 +82,8 @@ export const services: ServiceContent[] = [
     qualifier: "Hands-on mobility treatment",
     shortDescription:
       "Skilled hands-on techniques to improve mobility, ease pain, and restore comfortable movement.",
+    metaDescription:
+      "Manual therapy in Walmer Estate, Cape Town uses skilled hands-on care to improve mobility, ease pain, and restore comfortable everyday movement.",
     overview:
       "Manual therapy includes joint mobilisation, soft tissue techniques, and guided movement. It is combined with education and exercise for lasting change.",
     whoItHelps: [
@@ -114,6 +120,8 @@ export const services: ServiceContent[] = [
     qualifier: "Acute and persistent back pain",
     shortDescription:
       "Assessment and rehab for acute and persistent lower and mid-back pain.",
+    metaDescription:
+      "Back pain treatment in Walmer Estate, Cape Town for acute and persistent pain, with assessment, hands-on care, and a personalised exercise plan.",
     overview:
       "Back pain care focuses on understanding your symptoms, restoring confident movement, and building resilience through education and exercise.",
     whoItHelps: [
@@ -150,6 +158,8 @@ export const services: ServiceContent[] = [
     qualifier: "Stiffness, tension, and control",
     shortDescription:
       "Relief and rehab for neck stiffness, tension, and movement-related discomfort.",
+    metaDescription:
+      "Neck pain treatment in Walmer Estate, Cape Town for stiffness, tension, and movement-related discomfort, with clear advice and a personalised home plan.",
     overview:
       "Neck pain treatment addresses joint mobility, muscle tension, posture, and load — helping you move with less irritability and more control.",
     whoItHelps: [
@@ -186,6 +196,8 @@ export const services: ServiceContent[] = [
     qualifier: "Mobility, strength, and comfort",
     shortDescription:
       "Restore mobility and strength after shoulder pain, injury, or stiffness.",
+    metaDescription:
+      "Shoulder rehabilitation in Walmer Estate, Cape Town restores mobility and strength after pain, injury, or stiffness so daily tasks feel easier.",
     overview:
       "Shoulder rehab blends mobility work, scapular control, and progressive loading so you can reach, lift, and sleep more comfortably.",
     whoItHelps: [
@@ -237,10 +249,10 @@ export const trustItems = [
     description: siteConfig.founder.practiceNumber
       ? `Practice no. ${siteConfig.founder.practiceNumber}`
       : "Private physiotherapy practice · Cape Town",
-    icon: Bone,
+    icon: IdCard,
   },
   {
-    title: "Years of Experience",
+    title: "Since 2019",
     description: "Clinical practice since 2019 · Own practice since 2021",
     icon: Activity,
   },

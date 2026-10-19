@@ -4,8 +4,9 @@ import type { Metadata } from "next";
 
 import { PageHero } from "@/components/marketing";
 import { Timeline } from "@/components/shared/timeline";
-import { Badge } from "@/components/ui/badge";
+import { RegistrationDetails } from "@/components/marketing/registration-details";
 import { Button } from "@/components/ui/button";
+import { Badge } from "@/components/ui/badge";
 import { Card, CardContent } from "@/components/ui/card";
 import { Container, Section, SectionHeader } from "@/components/layout/container";
 import { FadeIn } from "@/components/ui/motion";
@@ -58,6 +59,7 @@ export default function MeetFouzaPage() {
                     width={800}
                     height={1000}
                     priority
+                    sizes="(max-width: 768px) 100vw, 380px"
                     className="aspect-[4/5] w-full object-cover"
                   />
                 </div>
@@ -77,6 +79,7 @@ export default function MeetFouzaPage() {
                   alt="HPCSA registered"
                   width={56}
                   height={56}
+                  sizes="48px"
                   className="size-12 shrink-0 object-contain"
                 />
                 <div>
@@ -86,6 +89,7 @@ export default function MeetFouzaPage() {
                   <Typography variant="caption" className="normal-case">
                     Health Professions Council of South Africa
                   </Typography>
+                  <RegistrationDetails className="mt-2" />
                 </div>
               </div>
             </div>
@@ -202,6 +206,7 @@ export default function MeetFouzaPage() {
                   alt={image.alt}
                   width={700}
                   height={560}
+                  sizes="(max-width: 768px) 100vw, 33vw"
                   className="aspect-[5/4] w-full object-cover transition-transform duration-350 ease-premium hover:scale-[1.03]"
                 />
               </div>
@@ -246,7 +251,7 @@ export default function MeetFouzaPage() {
               Experience personalised, evidence-based physiotherapy care from
               a practitioner who takes the time to understand you.
             </Typography>
-            <div className="mt-8 flex flex-col items-center justify-center gap-3 sm:flex-row">
+            <div className="mt-8 flex w-full flex-col items-stretch justify-center gap-3 md:flex-row md:items-center [&_a]:w-full md:[&_a]:w-auto">
               <Button asChild size="lg">
                 <Link href={routes.booking.root}>Book appointment</Link>
               </Button>

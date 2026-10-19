@@ -15,10 +15,11 @@ test.describe("marketing smoke", () => {
     await expect(page.getByRole("heading", { level: 1, name: /dry needling/i })).toBeVisible();
   });
 
-  test("services page coverflow keeps booking on /book", async ({ page }) => {
+  test("services page lists the catalogue and keeps booking on /book", async ({ page }) => {
     await page.goto("/services");
     await expect(page.getByRole("heading", { level: 1 })).toBeVisible();
-    await expect(page.getByRole("region", { name: /physiotherapy services/i })).toBeVisible();
+    await expect(page.getByRole("region", { name: /physiotherapy services/i })).toHaveCount(0);
+    await expect(page.getByRole("link", { name: /dry needling/i }).first()).toBeVisible();
     await expect(page.getByRole("link", { name: /book appointment/i }).first()).toHaveAttribute(
       "href",
       "/book",

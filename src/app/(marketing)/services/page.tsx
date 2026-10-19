@@ -1,11 +1,11 @@
 import Link from "next/link";
 import type { Metadata } from "next";
 
-import { PageHero, ServicesCoverflow } from "@/components/marketing";
+import { PageHero } from "@/components/marketing";
 import { Button } from "@/components/ui/button";
 import { Container, Section, SectionHeader } from "@/components/layout/container";
 import { routes } from "@/config/routes";
-import { services } from "@/content/services";
+import { serviceHref, services } from "@/content/services";
 import { JsonLd, breadcrumbJsonLd } from "@/lib/seo/json-ld";
 import { buildMetadata } from "@/lib/seo/metadata";
 
@@ -35,12 +35,36 @@ export default function ServicesPage() {
         ]}
       />
 
-      <ServicesCoverflow
-        eyebrow="What we offer"
-        title="Understanding your pain. Restoring your movement. Helping you get back to life."
-        description="Every service combines thorough assessment, hands-on treatment where indicated, and a personalised exercise plan."
-        services={services}
-      />
+      <Section spacing="md">
+        <Container>
+          <SectionHeader
+            eyebrow="All services"
+            title="Five ways we can help"
+            description="Every service includes a thorough assessment. Choose a starting point, or book and we will guide you."
+          />
+          <ul className="grid gap-4 sm:grid-cols-2 lg:grid-cols-3">
+            {services.map((service) => (
+              <li key={service.slug}>
+                <Link
+                  href={serviceHref(service.slug)}
+                  className="flex h-full min-h-11 flex-col rounded-2xl border border-border/80 bg-card p-5 shadow-sm transition-colors hover:border-primary/25"
+                >
+                  <span className="font-display text-lg font-semibold tracking-tight text-foreground">
+                    {service.name}
+                  </span>
+                  <span className="mt-2 text-sm leading-relaxed text-muted-foreground">
+                    {service.shortDescription}
+                  </span>
+                  <span className="mt-4 inline-flex min-h-11 items-center text-sm font-medium text-accent">
+                    Learn more
+                    <span className="sr-only"> about {service.name}</span>
+                  </span>
+                </Link>
+              </li>
+            ))}
+          </ul>
+        </Container>
+      </Section>
 
       <Section spacing="md" tone="muted">
         <Container size="md">
@@ -51,7 +75,7 @@ export default function ServicesPage() {
               align="center"
               className="mx-auto mb-6"
             />
-            <div className="flex flex-col items-center justify-center gap-3 sm:flex-row">
+            <div className="flex w-full flex-col items-stretch justify-center gap-3 md:flex-row md:items-center [&_a]:w-full md:[&_a]:w-auto">
               <Button asChild size="lg">
                 <Link href={routes.booking.root}>Book appointment</Link>
               </Button>

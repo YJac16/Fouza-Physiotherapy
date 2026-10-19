@@ -1,5 +1,8 @@
 import { ArrowRight, Clock } from "lucide-react";
+import Image from "next/image";
 import type { HTMLAttributes, ReactNode } from "react";
+
+import { formatMonthYear } from "@/lib/format-month-year";
 
 import { Avatar, AvatarFallback, AvatarImage } from "@/components/ui/avatar";
 import { Badge } from "@/components/ui/badge";
@@ -75,12 +78,13 @@ export function ArticleCard({
   const content = (
     <>
       {imageSrc ? (
-        <div className="aspect-[16/9] overflow-hidden rounded-t-2xl bg-secondary">
-          {/* eslint-disable-next-line @next/next/no-img-element */}
-          <img
+        <div className="relative aspect-[16/9] overflow-hidden rounded-t-2xl bg-secondary">
+          <Image
             src={imageSrc}
             alt={imageAlt ?? title}
-            className="size-full object-cover transition-transform duration-350 ease-premium group-hover:scale-[1.02]"
+            fill
+            sizes="(max-width: 768px) 100vw, (max-width: 1024px) 50vw, 33vw"
+            className="object-cover transition-transform duration-350 ease-premium group-hover:scale-[1.02]"
           />
         </div>
       ) : null}
@@ -95,7 +99,7 @@ export function ArticleCard({
           ) : null}
         </div>
         <CardTitle className="line-clamp-2 pt-1">{title}</CardTitle>
-        {date ? <CardDescription>{date}</CardDescription> : null}
+        {date ? <CardDescription>{formatMonthYear(date)}</CardDescription> : null}
       </CardHeader>
       <CardContent className="pt-0">
         <Typography variant="small" className="line-clamp-3 leading-relaxed">
@@ -104,8 +108,9 @@ export function ArticleCard({
       </CardContent>
       {href ? (
         <CardFooter className="pt-0">
-          <span className="inline-flex items-center gap-1.5 text-sm font-medium text-primary">
+          <span className="inline-flex min-h-11 items-center gap-1.5 text-sm font-medium text-primary">
             Read article
+            <span className="sr-only">: {title}</span>
             <ArrowRight className="size-4" aria-hidden />
           </span>
         </CardFooter>
@@ -174,12 +179,14 @@ export function FeaturedArticle({
       {...props}
     >
       {imageSrc ? (
-        <div className="aspect-[16/10] bg-secondary md:aspect-auto">
-          {/* eslint-disable-next-line @next/next/no-img-element */}
-          <img
+        <div className="relative aspect-[16/10] min-h-48 bg-secondary md:aspect-auto md:h-full">
+          <Image
             src={imageSrc}
             alt={imageAlt ?? title}
-            className="size-full object-cover"
+            fill
+            priority
+            sizes="(max-width: 768px) 100vw, 50vw"
+            className="object-cover"
           />
         </div>
       ) : (
@@ -201,7 +208,7 @@ export function FeaturedArticle({
         </Typography>
         {date ? (
           <Typography variant="caption" className="mt-2 normal-case">
-            {date}
+            {formatMonthYear(date)}
           </Typography>
         ) : null}
         <Typography variant="body-lg" className="mt-4 line-clamp-4">
@@ -304,7 +311,7 @@ export function BlogSearch({
     <SearchBar
       aria-label={label}
       placeholder={placeholder}
-      className={cn("max-w-md", className)}
+      className={cn("w-full", className)}
       {...props}
     />
   );

@@ -198,8 +198,15 @@ export function BookingWizard({
   const bookingBlocked = familyConsentMissing;
 
   const minDate = useMemo(() => getDateKeyInTimezone(), []);
+  const onlyService = visibleServices.length === 1 ? visibleServices[0] : undefined;
+  const onlyServiceId = onlyService?.id ?? null;
   const selectedService = visibleServices.find((s) => s.id === serviceId) ?? null;
   const selectedPractitioner = practitioners.find((p) => p.id === practitionerId) ?? null;
+
+  useEffect(() => {
+    if (!onlyServiceId) return;
+    setServiceId((current) => (current === onlyServiceId ? current : onlyServiceId));
+  }, [onlyServiceId]);
 
   useEffect(() => {
     if (!selectedPatient) return;
@@ -209,6 +216,7 @@ export function BookingWizard({
       email: selectedPatient.email,
       phone: selectedPatient.phone,
     });
+    if (visibleServices.length === 1) return;
     if (serviceId && !visibleServices.some((service) => service.id === serviceId)) {
       setServiceId(null);
     }
@@ -398,10 +406,10 @@ export function BookingWizard({
       <BookingProgressIndicator steps={[...STEPS]} currentStep={step} />
 
       {!selectedPatient?.canBookFollowUps ? (
-        <FormMessage tone="info">
+        <FormMessage tone="info" className="text-base leading-relaxed text-foreground">
           {selectedPatient?.access === "contact"
-            ? "Follow-up bookings for this patient unlock once the practice has verified informed consent on file."
-            : "New patients can book an Initial Consultation. Follow-up appointments unlock after verified account status and informed consent."}
+            ? "Follow-up visits for this patient can be booked once the practice has a consent form on file."
+            : "New patients book an Initial Consultation here. Follow-up visits open after you sign in and your consent form is on file. Message us on WhatsApp if you need a follow-up sooner."}
         </FormMessage>
       ) : null}
 

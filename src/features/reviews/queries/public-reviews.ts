@@ -4,6 +4,7 @@ import {
 } from "@/content/google-reviews";
 import type { Testimonial } from "@/content/testimonials";
 import { reviewSummary } from "@/content/testimonials";
+import { formatMonthYear } from "@/lib/format-month-year";
 import { createClient } from "@/lib/supabase/server";
 
 export type PublicReviewsPayload = {
@@ -20,7 +21,7 @@ function catalogAsTestimonials(limit?: number): Testimonial[] {
     author: r.authorName,
     rating: r.rating,
     content: r.text,
-    date: r.reviewedAt.slice(0, 7),
+    date: formatMonthYear(r.reviewedAt),
     source: "Google",
     featured: r.featured,
   }));
@@ -57,7 +58,7 @@ export async function getPublicGoogleReviews(
         author: r.author_name,
         content: r.text ?? "",
         rating: r.rating,
-        date: r.reviewed_at?.slice(0, 7),
+        date: formatMonthYear(r.reviewed_at),
         source: "Google",
         featured: r.is_featured,
       }));

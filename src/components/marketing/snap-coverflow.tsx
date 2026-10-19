@@ -15,6 +15,8 @@ import {
   type ReactNode,
 } from "react";
 
+import { ChevronLeft, ChevronRight } from "lucide-react";
+
 import { cn } from "@/lib/utils";
 
 /** Clinical motion: longer dwell, modest centre scale, gentle slide. */
@@ -454,16 +456,18 @@ export function SnapCoverflow({
           }}
           className={cn(
             "shrink-0 origin-center will-change-transform",
+            motionOk && distance > 1 && "pointer-events-none",
             motionOk && animating
               ? "transition-[transform,opacity] duration-500 ease-premium"
               : "",
           )}
           style={{
             transform: `scale(${scale})`,
-            opacity: motionOk ? (showingActive ? 1 : distance === 1 ? 0.9 : 0.78) : 1,
+            opacity: motionOk ? (showingActive ? 1 : distance === 1 ? 0.92 : 0) : 1,
             zIndex: showingActive ? 3 : distance === 1 ? 2 : 1,
           }}
-          aria-hidden={!showingActive}
+          aria-hidden={showingActive ? undefined : true}
+          inert={showingActive ? undefined : true}
         >
           {cloneElement(element, {
             className: cn(
@@ -482,8 +486,7 @@ export function SnapCoverflow({
     <div
       ref={rootRef}
       className={cn(
-        "relative",
-        "[mask-image:linear-gradient(90deg,transparent,black_4%,black_96%,transparent)]",
+        "relative [mask-image:linear-gradient(90deg,transparent,black_8%,black_92%,transparent)] md:[mask-image:none]",
         className,
       )}
       onPointerEnter={onPointerEnter}
@@ -535,6 +538,61 @@ export function SnapCoverflow({
           {bands.map((band) => renderBand(band))}
         </div>
       </div>
+      {count > 1 ? (
+        <>
+          <button
+            type="button"
+            aria-label="Previous service"
+            className="absolute left-4 top-1/2 z-20 hidden size-11 -translate-y-1/2 items-center justify-center rounded-full border border-border bg-background/95 text-foreground shadow-soft md:inline-flex"
+            onClick={() => {
+              pause();
+              goBy(-1);
+              scheduleResume();
+            }}
+          >
+            <ChevronLeft className="size-5" aria-hidden />
+          </button>
+          <button
+            type="button"
+            aria-label="Next service"
+            className="absolute right-4 top-1/2 z-20 hidden size-11 -translate-y-1/2 items-center justify-center rounded-full border border-border bg-background/95 text-foreground shadow-soft md:inline-flex"
+            onClick={() => {
+              pause();
+              goBy(1);
+              scheduleResume();
+            }}
+          >
+            <ChevronRight className="size-5" aria-hidden />
+          </button>
+          <div className="hidden justify-center gap-1 md:flex" role="tablist" aria-label="Services">
+            {items.map((_, itemIndex) => {
+              const active = ((index % count) + count) % count === itemIndex;
+              return (
+                <button
+                  key={itemIndex}
+                  type="button"
+                  role="tab"
+                  aria-selected={active}
+                  aria-label={`Show service ${itemIndex + 1}`}
+                  className="inline-flex size-11 items-center justify-center"
+                  onClick={() => {
+                    pause();
+                    applyIndex(looped ? count + itemIndex : itemIndex, true);
+                    scheduleResume();
+                  }}
+                >
+                  <span
+                    className={cn(
+                      "size-2.5 rounded-full",
+                      active ? "bg-foreground" : "bg-border",
+                    )}
+                  />
+                </button>
+              );
+            })}
+          </div>
+        </>
+      ) : null}
     </div>
   );
 }

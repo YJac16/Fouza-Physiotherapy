@@ -1,5 +1,8 @@
 import { ArrowRight, Star } from "lucide-react";
+import Image from "next/image";
 import type { HTMLAttributes, ReactNode } from "react";
+
+import { formatMonthYear } from "@/lib/format-month-year";
 
 import { Avatar, AvatarFallback, AvatarImage } from "@/components/ui/avatar";
 import { Badge } from "@/components/ui/badge";
@@ -98,13 +101,13 @@ export function ServiceCard({
   const content = (
     <>
       {imageSrc ? (
-        <div className="aspect-[16/10] overflow-hidden rounded-t-2xl bg-secondary">
-          {/* eslint-disable-next-line @next/next/no-img-element */}
-          <img
+        <div className="relative aspect-[16/10] overflow-hidden rounded-t-2xl bg-secondary">
+          <Image
             src={imageSrc}
             alt={imageAlt ?? title}
-            className="size-full object-cover transition-transform duration-350 ease-premium group-hover:scale-[1.03]"
-            loading="lazy"
+            fill
+            sizes="(max-width: 768px) 100vw, (max-width: 1024px) 50vw, 33vw"
+            className="object-cover transition-transform duration-350 ease-premium group-hover:scale-[1.03]"
           />
         </div>
       ) : null}
@@ -129,8 +132,9 @@ export function ServiceCard({
       </CardContent>
       {href ? (
         <CardFooter className="pt-0">
-          <span className="inline-flex items-center gap-1.5 text-sm font-medium text-primary">
+          <span className="inline-flex min-h-11 items-center gap-1.5 text-sm font-medium text-primary">
             Learn more
+            <span className="sr-only"> about {title}</span>
             <ArrowRight className="size-4" aria-hidden />
           </span>
         </CardFooter>
@@ -198,8 +202,9 @@ export function ConditionCard({
           {summary}
         </Typography>
         {href ? (
-          <span className="mt-4 inline-flex items-center gap-1.5 text-sm font-medium text-accent transition-colors group-hover:text-primary">
+          <span className="mt-4 inline-flex min-h-11 items-center gap-1.5 text-sm font-medium text-accent transition-colors group-hover:text-primary">
             View treatment
+            <span className="sr-only"> for {name}</span>
             <ArrowRight className="size-4" aria-hidden />
           </span>
         ) : null}
@@ -254,14 +259,14 @@ export function ReviewCard({
   return (
     <Card className={cn("h-full shadow-sm", className)} {...props}>
       <CardHeader className="pb-3">
-        <div className="flex items-center justify-between gap-3">
-          <div className="flex items-center gap-3">
-            <Avatar className="size-10">
+        <div className="flex items-start justify-between gap-3">
+          <div className="flex min-w-0 items-center gap-3">
+            <Avatar className="size-10 shrink-0">
               {avatarSrc ? <AvatarImage src={avatarSrc} alt={author} /> : null}
               <AvatarFallback>{initials}</AvatarFallback>
             </Avatar>
-            <div>
-              <Typography as="p" variant="h5" className="text-base">
+            <div className="min-w-0">
+              <Typography as="p" variant="body" className="truncate font-display text-base font-semibold text-foreground">
                 {author}
               </Typography>
               {source ? (
@@ -272,8 +277,8 @@ export function ReviewCard({
             </div>
           </div>
           {date ? (
-            <Typography variant="caption" className="normal-case">
-              {date}
+            <Typography variant="caption" className="shrink-0 whitespace-nowrap normal-case">
+              {formatMonthYear(date)}
             </Typography>
           ) : null}
         </div>

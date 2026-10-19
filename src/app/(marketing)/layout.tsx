@@ -1,5 +1,6 @@
 import { SiteShell } from "@/components/layout/site-shell";
 import { WhatsAppFloat } from "@/components/shared/whatsapp-float";
+import { MobileActionBar } from "@/components/marketing/mobile-action-bar";
 import { InstallHint } from "@/components/pwa/install-hint";
 import { AnalyticsConsentBanner } from "@/components/analytics/consent-banner";
 import { GoogleAnalytics } from "@/components/analytics/google-analytics";
@@ -23,6 +24,7 @@ export default async function MarketingLayout({
       <JsonLd data={medicalBusinessJsonLd()} />
       <div id="main-content">{children}</div>
       <WhatsAppFloat />
+      <MobileActionBar />
       <AnalyticsConsentBanner />
     </SiteShell>
   );

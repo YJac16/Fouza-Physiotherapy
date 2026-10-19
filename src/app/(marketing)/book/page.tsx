@@ -54,7 +54,7 @@ function BookingUnavailableCta() {
         Please contact the practice to schedule your appointment. We&apos;ll confirm a suitable time
         with you shortly.
       </Typography>
-      <div className="mt-8 flex flex-col items-center justify-center gap-3 sm:flex-row">
+      <div className="mt-8 flex w-full flex-col items-stretch justify-center gap-3 md:flex-row md:items-center [&_a]:w-full md:[&_a]:w-auto">
         <Button asChild size="lg">
           <a href={siteConfig.whatsappUrl} target="_blank" rel="noopener noreferrer">
             WhatsApp us
@@ -96,8 +96,15 @@ function AlternativeContactSection() {
                       <Typography as="p" variant="h5" className="text-sm break-words">
                         {item.label}
                       </Typography>
-                      <Typography variant="small" className="mt-0.5 break-words">
-                        {item.value}
+                      <Typography variant="small" className="mt-0.5 break-normal">
+                        {item.label === "Email us" ? (
+                          <>
+                            {siteConfig.email.split("@")[0]}
+                            <wbr />@{siteConfig.email.split("@")[1]}
+                          </>
+                        ) : (
+                          item.value
+                        )}
                       </Typography>
                     </div>
                   </a>

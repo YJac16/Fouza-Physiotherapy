@@ -90,7 +90,7 @@ export default function ConditionsPage() {
               Persistent pain that has lasted longer than expected is always worth a conversation —
               even when it doesn’t match a named diagnosis on this page.
             </Typography>
-            <div className="flex flex-col items-center justify-center gap-3 sm:flex-row">
+            <div className="flex w-full flex-col items-stretch justify-center gap-3 md:flex-row md:items-center [&_a]:w-full md:[&_a]:w-auto">
               <Button asChild size="lg">
                 <Link href={routes.booking.root}>Book appointment</Link>
               </Button>

@@ -87,7 +87,8 @@ export const siteConfig = {
     manualTherapy: "/rehab-02.jpg",
     softTissue: "/rehab-08.jpg",
     dryNeedling: "/dry-needling.jpg",
-    backRehab: "/rehab-05.jpg",
+    /** Lumbar hands-on care. rehab-05 is a shoulder exercise, so it is not used here. */
+    backRehab: "/rehab-02.jpg",
     posture: "/rehab-06.jpg",
     shoulderRehab: "/shoulder-pain.jpg",
     kneeAnkle: "/rehab-04.jpg",

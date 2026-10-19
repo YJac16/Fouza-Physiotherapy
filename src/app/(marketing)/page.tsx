@@ -5,7 +5,6 @@ import type { Metadata } from "next";
 import {
   BookingCta,
   ConditionsGrid,
-  ContactCta,
   DoctorCard,
   FaqPreview,
   FeaturedReviews,
@@ -343,29 +342,20 @@ export default async function HomePage() {
 
       <BookingCta
         title="Ready to start your recovery?"
-        description="Book an appointment or speak with us — we’re here to help you move with confidence again."
+        description={`Book online, or message us first. ${siteConfig.address} · ${siteConfig.hoursSummary}`}
       >
         <Button asChild size="lg">
           <Link href={routes.booking.root}>Book appointment</Link>
         </Button>
         <Button asChild variant="outline" size="lg">
-          <Link href={routes.marketing.contact}>Contact us</Link>
-        </Button>
-      </BookingCta>
-
-      <ContactCta
-        title="Prefer to talk first?"
-        description={`${siteConfig.address} · ${siteConfig.hoursSummary}`}
-      >
-        <Button asChild>
           <a href={siteConfig.whatsappUrl} target="_blank" rel="noopener noreferrer">
             WhatsApp us
           </a>
         </Button>
-        <Button asChild variant="outline">
+        <Button asChild variant="outline" size="lg">
           <Link href={routes.marketing.contact}>Contact us</Link>
         </Button>
-      </ContactCta>
+      </BookingCta>
     </>
   );
 }

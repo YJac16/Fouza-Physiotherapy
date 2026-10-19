@@ -198,8 +198,15 @@ export function BookingWizard({
   const bookingBlocked = familyConsentMissing;
 
   const minDate = useMemo(() => getDateKeyInTimezone(), []);
+  const onlyService = visibleServices.length === 1 ? visibleServices[0] : undefined;
+  const onlyServiceId = onlyService?.id ?? null;
   const selectedService = visibleServices.find((s) => s.id === serviceId) ?? null;
   const selectedPractitioner = practitioners.find((p) => p.id === practitionerId) ?? null;
+
+  useEffect(() => {
+    if (!onlyServiceId) return;
+    setServiceId((current) => (current === onlyServiceId ? current : onlyServiceId));
+  }, [onlyServiceId]);
 
   useEffect(() => {
     if (!selectedPatient) return;
@@ -209,6 +216,7 @@ export function BookingWizard({
       email: selectedPatient.email,
       phone: selectedPatient.phone,
     });
+    if (visibleServices.length === 1) return;
     if (serviceId && !visibleServices.some((service) => service.id === serviceId)) {
       setServiceId(null);
     }

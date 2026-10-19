@@ -158,7 +158,7 @@ export default function PricingPage() {
               If you&apos;re unsure what to expect before your visit, WhatsApp
               us or send a message via the contact page — we&apos;re glad to help.
             </Typography>
-            <div className="mt-8 flex flex-col items-center justify-center gap-3 sm:flex-row">
+            <div className="mt-8 flex w-full flex-col items-stretch justify-center gap-3 md:flex-row md:items-center [&_a]:w-full md:[&_a]:w-auto">
               <Button asChild size="lg">
                 <Link href={routes.booking.root}>Book appointment</Link>
               </Button>

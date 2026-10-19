@@ -252,7 +252,7 @@ export const trustItems = [
     icon: IdCard,
   },
   {
-    title: "Years of Experience",
+    title: "Since 2019",
     description: "Clinical practice since 2019 · Own practice since 2021",
     icon: Activity,
   },

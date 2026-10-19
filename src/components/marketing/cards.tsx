@@ -259,14 +259,14 @@ export function ReviewCard({
   return (
     <Card className={cn("h-full shadow-sm", className)} {...props}>
       <CardHeader className="pb-3">
-        <div className="flex items-center justify-between gap-3">
-          <div className="flex items-center gap-3">
-            <Avatar className="size-10">
+        <div className="flex items-start justify-between gap-3">
+          <div className="flex min-w-0 items-center gap-3">
+            <Avatar className="size-10 shrink-0">
               {avatarSrc ? <AvatarImage src={avatarSrc} alt={author} /> : null}
               <AvatarFallback>{initials}</AvatarFallback>
             </Avatar>
-            <div>
-              <Typography as="p" variant="body" className="font-display text-base font-semibold text-foreground">
+            <div className="min-w-0">
+              <Typography as="p" variant="body" className="truncate font-display text-base font-semibold text-foreground">
                 {author}
               </Typography>
               {source ? (
@@ -277,7 +277,7 @@ export function ReviewCard({
             </div>
           </div>
           {date ? (
-            <Typography variant="caption" className="normal-case">
+            <Typography variant="caption" className="shrink-0 whitespace-nowrap normal-case">
               {formatMonthYear(date)}
             </Typography>
           ) : null}

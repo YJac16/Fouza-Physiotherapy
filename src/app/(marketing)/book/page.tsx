@@ -54,7 +54,7 @@ function BookingUnavailableCta() {
         Please contact the practice to schedule your appointment. We&apos;ll confirm a suitable time
         with you shortly.
       </Typography>
-      <div className="mt-8 flex flex-col items-center justify-center gap-3 sm:flex-row">
+      <div className="mt-8 flex w-full flex-col items-stretch justify-center gap-3 md:flex-row md:items-center [&_a]:w-full md:[&_a]:w-auto">
         <Button asChild size="lg">
           <a href={siteConfig.whatsappUrl} target="_blank" rel="noopener noreferrer">
             WhatsApp us

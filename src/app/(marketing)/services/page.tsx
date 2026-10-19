@@ -1,7 +1,7 @@
 import Link from "next/link";
 import type { Metadata } from "next";
 
-import { PageHero, ServicesCoverflow } from "@/components/marketing";
+import { PageHero } from "@/components/marketing";
 import { Button } from "@/components/ui/button";
 import { Container, Section, SectionHeader } from "@/components/layout/container";
 import { routes } from "@/config/routes";
@@ -66,14 +66,6 @@ export default function ServicesPage() {
         </Container>
       </Section>
 
-      <ServicesCoverflow
-        eyebrow="What we offer"
-        title="Understanding your pain. Restoring your movement. Helping you get back to life."
-        description="Every service combines thorough assessment, hands-on treatment where indicated, and a personalised exercise plan."
-        services={services}
-        prioritizeFirst
-      />
-
       <Section spacing="md" tone="muted">
         <Container size="md">
           <div className="rounded-2xl border border-primary/15 bg-gradient-to-br from-primary/5 via-background to-accent-soft/40 p-8 text-center shadow-soft tablet:p-12">
@@ -83,7 +75,7 @@ export default function ServicesPage() {
               align="center"
               className="mx-auto mb-6"
             />
-            <div className="flex flex-col items-center justify-center gap-3 sm:flex-row">
+            <div className="flex w-full flex-col items-stretch justify-center gap-3 md:flex-row md:items-center [&_a]:w-full md:[&_a]:w-auto">
               <Button asChild size="lg">
                 <Link href={routes.booking.root}>Book appointment</Link>
               </Button>

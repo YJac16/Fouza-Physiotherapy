@@ -5,6 +5,7 @@ import { notFound } from "next/navigation";
 import type { Metadata } from "next";
 
 import { PageHero } from "@/components/marketing";
+import { UrgentHelpNotice, WrittenBy, urgentHelpVariant } from "@/components/marketing/content-credibility";
 import { ArticleCard, CategoryBadge, RelatedArticles } from "@/components/blog";
 import { Button } from "@/components/ui/button";
 import { Container, Section } from "@/components/layout/container";
@@ -12,6 +13,7 @@ import { Typography } from "@/components/ui/typography";
 import { routes } from "@/config/routes";
 import { blogPosts, getBlogPost, getRelatedPosts } from "@/content/blog";
 import { JsonLd, breadcrumbJsonLd } from "@/lib/seo/json-ld";
+import { formatMonthYear } from "@/lib/format-month-year";
 import { buildMetadata } from "@/lib/seo/metadata";
 
 interface BlogPostPageProps {
@@ -36,10 +38,9 @@ export async function generateMetadata({ params }: BlogPostPageProps): Promise<M
   }
 
   return buildMetadata({
-    title: `${post.title} | Fouza Physiotherapy Blog`,
+    title: post.title,
     description: post.excerpt,
     path: routes.marketing.blogPost(post.slug),
-    image: post.image,
   });
 }
 
@@ -81,8 +82,12 @@ export default async function BlogPostPage({ params }: BlogPostPageProps) {
               <Clock className="size-3" aria-hidden />
               {post.readTime}
             </span>
-            <span className="text-xs text-muted-foreground">{post.date}</span>
+            <span className="text-xs text-muted-foreground">{formatMonthYear(post.date)}</span>
           </div>
+          <WrittenBy reviewedOn={post.date} className="mb-6" />
+          {urgentHelpVariant(post.slug) ? (
+            <UrgentHelpNotice variant={urgentHelpVariant(post.slug) ?? "general"} className="mb-8" />
+          ) : null}
 
           <div className="mb-10 overflow-hidden rounded-[1.75rem] shadow-soft-lg">
             <Image
@@ -91,6 +96,7 @@ export default async function BlogPostPage({ params }: BlogPostPageProps) {
               width={1100}
               height={620}
               priority
+              sizes="(max-width: 768px) 100vw, 720px"
               className="aspect-[16/9] w-full object-cover"
             />
           </div>

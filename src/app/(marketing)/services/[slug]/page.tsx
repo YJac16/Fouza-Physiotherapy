@@ -5,6 +5,7 @@ import { notFound } from "next/navigation";
 import type { Metadata } from "next";
 
 import { PageHero } from "@/components/marketing";
+import { UrgentHelpNotice, urgentHelpVariant } from "@/components/marketing/content-credibility";
 import { ServiceCard } from "@/components/marketing/cards";
 import { FaqAccordion } from "@/components/shared/faq-accordion";
 import { Timeline } from "@/components/shared/timeline";
@@ -39,10 +40,9 @@ export async function generateMetadata({ params }: ServicePageProps): Promise<Me
   }
 
   return buildMetadata({
-    title: `${service.name} | Fouza Physiotherapy`,
-    description: service.shortDescription,
+    title: service.name,
+    description: service.metaDescription,
     path: serviceHref(service.slug),
-    image: service.image,
   });
 }
 
@@ -79,6 +79,14 @@ export default async function ServiceDetailPage({ params }: ServicePageProps) {
         ]}
       />
 
+      {urgentHelpVariant(service.slug) ? (
+        <Section spacing="sm" className="py-8 md:py-12">
+          <Container size="md">
+            <UrgentHelpNotice variant={urgentHelpVariant(service.slug) ?? "general"} />
+          </Container>
+        </Section>
+      ) : null}
+
       <Section spacing="md">
         <Container>
           <div className="grid items-start gap-10 tablet:grid-cols-2 tablet:gap-16">
@@ -101,6 +109,7 @@ export default async function ServiceDetailPage({ params }: ServicePageProps) {
                 width={900}
                 height={720}
                 priority
+                sizes="(max-width: 768px) 100vw, 46vw"
                 className="aspect-[5/4] w-full object-cover"
               />
             </div>

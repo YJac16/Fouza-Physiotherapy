@@ -13,6 +13,7 @@ export interface ServicesCoverflowProps extends HTMLAttributes<HTMLElement> {
   description?: string;
   services: ServiceContent[];
   ariaLabel?: string;
+  prioritizeFirst?: boolean;
 }
 
 function ServiceCards({ items }: { items: ServiceContent[] }) {
@@ -42,6 +43,7 @@ export function ServicesCoverflow({
   description,
   services,
   ariaLabel = "Physiotherapy services",
+  prioritizeFirst = false,
   className,
   ...props
 }: ServicesCoverflowProps) {
@@ -56,7 +58,7 @@ export function ServicesCoverflow({
 
       <div className="services-catalogue-motion">
         <SnapCoverflow ariaLabel={ariaLabel}>
-          {services.map((service) => (
+          {services.map((service, index) => (
             <ServiceCoverflowCard
               key={service.slug}
               href={serviceHref(service.slug)}
@@ -64,6 +66,7 @@ export function ServicesCoverflow({
               imageAlt={service.imageAlt}
               title={service.name}
               qualifier={service.qualifier}
+              priority={prioritizeFirst && index === 0}
             />
           ))}
         </SnapCoverflow>

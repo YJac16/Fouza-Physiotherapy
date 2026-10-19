@@ -5,6 +5,7 @@ import { notFound } from "next/navigation";
 import type { Metadata } from "next";
 
 import { PageHero } from "@/components/marketing";
+import { UrgentHelpNotice, WrittenBy, urgentHelpVariant } from "@/components/marketing/content-credibility";
 import { ConditionCard } from "@/components/marketing/cards";
 import { FaqAccordion } from "@/components/shared/faq-accordion";
 import { Button } from "@/components/ui/button";
@@ -77,6 +78,15 @@ export default async function ConditionDetailPage({ params }: ConditionPageProps
         ]}
       />
 
+      <Section spacing="sm" className="py-6 md:py-10">
+        <Container size="md" className="space-y-6">
+          <WrittenBy />
+          {urgentHelpVariant(condition.slug) ? (
+            <UrgentHelpNotice variant={urgentHelpVariant(condition.slug) ?? "general"} />
+          ) : null}
+        </Container>
+      </Section>
+
       <Section spacing="md">
         <Container>
           <div className="grid items-start gap-10 tablet:grid-cols-2 tablet:gap-16">
@@ -103,6 +113,7 @@ export default async function ConditionDetailPage({ params }: ConditionPageProps
                 width={900}
                 height={720}
                 priority
+                sizes="(max-width: 768px) 100vw, 46vw"
                 className="aspect-[5/4] w-full object-cover"
               />
             </div>

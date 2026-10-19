@@ -105,13 +105,31 @@ const whyChoose = [
   },
 ];
 
+function persistentPainScore(text: string) {
+  const value = text.toLowerCase();
+  let score = 0;
+  if (value.includes("sciatica")) score += 5;
+  if (value.includes("lower back") || value.includes("low back") || value.includes("back pain")) {
+    score += 5;
+  }
+  if (value.includes("listen")) score += 3;
+  if (/\bpain\b/.test(value)) score += 1;
+  return score;
+}
+
 export default async function HomePage() {
   const {
     reviews: homeReviews,
     rating: homeRating,
     countLabel: homeCountLabel,
     headline: homeHeadline,
-  } = await getPublicGoogleReviews(3);
+  } = await getPublicGoogleReviews(12, { featuredFirst: true });
+
+  const leadReviews = homeReviews
+    .map((review, index) => ({ review, index, score: persistentPainScore(review.content) }))
+    .sort((a, b) => b.score - a.score || a.index - b.index)
+    .slice(0, 3)
+    .map((item) => item.review);
 
   const previewFaqs = faqs.filter((f) => faqPreviewIds.includes(f.id));
 
@@ -121,16 +139,23 @@ export default async function HomePage() {
         headline="Helping You Move Better, Feel Better and Live Better."
         supportingText="Evidence-based physiotherapy in Walmer Estate — with a special interest in persistent pain, helping you make sense of symptoms, restore confidence in movement, and return to what matters."
         cta={
-          <>
-            <Button asChild size="lg">
-              <Link href={routes.booking.root}>Book appointment</Link>
-            </Button>
-            <Button asChild variant="outline" size="lg">
-              <a href={siteConfig.whatsappUrl} target="_blank" rel="noopener noreferrer">
-                WhatsApp us
-              </a>
-            </Button>
-          </>
+          <div className="flex w-full flex-col items-center gap-4 tablet:items-start">
+            <div className="flex w-full flex-col gap-3 tablet:w-auto tablet:flex-row">
+              <Button asChild size="lg">
+                <Link href={routes.booking.root}>Book appointment</Link>
+              </Button>
+              <Button asChild variant="outline" size="lg">
+                <a href={siteConfig.whatsappUrl} target="_blank" rel="noopener noreferrer">
+                  WhatsApp us
+                </a>
+              </Button>
+            </div>
+            <p className="text-sm font-medium text-foreground">
+              <Link href={routes.marketing.reviews} className="inline-flex min-h-11 items-center hover:text-accent">
+                ★ {siteConfig.googleBusiness.rating.toFixed(1)} · {siteConfig.googleBusiness.reviewCount} Google reviews · HPCSA-registered physiotherapist
+              </Link>
+            </p>
+          </div>
         }
         media={
           <FadeIn className="relative">
@@ -143,21 +168,23 @@ export default async function HomePage() {
                 height={1100}
                 className="aspect-[4/5] w-full object-cover"
                 priority
+                sizes="(max-width: 768px) 100vw, 42vw"
               />
             </div>
           </FadeIn>
         }
       />
 
-      <Section spacing="sm" tone="muted">
+      <Section spacing="sm" tone="muted" className="py-10 md:py-16">
         <Container>
-          <div className="grid gap-4 tablet:grid-cols-2 lg:grid-cols-3">
+          <div className="grid grid-cols-2 gap-3 md:gap-4 lg:grid-cols-3">
             {trustItems.map((item) => (
               <SlideUp key={item.title}>
                 <FeatureCard
                   icon={item.icon}
                   title={item.title}
                   description={item.description}
+                  titleAs="p"
                 />
               </SlideUp>
             ))}
@@ -183,6 +210,7 @@ export default async function HomePage() {
               alt={siteConfig.founder.name}
               width={800}
               height={1000}
+              sizes="(max-width: 768px) 100vw, 40vw"
               className="aspect-[4/5] w-full object-cover"
             />
           </div>
@@ -205,7 +233,35 @@ export default async function HomePage() {
         />
       </MeetFouza>
 
+      <Section spacing="md" className="md:hidden">
+        <Container>
+          <SectionHeader
+            eyebrow="Conditions"
+            title="Conditions we commonly treat"
+            description="Dedicated guidance for the concerns that bring people through our door."
+          />
+          <div className="-mx-5 flex gap-2 overflow-x-auto px-5 pb-1">
+            {conditions.map((condition) => (
+              <Link
+                key={condition.slug}
+                href={routes.marketing.condition(condition.slug)}
+                className="inline-flex min-h-11 shrink-0 items-center rounded-full border border-border bg-card px-4 text-sm font-medium text-foreground"
+              >
+                {condition.name}
+              </Link>
+            ))}
+          </div>
+          <Link
+            href={routes.marketing.conditions}
+            className="mt-4 inline-flex min-h-11 items-center text-sm font-medium text-accent"
+          >
+            View all conditions
+          </Link>
+        </Container>
+      </Section>
+
       <ConditionsGrid
+        className="hidden md:block"
         eyebrow="Conditions"
         title="Conditions we commonly treat"
         description="Dedicated guidance for the concerns that bring people through our door."
@@ -221,6 +277,7 @@ export default async function HomePage() {
       </ConditionsGrid>
 
       <WhyChooseUs
+        className="hidden md:block"
         eyebrow="Why Fouza Physiotherapy"
         title="Calm, modern care you can trust"
         description="Professional physiotherapy that’s thoughtful, evidence-based, and focused on helping you move with confidence."
@@ -261,7 +318,7 @@ export default async function HomePage() {
           </div>
         }
       >
-        <FeaturedReviews reviews={homeReviews} className="md:col-span-2 lg:col-span-2" />
+        <FeaturedReviews reviews={leadReviews} className="md:col-span-2 lg:col-span-2" />
       </GoogleReviewsSection>
 
       <FaqPreview

@@ -23,7 +23,8 @@
     --muted: 186 18% 95%;
     --muted-foreground: 240 1% 42%;
 
-    --accent: 186 55% 42%;
+    /* Text teal. #1f7680 — at least 4.5:1 on white, #f6f9f9, and #fbfdfd. */
+    --accent: 186 61% 31%;
     --accent-foreground: 0 0% 100%;
 
     --accent-soft: 186 53% 94%;
@@ -96,8 +97,9 @@
     --info: 186 55% 55%;
     --info-foreground: 186 18% 8%;
 
-    --border: 186 12% 20%;
-    --input: 186 12% 20%;
+    /* Card edges need about 3:1 against the dark card, while body text stays light. */
+    --border: 186 12% 40%;
+    --input: 186 12% 40%;
     --ring: 186 55% 58%;
 
     --clinic-teal: 186 55% 58%;

@@ -454,16 +454,18 @@ export function SnapCoverflow({
           }}
           className={cn(
             "shrink-0 origin-center will-change-transform",
+            motionOk && distance > 1 && "pointer-events-none",
             motionOk && animating
               ? "transition-[transform,opacity] duration-500 ease-premium"
               : "",
           )}
           style={{
             transform: `scale(${scale})`,
-            opacity: motionOk ? (showingActive ? 1 : distance === 1 ? 0.9 : 0.78) : 1,
+            opacity: motionOk ? (showingActive ? 1 : distance === 1 ? 0.92 : 0) : 1,
             zIndex: showingActive ? 3 : distance === 1 ? 2 : 1,
           }}
-          aria-hidden={!showingActive}
+          aria-hidden={showingActive ? undefined : true}
+          inert={showingActive ? undefined : true}
         >
           {cloneElement(element, {
             className: cn(
@@ -482,8 +484,7 @@ export function SnapCoverflow({
     <div
       ref={rootRef}
       className={cn(
-        "relative",
-        "[mask-image:linear-gradient(90deg,transparent,black_4%,black_96%,transparent)]",
+        "relative [mask-image:linear-gradient(90deg,transparent,black_8%,black_92%,transparent)] md:[mask-image:none]",
         className,
       )}
       onPointerEnter={onPointerEnter}

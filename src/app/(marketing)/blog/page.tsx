@@ -15,7 +15,7 @@ import { JsonLd, breadcrumbJsonLd } from "@/lib/seo/json-ld";
 import { buildMetadata } from "@/lib/seo/metadata";
 
 export const metadata: Metadata = buildMetadata({
-  title: "Blog | Fouza Physiotherapy",
+  title: "Blog",
   description:
     "Physiotherapy tips, recovery guidance, and evidence-based insight from Fouza Physiotherapy in Walmer Estate, Cape Town.",
   path: routes.marketing.blog,
@@ -51,11 +51,7 @@ export default async function BlogPage() {
 
   const featuredStatic = getFeaturedPost();
   const featured = cmsPosts[0] ?? featuredStatic;
-
-  const latest =
-    cmsPosts.length > 0
-      ? cmsPosts.slice(1)
-      : blogPosts.filter((post) => post.slug !== featuredStatic?.slug);
+  const explorerPosts = cmsPosts.length > 0 ? cmsPosts : blogPosts;
 
   return (
     <>
@@ -109,7 +105,8 @@ export default async function BlogPage() {
             description="Search or filter by category to find guidance relevant to you."
           />
           <BlogExplorer
-            posts={latest.length ? latest : blogPosts}
+            posts={explorerPosts}
+            featuredSlug={featured?.slug}
             categories={blogCategories}
           />
         </Container>

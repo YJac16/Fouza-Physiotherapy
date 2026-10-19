@@ -2,6 +2,7 @@ import { AlertTriangle, Car, Clock, Mail, MapPin, MessageCircle, Phone } from "l
 import type { Metadata } from "next";
 
 import { ContactForm, PageHero } from "@/components/marketing";
+import { RegistrationDetails } from "@/components/marketing/registration-details";
 import { Container, Section, SectionHeader } from "@/components/layout/container";
 import { Typography } from "@/components/ui/typography";
 import { routes } from "@/config/routes";
@@ -92,11 +93,12 @@ export default function ContactPage() {
                   );
                 })}
               </div>
+              <RegistrationDetails />
 
               <div className="rounded-2xl border border-border/80 bg-card p-5 shadow-sm">
                 <div className="mb-3 flex items-center gap-2">
                   <Clock className="size-4 text-primary" aria-hidden />
-                  <Typography as="h3" variant="h5" className="text-sm">
+                  <Typography as="h2" variant="h5" className="text-sm">
                     Opening hours
                   </Typography>
                 </div>

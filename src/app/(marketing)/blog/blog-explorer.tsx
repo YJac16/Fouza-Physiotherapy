@@ -3,43 +3,45 @@
 import * as React from "react";
 
 import { ArticleCard, BlogSearch } from "@/components/blog";
+import { populatedCategories, postsForBlogGrid } from "@/lib/blog-filters";
 import { cn } from "@/lib/utils";
 import { routes } from "@/config/routes";
 import type { BlogPost } from "@/content/blog";
 
 export function BlogExplorer({
   posts,
+  featuredSlug,
   categories,
 }: {
   posts: BlogPost[];
+  featuredSlug?: string;
   categories: readonly string[];
 }) {
   const [query, setQuery] = React.useState("");
   const [category, setCategory] = React.useState<string>("All");
+  const visibleCategories = populatedCategories(posts, categories);
 
-  const filtered = posts.filter((post) => {
-    const matchesCategory = category === "All" || post.category === category;
-    const q = query.trim().toLowerCase();
-    const matchesQuery =
-      !q ||
-      post.title.toLowerCase().includes(q) ||
-      post.excerpt.toLowerCase().includes(q);
-    return matchesCategory && matchesQuery;
-  });
+  React.useEffect(() => {
+    if (category !== "All" && !visibleCategories.includes(category)) {
+      setCategory("All");
+    }
+  }, [category, visibleCategories]);
+
+  const filtered = postsForBlogGrid(posts, featuredSlug, category, query);
 
   return (
     <div className="space-y-8">
-      <div className="flex flex-col gap-4 sm:flex-row sm:items-center sm:justify-between">
-        <BlogSearch value={query} onValueChange={setQuery} className="max-w-md" />
+      <div className="flex flex-col gap-4 md:flex-row md:items-center md:justify-between">
+        <BlogSearch value={query} onValueChange={setQuery} className="w-full max-w-none md:max-w-md" />
         <div className="flex flex-wrap gap-2" role="tablist" aria-label="Blog categories">
-          {["All", ...categories].map((cat) => (
+          {["All", ...visibleCategories].map((cat) => (
             <button
               key={cat}
               type="button"
               role="tab"
               aria-selected={category === cat}
               className={cn(
-                "rounded-full border px-3 py-1.5 text-sm font-medium transition-colors",
+                "inline-flex min-h-11 items-center rounded-full border px-3 text-sm font-medium transition-colors",
                 category === cat
                   ? "border-primary bg-primary/10 text-primary"
                   : "border-border text-muted-foreground hover:bg-secondary",

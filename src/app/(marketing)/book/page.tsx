@@ -96,8 +96,15 @@ function AlternativeContactSection() {
                       <Typography as="p" variant="h5" className="text-sm break-words">
                         {item.label}
                       </Typography>
-                      <Typography variant="small" className="mt-0.5 break-words">
-                        {item.value}
+                      <Typography variant="small" className="mt-0.5 break-normal">
+                        {item.label === "Email us" ? (
+                          <>
+                            {siteConfig.email.split("@")[0]}
+                            <wbr />@{siteConfig.email.split("@")[1]}
+                          </>
+                        ) : (
+                          item.value
+                        )}
                       </Typography>
                     </div>
                   </a>

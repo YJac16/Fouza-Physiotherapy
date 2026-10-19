@@ -142,6 +142,8 @@ export default function AboutPage() {
                   alt="Inside Fouza Physiotherapy clinic"
                   width={900}
                   height={1100}
+                  priority
+                  sizes="(max-width: 768px) 100vw, 46vw"
                   className="aspect-[4/5] w-full object-cover"
                 />
               </div>
@@ -255,6 +257,7 @@ export default function AboutPage() {
                   alt={image.alt}
                   width={700}
                   height={560}
+                  sizes="(max-width: 768px) 100vw, 33vw"
                   className="aspect-[5/4] w-full object-cover transition-transform duration-350 ease-premium hover:scale-[1.03]"
                 />
               </div>

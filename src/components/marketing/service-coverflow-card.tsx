@@ -11,6 +11,8 @@ export type ServiceCoverflowCardProps = {
   qualifier: string;
   className?: string;
   sizes?: string;
+  tabIndex?: number;
+  priority?: boolean;
 };
 
 /**
@@ -25,6 +27,8 @@ export function ServiceCoverflowCard({
   qualifier,
   className,
   sizes = "(max-width: 640px) 68vw, 300px",
+  tabIndex,
+  priority = false,
 }: ServiceCoverflowCardProps) {
   return (
     <Link
@@ -34,12 +38,14 @@ export function ServiceCoverflowCard({
         "focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-primary focus-visible:ring-offset-2 focus-visible:ring-offset-background",
         className,
       )}
+      tabIndex={tabIndex}
     >
       <Image
         src={image}
         alt={imageAlt}
         fill
         sizes={sizes}
+        priority={priority}
         className="object-cover"
         draggable={false}
       />

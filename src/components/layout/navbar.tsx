@@ -1,6 +1,6 @@
 "use client";
 
-import { Menu, X } from "lucide-react";
+import { ChevronDown, Menu, X } from "lucide-react";
 import Link from "next/link";
 import { usePathname } from "next/navigation";
 import * as React from "react";
@@ -12,7 +12,23 @@ import { routes } from "@/config/routes";
 import { cn } from "@/lib/utils";
 import type { AppRole } from "@/types/auth";
 
+const aboutLinks = [
+  { label: "About the practice", href: routes.marketing.about },
+  { label: "Meet Fouza", href: routes.marketing.meetFouza },
+];
+
 const navLinks = [
+  { label: "Home", href: routes.marketing.home },
+  { label: "Services", href: routes.marketing.services },
+  { label: "Conditions", href: routes.marketing.conditions },
+  { label: "Pricing", href: routes.marketing.pricing },
+  { label: "Blog", href: routes.marketing.blog },
+  { label: "Reviews", href: routes.marketing.reviews },
+  { label: "FAQs", href: routes.marketing.faq },
+  { label: "Contact", href: routes.marketing.contact },
+];
+
+const mobileLinks = [
   { label: "Home", href: routes.marketing.home },
   { label: "About", href: routes.marketing.about },
   { label: "Meet Fouza", href: routes.marketing.meetFouza },
@@ -20,6 +36,7 @@ const navLinks = [
   { label: "Conditions", href: routes.marketing.conditions },
   { label: "Pricing", href: routes.marketing.pricing },
   { label: "Blog", href: routes.marketing.blog },
+  { label: "Reviews", href: routes.marketing.reviews },
   { label: "FAQs", href: routes.marketing.faq },
   { label: "Contact", href: routes.marketing.contact },
 ];
@@ -51,8 +68,15 @@ export function Navbar({
 }: NavbarProps) {
   const pathname = usePathname();
   const [open, setOpen] = React.useState(false);
+  const [aboutOpen, setAboutOpen] = React.useState(false);
   const [scrolled, setScrolled] = React.useState(false);
+  const aboutRef = React.useRef<HTMLDivElement>(null);
   const account = auth ? accountLink(auth.role) : null;
+  const aboutActive =
+    pathname === routes.marketing.about ||
+    pathname.startsWith(`${routes.marketing.about}/`) ||
+    pathname === routes.marketing.meetFouza ||
+    pathname.startsWith(`${routes.marketing.meetFouza}/`);
 
   React.useEffect(() => {
     function onScroll() {
@@ -65,14 +89,32 @@ export function Navbar({
 
   React.useEffect(() => {
     setOpen(false);
+    setAboutOpen(false);
   }, [pathname]);
 
   React.useEffect(() => {
+    document.documentElement.dataset.mobileNav = open ? "open" : "closed";
     document.body.style.overflow = open ? "hidden" : "";
     return () => {
       document.body.style.overflow = "";
+      delete document.documentElement.dataset.mobileNav;
     };
   }, [open]);
+
+  React.useEffect(() => {
+    function onPointerDown(event: MouseEvent) {
+      if (!aboutRef.current?.contains(event.target as Node)) setAboutOpen(false);
+    }
+    function onKey(event: KeyboardEvent) {
+      if (event.key === "Escape") setAboutOpen(false);
+    }
+    document.addEventListener("mousedown", onPointerDown);
+    document.addEventListener("keydown", onKey);
+    return () => {
+      document.removeEventListener("mousedown", onPointerDown);
+      document.removeEventListener("keydown", onKey);
+    };
+  }, []);
 
   return (
     <header
@@ -92,17 +134,61 @@ export function Navbar({
         />
 
         <nav className="hidden items-center gap-0.5 xl:flex" aria-label="Primary">
-          {navLinks.map((link) => {
-            const active =
-              link.href === "/"
-                ? pathname === "/"
-                : pathname === link.href || pathname.startsWith(`${link.href}/`);
+          <Link
+            href={routes.marketing.home}
+            className={cn(
+              "inline-flex min-h-11 items-center rounded-lg px-2.5 text-sm font-medium transition-colors focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-ring",
+              pathname === "/"
+                ? "bg-primary/10 text-primary"
+                : "text-muted-foreground hover:bg-secondary hover:text-foreground",
+            )}
+          >
+            Home
+          </Link>
+          <div className="relative" ref={aboutRef}>
+            <button
+              type="button"
+              aria-expanded={aboutOpen}
+              aria-haspopup="menu"
+              className={cn(
+                "inline-flex min-h-11 items-center gap-1 rounded-lg px-2.5 text-sm font-medium transition-colors focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-ring",
+                aboutActive
+                  ? "bg-primary/10 text-primary"
+                  : "text-muted-foreground hover:bg-secondary hover:text-foreground",
+              )}
+              onClick={() => setAboutOpen((prev) => !prev)}
+            >
+              About
+              <ChevronDown className="size-3.5" aria-hidden />
+            </button>
+            {aboutOpen ? (
+              <div
+                role="menu"
+                aria-label="About"
+                className="absolute left-0 top-full z-50 mt-1 min-w-48 rounded-xl border border-border bg-background p-1 shadow-soft"
+              >
+                {aboutLinks.map((link) => (
+                  <Link
+                    key={link.href}
+                    href={link.href}
+                    role="menuitem"
+                    className="block min-h-11 rounded-lg px-3 py-2 text-sm font-medium text-foreground hover:bg-secondary"
+                    onClick={() => setAboutOpen(false)}
+                  >
+                    {link.label}
+                  </Link>
+                ))}
+              </div>
+            ) : null}
+          </div>
+          {navLinks.slice(1).map((link) => {
+            const active = pathname === link.href || pathname.startsWith(`${link.href}/`);
             return (
               <Link
                 key={link.href}
                 href={link.href}
                 className={cn(
-                  "rounded-lg px-2.5 py-2 text-sm font-medium transition-colors focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-ring",
+                  "inline-flex min-h-11 items-center rounded-lg px-2.5 text-sm font-medium transition-colors focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-ring",
                   active
                     ? "bg-primary/10 text-primary"
                     : "text-muted-foreground hover:bg-secondary hover:text-foreground",
@@ -158,7 +244,7 @@ export function Navbar({
           className="max-h-[calc(100dvh-4rem)] overflow-y-auto border-t border-border/70 bg-background xl:hidden"
         >
           <nav className="mx-auto flex max-w-7xl flex-col gap-1 px-5 py-4" aria-label="Mobile">
-            {navLinks.map((link) => (
+            {mobileLinks.map((link) => (
               <Link
                 key={link.href}
                 href={link.href}

@@ -8,7 +8,6 @@ import { services } from "@/content/services";
 
 export default function sitemap(): MetadataRoute.Sitemap {
   const base = siteConfig.url.replace(/\/$/, "");
-  const now = new Date();
 
   const staticPaths = [
     routes.marketing.home,
@@ -29,19 +28,16 @@ export default function sitemap(): MetadataRoute.Sitemap {
   return [
     ...staticPaths.map((path) => ({
       url: `${base}${path === "/" ? "" : path}`,
-      lastModified: now,
       changeFrequency: "weekly" as const,
       priority: path === "/" ? 1 : 0.8,
     })),
     ...services.map((service) => ({
       url: `${base}${routes.marketing.service(service.slug)}`,
-      lastModified: now,
       changeFrequency: "monthly" as const,
       priority: 0.7,
     })),
     ...conditions.map((condition) => ({
       url: `${base}${routes.marketing.condition(condition.slug)}`,
-      lastModified: now,
       changeFrequency: "monthly" as const,
       priority: 0.7,
     })),

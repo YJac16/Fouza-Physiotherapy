@@ -1,14 +1,10 @@
 "use client";
 
-import { Share, Smartphone } from "lucide-react";
-import { useEffect, useRef, useState } from "react";
+import { Share } from "lucide-react";
+import { useEffect, useState } from "react";
 
-const STORAGE_KEY = "fouza-install-hint-dismissed";
-
-type BeforeInstallPromptEvent = Event & {
-  prompt: () => Promise<void>;
-  userChoice: Promise<{ outcome: "accepted" | "dismissed" }>;
-};
+const DISMISS_KEY = "fouza-install-hint-dismissed";
+const VISIT_KEY = "fouza-install-visits";
 
 function isStandalone() {
   if (typeof window === "undefined") return true;
@@ -19,105 +15,97 @@ function isStandalone() {
   return media || iosStandalone;
 }
 
-function isIosDevice() {
+/** iPhone, iPad, and iPadOS desktop-mode Safari. Other iOS browsers are excluded. */
+function isIosSafari() {
   if (typeof navigator === "undefined") return false;
   const ua = navigator.userAgent;
-  if (/iPhone|iPad|iPod/i.test(ua)) return true;
-  return navigator.platform === "MacIntel" && navigator.maxTouchPoints > 1;
-}
-
-function isAndroidDevice() {
-  if (typeof navigator === "undefined") return false;
-  return /Android/i.test(navigator.userAgent);
+  const iOS =
+    /iPhone|iPad|iPod/i.test(ua) ||
+    (navigator.platform === "MacIntel" && navigator.maxTouchPoints > 1);
+  const otherBrowser = /CriOS|FxiOS|EdgiOS|OPiOS|DuckDuckGo|Android/i.test(ua);
+  return iOS && /Safari/i.test(ua) && !otherBrowser;
 }
 
 function dismissHint() {
-  window.localStorage.setItem(STORAGE_KEY, "1");
+  window.localStorage.setItem(DISMISS_KEY, "1");
 }
 
 export function InstallHint() {
-  const [visible, setVisible] = useState(false);
-  const [ios, setIos] = useState(false);
-  const [canPrompt, setCanPrompt] = useState(false);
-  const deferredPrompt = useRef<BeforeInstallPromptEvent | null>(null);
+  const [ready, setReady] = useState(false);
+  const [menuOpen, setMenuOpen] = useState(false);
 
   useEffect(() => {
     if (isStandalone()) return;
-    if (window.localStorage.getItem(STORAGE_KEY) === "1") return;
+    if (window.localStorage.getItem(DISMISS_KEY) === "1") return;
+    if (!isIosSafari()) return;
 
-    const iosDevice = isIosDevice();
-    const androidDevice = isAndroidDevice();
-    setIos(iosDevice);
+    const visits = Number(window.localStorage.getItem(VISIT_KEY) || "0") + 1;
+    window.localStorage.setItem(VISIT_KEY, String(visits));
 
-    function onBeforeInstall(event: Event) {
-      event.preventDefault();
-      deferredPrompt.current = event as BeforeInstallPromptEvent;
-      setCanPrompt(true);
-      setVisible(true);
+    let shown = false;
+    function show() {
+      if (shown) return;
+      shown = true;
+      setReady(true);
     }
 
-    window.addEventListener("beforeinstallprompt", onBeforeInstall);
+    if (visits >= 2) {
+      show();
+      return;
+    }
 
-    const timer = window.setTimeout(() => {
-      if (iosDevice || androidDevice || deferredPrompt.current) setVisible(true);
-    }, 1800);
+    function onEngage() {
+      show();
+    }
+
+    window.addEventListener("scroll", onEngage, { once: true, passive: true });
+    window.addEventListener("pointerdown", onEngage, { once: true });
 
     return () => {
-      window.removeEventListener("beforeinstallprompt", onBeforeInstall);
-      window.clearTimeout(timer);
+      window.removeEventListener("scroll", onEngage);
+      window.removeEventListener("pointerdown", onEngage);
     };
   }, []);
 
-  async function install() {
-    const promptEvent = deferredPrompt.current;
-    if (!promptEvent) return;
-    await promptEvent.prompt();
-    await promptEvent.userChoice;
-    deferredPrompt.current = null;
-    setCanPrompt(false);
-    dismissHint();
-    setVisible(false);
-  }
+  useEffect(() => {
+    const sync = () => {
+      setMenuOpen(document.documentElement.dataset.mobileNav === "open");
+    };
+    sync();
+    const observer = new MutationObserver(sync);
+    observer.observe(document.documentElement, {
+      attributes: true,
+      attributeFilter: ["data-mobile-nav"],
+    });
+    return () => observer.disconnect();
+  }, []);
 
-  if (!visible) return null;
+  if (!ready || menuOpen) return null;
 
   return (
-    <div className="border-b border-border bg-secondary/70 px-4 py-2 text-center text-xs text-muted-foreground sm:text-sm">
-      <p className="inline-flex flex-wrap items-center justify-center gap-x-2 gap-y-1">
-        <Smartphone className="size-3.5 shrink-0 text-primary" aria-hidden />
-        {ios ? (
-          <span>
-            Add Fouza Physiotherapy to your home screen: tap{" "}
-            <Share className="mb-0.5 inline size-3.5" aria-hidden /> Share, then{" "}
-            <strong className="font-medium text-foreground">Add to Home Screen</strong>.
-          </span>
-        ) : canPrompt ? (
-          <span>Install Fouza Physiotherapy on this device for quicker booking.</span>
-        ) : (
-          <span>
-            Add Fouza Physiotherapy from the browser menu (Install app or Add to Home screen).
-          </span>
-        )}
-        {canPrompt ? (
-          <button
-            type="button"
-            className="font-medium text-foreground underline-offset-2 hover:underline"
-            onClick={() => void install()}
-          >
-            Install
-          </button>
-        ) : null}
-        <button
-          type="button"
-          className="font-medium text-foreground underline-offset-2 hover:underline"
-          onClick={() => {
-            dismissHint();
-            setVisible(false);
-          }}
-        >
-          Dismiss
-        </button>
+    <div
+      className="fixed inset-x-3 z-50 rounded-2xl border border-border bg-background/95 p-4 text-sm text-foreground shadow-soft-lg backdrop-blur md:hidden"
+      style={{
+        bottom: "calc(var(--mobile-action-offset, 0px) + env(safe-area-inset-bottom) + 0.75rem)",
+      }}
+      role="dialog"
+      aria-label="Add to Home Screen"
+    >
+      <p className="leading-relaxed">
+        Add Fouza Physiotherapy to your home screen: tap{" "}
+        <Share className="mb-0.5 inline size-4" aria-hidden /> Share, then{" "}
+        <strong className="font-semibold">Add to Home Screen</strong>.
       </p>
+      <button
+        type="button"
+        className="mt-3 inline-flex min-h-11 items-center font-semibold underline-offset-2 hover:underline"
+        onClick={() => {
+          dismissHint();
+          setReady(false);
+        }}
+      >
+        Dismiss
+      </button>
     </div>
   );
 }

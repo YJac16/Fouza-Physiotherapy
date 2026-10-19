@@ -160,6 +160,15 @@
   .glass {
     @apply border border-white/20 bg-white/70 shadow-soft backdrop-blur-xl dark:border-white/10 dark:bg-card/70;
   }
+
+  /* Light mode: every teal text token uses the accessible accent.
+     Bright --primary stays on fills and buttons (text-primary-foreground).
+     Dark mode keeps --primary text; it already clears 4.5:1 on the dark surfaces. */
+  html:not(.dark) .text-primary,
+  html:not(.dark) .hover\:text-primary:hover,
+  html:not(.dark) .group:hover .group-hover\:text-primary {
+    color: hsl(var(--accent));
+  }
 }
 
 /* Services catalogue: coverflow by default, readable grid when motion is reduced. */

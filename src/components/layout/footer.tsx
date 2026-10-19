@@ -51,7 +51,7 @@ export function Footer({ className, showNewsletter = true, auth = null }: Footer
   ];
 
   return (
-    <footer className={cn("border-t border-border/70 bg-secondary/40 pb-[calc(4.75rem+env(safe-area-inset-bottom))] md:pb-0", className)}>
+    <footer className={cn("border-t border-border/70 bg-secondary/40 pb-[calc(4.75rem+var(--install-hint-offset,0px)+env(safe-area-inset-bottom))] md:pb-0", className)}>
       <div className="mx-auto max-w-7xl px-5 py-10 sm:px-6 md:py-14 lg:px-8">
         <div className="grid gap-10 lg:grid-cols-12">
           <div className="space-y-5 lg:col-span-4">

@@ -1,10 +1,18 @@
 "use client";
 
 import { Share } from "lucide-react";
-import { useEffect, useState } from "react";
+import { useEffect, useRef, useState } from "react";
+
+import {
+  INSTALL_HINT_MIN_MS,
+  INSTALL_HINT_SCROLL_PX,
+  installHintEngaged,
+  installHintShouldShow,
+} from "@/lib/install-hint";
 
 const DISMISS_KEY = "fouza-install-hint-dismissed";
 const VISIT_KEY = "fouza-install-visits";
+const SESSION_KEY = "fouza-install-visit-counted";
 
 function isStandalone() {
   if (typeof window === "undefined") return true;
@@ -26,44 +34,77 @@ function isIosSafari() {
   return iOS && /Safari/i.test(ua) && !otherBrowser;
 }
 
-function dismissHint() {
-  window.localStorage.setItem(DISMISS_KEY, "1");
+function readCount(key: string) {
+  return Number(window.localStorage.getItem(key) || "0");
 }
 
 export function InstallHint() {
   const [ready, setReady] = useState(false);
   const [menuOpen, setMenuOpen] = useState(false);
+  const hintRef = useRef<HTMLDivElement>(null);
 
   useEffect(() => {
-    if (isStandalone()) return;
-    if (window.localStorage.getItem(DISMISS_KEY) === "1") return;
-    if (!isIosSafari()) return;
+    let visits = 1;
+    try {
+      if (window.localStorage.getItem(DISMISS_KEY) === "1") return;
+      if (!window.sessionStorage.getItem(SESSION_KEY)) {
+        window.sessionStorage.setItem(SESSION_KEY, "1");
+        visits = readCount(VISIT_KEY) + 1;
+        window.localStorage.setItem(VISIT_KEY, String(visits));
+      } else {
+        visits = readCount(VISIT_KEY);
+      }
+    } catch {
+      return;
+    }
 
-    const visits = Number(window.localStorage.getItem(VISIT_KEY) || "0") + 1;
-    window.localStorage.setItem(VISIT_KEY, String(visits));
-
+    const started = performance.now();
     let shown = false;
-    function show() {
+
+    function showIfReady(activatedControl: boolean) {
       if (shown) return;
+      const engaged = installHintEngaged({
+        elapsedMs: performance.now() - started,
+        scrollY: window.scrollY,
+        activatedControl,
+      });
+      if (
+        !installHintShouldShow({
+          standalone: isStandalone(),
+          iosSafari: isIosSafari(),
+          dismissed: false,
+          visitCount: visits,
+          engaged,
+        })
+      ) {
+        return;
+      }
       shown = true;
       setReady(true);
     }
 
-    if (visits >= 2) {
-      show();
-      return;
+    showIfReady(false);
+
+    function onScroll() {
+      if (window.scrollY < INSTALL_HINT_SCROLL_PX) return;
+      if (performance.now() - started < INSTALL_HINT_MIN_MS) return;
+      showIfReady(false);
     }
 
-    function onEngage() {
-      show();
+    function onClick(event: MouseEvent) {
+      const target = event.target;
+      if (!(target instanceof Element)) return;
+      const control = target.closest("a, button");
+      if (!control || control.closest("[data-install-hint]")) return;
+      showIfReady(true);
     }
 
-    window.addEventListener("scroll", onEngage, { once: true, passive: true });
-    window.addEventListener("pointerdown", onEngage, { once: true });
+    window.addEventListener("scroll", onScroll, { passive: true });
+    document.addEventListener("click", onClick);
 
     return () => {
-      window.removeEventListener("scroll", onEngage);
-      window.removeEventListener("pointerdown", onEngage);
+      window.removeEventListener("scroll", onScroll);
+      document.removeEventListener("click", onClick);
     };
   }, []);
 
@@ -80,27 +121,52 @@ export function InstallHint() {
     return () => observer.disconnect();
   }, []);
 
+  useEffect(() => {
+    const root = document.documentElement;
+    const hint = hintRef.current;
+    if (!ready || menuOpen || !hint) {
+      root.style.removeProperty("--install-hint-offset");
+      return;
+    }
+
+    const apply = () => {
+      root.style.setProperty("--install-hint-offset", `${hint.offsetHeight + 8}px`);
+    };
+    apply();
+    const observer = new ResizeObserver(apply);
+    observer.observe(hint);
+    return () => {
+      observer.disconnect();
+      root.style.removeProperty("--install-hint-offset");
+    };
+  }, [ready, menuOpen]);
+
   if (!ready || menuOpen) return null;
 
   return (
     <div
-      className="fixed inset-x-3 z-50 rounded-2xl border border-border bg-background/95 p-4 text-sm text-foreground shadow-soft-lg backdrop-blur md:hidden"
+      ref={hintRef}
+      data-install-hint
+      className="fixed inset-x-3 z-40 flex items-center gap-2 rounded-xl border border-border bg-background/95 px-3 py-2 text-xs leading-snug text-foreground shadow-soft backdrop-blur md:hidden"
       style={{
-        bottom: "calc(var(--mobile-action-offset, 0px) + env(safe-area-inset-bottom) + 0.75rem)",
+        bottom: "calc(var(--mobile-action-offset, 0px) + env(safe-area-inset-bottom))",
       }}
       role="dialog"
       aria-label="Add to Home Screen"
     >
-      <p className="leading-relaxed">
-        Add Fouza Physiotherapy to your home screen: tap{" "}
-        <Share className="mb-0.5 inline size-4" aria-hidden /> Share, then{" "}
-        <strong className="font-semibold">Add to Home Screen</strong>.
+      <p className="min-w-0 flex-1">
+        <Share className="mb-0.5 mr-1 inline size-3.5" aria-hidden />
+        Tap Share, then <strong className="font-semibold">Add to Home Screen</strong>.
       </p>
       <button
         type="button"
-        className="mt-3 inline-flex min-h-11 items-center font-semibold underline-offset-2 hover:underline"
+        className="inline-flex min-h-11 shrink-0 items-center px-1 font-semibold underline-offset-2 hover:underline"
         onClick={() => {
-          dismissHint();
+          try {
+            window.localStorage.setItem(DISMISS_KEY, "1");
+          } catch {
+            /* private mode */
+          }
           setReady(false);
         }}
       >

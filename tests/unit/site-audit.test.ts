@@ -4,6 +4,7 @@ import { blogPosts, getFeaturedPost } from "@/content/blog";
 import { services } from "@/content/services";
 import { populatedCategories, postsForBlogGrid } from "@/lib/blog-filters";
 import { formatMonthYear } from "@/lib/format-month-year";
+import { installHintEngaged, installHintShouldShow } from "@/lib/install-hint";
 import { siteConfig } from "@/config/site";
 
 describe("blog filters", () => {
@@ -29,6 +30,47 @@ describe("review dates", () => {
   it("formats year-month as a readable month", () => {
     expect(formatMonthYear("2025-08")).toBe("Aug 2025");
     expect(formatMonthYear("2025-08-01T00:00:00.000Z")).toBe("Aug 2025");
+  });
+});
+
+describe("install hint", () => {
+  it("stays hidden on a first visit until the reader engages", () => {
+    const base = { standalone: false, iosSafari: true, dismissed: false, visitCount: 1 };
+    expect(installHintShouldShow({ ...base, engaged: false })).toBe(false);
+    expect(installHintEngaged({ elapsedMs: 1000, scrollY: 40, activatedControl: false })).toBe(false);
+    expect(installHintEngaged({ elapsedMs: 20_000, scrollY: 900, activatedControl: false })).toBe(true);
+    expect(installHintEngaged({ elapsedMs: 100, scrollY: 0, activatedControl: true })).toBe(true);
+    expect(installHintShouldShow({ ...base, engaged: true })).toBe(true);
+  });
+
+  it("shows on a later visit and stays hidden after dismiss or off iOS Safari", () => {
+    expect(
+      installHintShouldShow({
+        standalone: false,
+        iosSafari: true,
+        dismissed: false,
+        visitCount: 2,
+        engaged: false,
+      }),
+    ).toBe(true);
+    expect(
+      installHintShouldShow({
+        standalone: false,
+        iosSafari: true,
+        dismissed: true,
+        visitCount: 3,
+        engaged: true,
+      }),
+    ).toBe(false);
+    expect(
+      installHintShouldShow({
+        standalone: false,
+        iosSafari: false,
+        dismissed: false,
+        visitCount: 2,
+        engaged: true,
+      }),
+    ).toBe(false);
   });
 });
 

@@ -1,7 +1,7 @@
 import {
   Activity,
   Armchair,
-  Bone,
+  IdCard,
   Dumbbell,
   Hand,
   HeartPulse,
@@ -249,7 +249,7 @@ export const trustItems = [
     description: siteConfig.founder.practiceNumber
       ? `Practice no. ${siteConfig.founder.practiceNumber}`
       : "Private physiotherapy practice · Cape Town",
-    icon: Bone,
+    icon: IdCard,
   },
   {
     title: "Years of Experience",

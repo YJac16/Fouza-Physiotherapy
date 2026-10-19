@@ -177,7 +177,7 @@ export default async function HomePage() {
 
       <Section spacing="sm" tone="muted" className="py-10 md:py-16">
         <Container>
-          <div className="grid grid-cols-2 gap-3 md:gap-4 lg:grid-cols-3">
+          <div className="grid grid-cols-1 gap-2.5 min-[640px]:grid-cols-2 min-[640px]:gap-3 md:gap-4 lg:grid-cols-3">
             {trustItems.map((item) => (
               <SlideUp key={item.title}>
                 <FeatureCard
@@ -185,6 +185,7 @@ export default async function HomePage() {
                   title={item.title}
                   description={item.description}
                   titleAs="p"
+                  rowOnNarrow
                 />
               </SlideUp>
             ))}

@@ -18,16 +18,7 @@ import { Input } from "@/components/ui/input";
 import { Label } from "@/components/ui/label";
 import { Card, CardContent, CardHeader, CardTitle } from "@/components/ui/card";
 import { toDateKey } from "@/features/booking/lib/timezone";
-
-const DAYS = [
-  "Sunday",
-  "Monday",
-  "Tuesday",
-  "Wednesday",
-  "Thursday",
-  "Friday",
-  "Saturday",
-];
+import { WEEKDAYS } from "@/features/booking/lib/weekdays";
 
 const initial: AvailabilityActionState = {};
 
@@ -69,7 +60,7 @@ export function AddAvailabilityForm({ practitioners }: AddAvailabilityFormProps)
               required
               className="flex h-10 w-full rounded-xl border border-input bg-background px-3 py-2 text-sm"
             >
-              {DAYS.map((day, index) => (
+              {WEEKDAYS.map((day, index) => (
                 <option key={day} value={index}>
                   {day}
                 </option>
@@ -275,8 +266,4 @@ export function AvailabilityExceptionActions({ exceptionId }: { exceptionId: str
       Remove
     </Button>
   );
-}
-
-export function formatDay(day: number) {
-  return DAYS[day] ?? `Day ${day}`;
 }

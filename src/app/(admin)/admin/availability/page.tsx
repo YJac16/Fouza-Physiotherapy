@@ -4,9 +4,9 @@ import {
   AvailabilityExceptionActions,
   AvailabilityRuleActions,
   BlockDateForm,
-  formatDay,
 } from "@/features/booking/components/add-availability-form";
 import { loadAvailabilityAdminData } from "@/features/booking/api/availability";
+import { formatDay } from "@/features/booking/lib/weekdays";
 import { formatClockTime } from "@/features/booking/lib/practitioner-label";
 
 export default async function AdminAvailabilityPage() {
